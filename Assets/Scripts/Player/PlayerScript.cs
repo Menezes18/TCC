@@ -1,95 +1,43 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class PlayerScript : MonoBehaviour
 {
     [Header("Configuração do Player")]
-    [SerializeField] private PlayerControlSO _playerConfig;
-    [SerializeField] private CharacterController _characterController;
+    [SerializeField]  Database db;
+    [SerializeField]  PlayerControlSO _playerSO;
+    [SerializeField]  CharacterController _characterController;
 
+    public Vector3 rot => new Vector3(0, Camera.main.transform.rotation.eulerAngles.y, 0);
+    
+    
     private Vector2 _input;
-    private Vector3 _velocity;
+    private Vector3 _move;
     private bool _isGrounded;
     private PlayerStates _state;
+    
 
+    private void Start(){
+        _playerSO.EventOnCustomMove += EventOnCustomMove;
+        _playerSO.EventOnJump += EventOnJump;
+    }
+
+    
+    
     private void Update()
     {
-        DetectGround();
-        UpdateState();
-        HandleMovement();
-        ApplyGravity();
-        _characterController.Move(_velocity * Time.deltaTime);
+        _move = new Vector3(_input.x, 0, _input.y);
+        _move = Quaternion.Euler(rot) * _move;
+        _move *= db.playerSpeed;
+        _characterController.Move(_move * Time.deltaTime);
+    }
+    
+    private void EventOnJump(InputAction.CallbackContext obj){
+        throw new NotImplementedException();
     }
 
-    #region Input Callbacks 
-    public void OnMove(InputAction.CallbackContext context)
-    {
-        _input = context.ReadValue<Vector2>();
+    private void EventOnCustomMove(Vector2 obj){
+        _input = obj;
     }
-
-    public void OnJump(InputAction.CallbackContext context)
-    {
-        if (_state == PlayerStates.Default) 
-        {
-            _velocity.y = _playerConfig.jumpForce;
-            _state = PlayerStates.Ascend;
-        }
-    }
-    #endregion
-
-    #region Estado do Jogador
-    private void DetectGround()
-    {
-        _isGrounded = _characterController.isGrounded;
-    }
-
-    private void UpdateState()
-    {
-        if (_isGrounded)
-        {
-            _state = PlayerStates.Default;
-        }
-        else if (_velocity.y > 0)
-        {
-            _state = PlayerStates.Ascend;
-        }
-        else
-        {
-            _state = PlayerStates.Descend;
-        }
-    }
-    #endregion
-
-    #region Movimento
-    private void HandleMovement()
-    {
-        Vector3 moveDirection = new Vector3(_input.x, 0, _input.y);
-        moveDirection = transform.rotation * moveDirection;
-
-        if (_state == PlayerStates.Default)
-        {
-            _velocity.x = moveDirection.x * _playerConfig.speed;
-            _velocity.z = moveDirection.z * _playerConfig.speed;
-        }
-        else
-        {
-            _velocity.x = moveDirection.x * _playerConfig.airSpeed;
-            _velocity.z = moveDirection.z * _playerConfig.airSpeed;
-        }
-    }
-    #endregion
-
-    #region Gravidade e Pulo
-    private void ApplyGravity()
-    {
-        if (_isGrounded && _velocity.y < 0)
-        {
-            _velocity.y = -2f; 
-        }
-        else
-        {
-            _velocity.y += _playerConfig.gravity * Time.deltaTime;
-        }
-    }
-    #endregion
 }

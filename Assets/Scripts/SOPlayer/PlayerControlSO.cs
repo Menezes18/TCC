@@ -1,16 +1,32 @@
+using System;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 [CreateAssetMenu(fileName = "NewPlayerControl", menuName = "Player/ControlSO")]
-public class PlayerControlSO : ScriptableObject
-{
-    [Header("Movimentação")]
-    public float speed = 5.0f;
-    public float airSpeed = 8.0f;
+public class PlayerControlSO : ScriptableObject{
+    public float inputAcel;
+    public float inputGravity;
+    
+    public Action<Vector2> EventMove;
+    public Action<Vector2> EventOnCustomMove;
+    
+    public Action<InputAction.CallbackContext> EventOnJump;
 
-    [Header("Física")]
-    public float gravity = -9.81f;
-    public float jumpForce = 10f;
+    public Action<Vector2> EventOnLook;
 
-    [Header("Câmera")]
-    public float sensitivity = 5.0f;
+
+    public void OnLook(InputAction.CallbackContext context){
+        EventOnLook?.Invoke(context.ReadValue<Vector2>());
+    }
+    public void OnCustomMove(Vector2 move){
+        EventOnCustomMove?.Invoke(move);
+    }
+    public void OnJump(InputAction.CallbackContext context){
+        if (context.performed)
+            EventOnJump?.Invoke(context);
+    }
+
+    public void OnMove(InputAction.CallbackContext context){
+        EventMove?.Invoke(context.ReadValue<Vector2>());
+    }
 }
