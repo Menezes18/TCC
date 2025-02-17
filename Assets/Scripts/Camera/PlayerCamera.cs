@@ -1,12 +1,12 @@
 using System;
+using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerCamera : MonoBehaviour
+public class PlayerCamera : NetworkBehaviour
 {
     [Header("Configuração da Câmera")]
     [SerializeField] private PlayerControlSO PlayerControlSO;
-    [SerializeField] private Transform player;
     [SerializeField] private Vector3 cameraOffset = new Vector3(0, 0.5f, 0); 
     
     private Camera _cam;
@@ -14,6 +14,7 @@ public class PlayerCamera : MonoBehaviour
     
     private void Start()
     {
+        if(base.isOwned == false) return;
         _cam = Camera.main;
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
@@ -21,15 +22,12 @@ public class PlayerCamera : MonoBehaviour
         PlayerControlSO.EventOnLook += OnLook;
     }
 
-
-
-    private void Update(){
-        UpdateCameraPosition();
-       
-    }
+    
 
     private void LateUpdate()
     {
+        if(base.isOwned == false) return;
+        UpdateCameraPosition();
         UpdateCameraRotation();
     }
 
@@ -43,13 +41,13 @@ public class PlayerCamera : MonoBehaviour
 
     private void UpdateCameraPosition()
     {
-        Vector3 targetPosition = player.position + cameraOffset;
+        Vector3 targetPosition = transform.position + cameraOffset;
         _cam.transform.position = targetPosition;
     }
 
     private void UpdateCameraRotation()
     {
-        player.rotation = Quaternion.Euler(0, _mouseX, 0);
+        transform.rotation = Quaternion.Euler(0, _mouseX, 0);
         _cam.transform.rotation = Quaternion.Euler(_mouseY, _mouseX, 0);
     }
 }
