@@ -110,25 +110,29 @@ public class PlayerScript : PlayerScriptBase
     private void EventOnCustomMove(Vector2 obj){
         _input = obj;
     }
-    private void OnTriggerEnter(Collider other)
+
+    public void RespawnAt(Vector3 position)
     {
-        if (!isServer) return; // ✅ Só o servidor executa essa lógica
+        if (!isServer) return;
 
-        if (other.CompareTag("Car")) // Se o jogador encostar em um carro
-        {
-            Debug.Log($"[SERVER] O jogador {netId} colidiu com um carro!");
-
-            
-            RpcMovePlayer(other.GetComponent<CarSpawner>().carSpawnPoint.transform.position);
-        }
+        RpcRespawn(position);
     }
 
-
     [TargetRpc]
-    void RpcMovePlayer(Vector3 position)
+    private void RpcRespawn(Vector3 position)
     {
-        Debug.Log($"[CLIENT] Movendo jogador {netId} para (0,0,0)");
-        transform.position = position;
+        if (_characterController != null)
+        {
+            _characterController.enabled = false; 
+            transform.position = position;
+            _characterController.enabled = true; 
+        }
+        else
+        {
+            transform.position = position;
+        }
+
+        Debug.Log($"[CLIENT] Player {netId} respawned at {position}");
     }
     protected override void OnStateChanged(PlayerStates oldVal, PlayerStates newVal){
         base.OnStateChanged(oldVal, newVal);
