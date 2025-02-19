@@ -12,10 +12,10 @@ GameObject:
   - component: {fileID: 4350491566687450713}
   - component: {fileID: 6526160496745501155}
   - component: {fileID: 3965399302703991584}
-  - component: {fileID: 3511271110248732573}
   - component: {fileID: 5316541575749941419}
   - component: {fileID: 2693150269244523913}
   - component: {fileID: -8547573132983121816}
+  - component: {fileID: 1240013118378287070}
   m_Layer: 0
   m_Name: Capsule
   m_TagString: Car
@@ -111,21 +111,6 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &3511271110248732573
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 843497328325796592}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: edec63e7a2d7a8d43a186bd1a58a7897, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
 --- !u!114 &5316541575749941419
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -203,3 +188,18 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &1240013118378287070
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 843497328325796592}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3856b39fa683e9541b25d1152cd6d4bd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0

@@ -8,6 +8,5 @@ using UnityEngine;
 public class CarData : ScriptableObject
 {
     public GameObject carPrefab;
-    public float speed;
 }
 
