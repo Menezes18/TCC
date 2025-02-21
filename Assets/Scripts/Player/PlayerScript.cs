@@ -134,6 +134,19 @@ public class PlayerScript : PlayerScriptBase
 
         Debug.Log($"[CLIENT] Player {netId} respawned at {position}");
     }
+    [ClientRpc]
+    public void ApplyPush(Vector3 force)
+    {
+        if (_characterController != null)
+        {
+            _characterController.Move(force);
+            
+            _move.y = force.magnitude * 0.5f;
+            
+            State = PlayerStates.Air;
+            _inertiaSpeed = force.magnitude;
+        }
+    }
     protected override void OnStateChanged(PlayerStates oldVal, PlayerStates newVal){
         base.OnStateChanged(oldVal, newVal);
     }
