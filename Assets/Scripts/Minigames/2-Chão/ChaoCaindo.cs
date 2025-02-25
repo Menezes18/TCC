@@ -3,6 +3,7 @@ using UnityEngine;
 
 class ChaoCaindo : ChaoMae
 {
+
     public void OnTriggerEnter(Collider other)
     {
         if(other.CompareTag("Player") && !chaoTirado){
@@ -24,9 +25,9 @@ class ChaoCaindo : ChaoMae
     {
         float tempoDecorrido = 0f;
         yield return new WaitForSeconds(0.6f);
-        while (tempoDecorrido < tempo)
+        while (tempoDecorrido < dataChao.tempo)
         {
-            transform.position -= Vector3.up * speed * Time.deltaTime;
+            transform.position -= Vector3.up * dataChao.speed * Time.deltaTime;
             tempoDecorrido += Time.deltaTime;
             yield return null;
         }

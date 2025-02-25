@@ -29,8 +29,8 @@ public class ChaoQuebrando : ChaoMae
     {
         if (jogadorNoTile && !chaoTirado)
         {
-            tempoAcumulado = Time.deltaTime;
-            if(tempoAcumulado >= tempo){
+            tempoAcumulado += Time.deltaTime;
+            if(tempoAcumulado >= dataChao.tempo){
                 tempoAcumulado = 0;
                 AtualizaEstado();
             }
