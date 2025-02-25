@@ -14,7 +14,7 @@ namespace Network
         /// <summary>
         /// The local player object that spawns in.
         /// </summary>
-        public Player localPlayer;
+        public PlayerScript localPlayer;
         private string m_SessionId = "";
         private string m_Username;
         private string m_UserId;
@@ -27,12 +27,12 @@ namespace Network
         /// <summary>
         /// List of players currently connected to the server.
         /// </summary>
-        private List<Player> m_Players;
+        private List<PlayerScript> m_Players;
 
         public override void Awake()
         {
             base.Awake();
-            m_Players = new List<Player>();
+            m_Players = new List<PlayerScript>();
 
             m_Username = SystemInfo.deviceName;
         }
@@ -83,7 +83,7 @@ namespace Network
 
             foreach (KeyValuePair<uint, NetworkIdentity> kvp in NetworkServer.spawned)
             {
-                Player comp = kvp.Value.GetComponent<Player>();
+                PlayerScript comp = kvp.Value.GetComponent<PlayerScript>();
 
                 // Add to player list if new
                 if (comp != null && !m_Players.Contains(comp))
@@ -107,13 +107,13 @@ namespace Network
             Dictionary<uint, NetworkIdentity> spawnedPlayers = NetworkServer.spawned;
             
             // Update players list on client disconnect
-            foreach (Player player in m_Players)
+            foreach (PlayerScript player in m_Players)
             {
                 bool playerFound = false;
 
                 foreach (KeyValuePair<uint, NetworkIdentity> kvp in spawnedPlayers)
                 {
-                    Player comp = kvp.Value.GetComponent<Player>();
+                    PlayerScript comp = kvp.Value.GetComponent<PlayerScript>();
 
                     // Verify the player is still in the match
                     if (comp != null && player == comp)
@@ -162,7 +162,7 @@ namespace Network
             if (NetworkClient.localPlayer == null)
                 return;
 
-            localPlayer = NetworkClient.localPlayer.GetComponent<Player>();
+            localPlayer = NetworkClient.localPlayer.GetComponent<PlayerScript>();
         }
     }
 }

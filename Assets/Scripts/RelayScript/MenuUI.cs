@@ -36,10 +36,15 @@ namespace UI
 		/// The vertical offset in pixels to draw the HUD runtime GUI at.
 		/// </summary>
 		public int offsetY;
+		private float deltaTime = 0.0f;
 
 		void Awake()
 		{
 			m_Manager = GetComponent<MyNetworkManager>();
+		}
+		void Update()
+		{
+			deltaTime += (Time.unscaledDeltaTime - deltaTime) * 0.1f;
 		}
 
 		void OnGUI()
@@ -82,6 +87,16 @@ namespace UI
 			StopButtons();
 
 			GUILayout.EndArea();
+		}
+		void ShowPerformanceStats()
+		{
+			if (NetworkClient.isConnected)
+			{
+				double ping = NetworkTime.rtt * 1000f; // RTT convertido para milissegundos
+				float fps = 1.0f / deltaTime; // Calculando FPS
+        
+				GUILayout.Label($"Ping: {ping:F0} ms | FPS: {fps:F0}", GetStatusStyle());
+			}
 		}
 
 		void StartButtons()
@@ -186,15 +201,22 @@ namespace UI
 				//GUILayout.Label("Server: active. Transport: " + Transport.activeTransport);
 				if (m_Manager.IsRelayEnabled())
 				{
-					GUILayout.Label("Relay enabled. Join code: " + m_Manager.relayJoinCode);
+					GUILayout.Label("Relay enabled. Join code: " + m_Manager.relayJoinCode, GetStatusStyle());
 				}
 			}
 			if (NetworkClient.isConnected)
 			{
-				GUILayout.Label("Client: address=" + m_Manager.networkAddress);
+				GUILayout.Label("Client: address=" + m_Manager.networkAddress, GetStatusStyle());
+				ShowPerformanceStats();
 			}
 		}
-
+		GUIStyle GetStatusStyle()
+		{
+			GUIStyle style = new GUIStyle(GUI.skin.label);
+			style.fontStyle = FontStyle.Bold; // Deixa o texto em negrito
+			style.normal.textColor = Color.green; // Define a cor verde
+			return style;
+		}
 		void StopButtons()
 		{
 			// stop host if host mode

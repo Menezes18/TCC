@@ -20,6 +20,8 @@ public class PlayerScript : PlayerScriptBase
     private bool _ignoreGroundedOnThisFrame;
     private float _inertiaSpeed;
     [SyncVar(hook = nameof(OnAliasUpdated))]  public string Alias; 
+    [SyncVar]
+    public string sessionId = "";
     private void Start(){
         
         if(base.isOwned == false) return;
