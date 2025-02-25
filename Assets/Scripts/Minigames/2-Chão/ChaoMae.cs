@@ -28,6 +28,13 @@ public abstract class ChaoMae : MonoBehaviour
         protected set { _chaoTirado = value; } 
     }
 
+    public Vector3 posIncial;
+
+    void Awake()
+    {
+        posIncial = transform.position;
+    }
+
     public abstract void tiraChao();
 
     public abstract void poeChao();

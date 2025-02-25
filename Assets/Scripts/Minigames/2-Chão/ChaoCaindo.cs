@@ -3,13 +3,6 @@ using UnityEngine;
 
 class ChaoCaindo : ChaoMae
 {
-    public Vector3 posIncial;
-
-    void Awake()
-    {
-        posIncial = transform.position;
-    }
-
     public void OnTriggerEnter(Collider other)
     {
         if(other.CompareTag("Player") && !chaoTirado){
