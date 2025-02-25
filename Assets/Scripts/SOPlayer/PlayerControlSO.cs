@@ -14,6 +14,14 @@ public class PlayerControlSO : ScriptableObject{
 
     public Action<Vector2> EventOnLook;
 
+    public Action<InputAction.CallbackContext> EventOnPush;
+
+
+    public void OnPush(InputAction.CallbackContext context)
+    {
+        if(context.performed)
+            EventOnPush?.Invoke(context);
+    }
 
     public void OnLook(InputAction.CallbackContext context){
         EventOnLook?.Invoke(context.ReadValue<Vector2>());

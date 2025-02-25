@@ -1,25 +1,35 @@
 using System;
 using Mirror;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class PlayerPushSystem : NetworkBehaviour
 {
-    [SerializeField] private float pushForce = 15f; 
-    [SerializeField] private float pushCooldown = 1f;
-    [SerializeField] private float pushRadius = 2f; 
+ 
+    [SerializeField] PlayerControlSO _playerSO;
+    [SerializeField] Database db;
+
     [SerializeField] private Transform pushOrigin; 
     private float lastPushTime;
 
-    private void Update()
+
+    private void Start()
     {
-        if (!isOwned) return;
-        
-        if (Input.GetKeyDown(KeyCode.E) && Time.time > lastPushTime + pushCooldown)
+        _playerSO.EventOnPush += OnEventPush; 
+
+    }
+
+    public void OnEventPush(InputAction.CallbackContext context)
+    {
+        Debug.LogError("Fire");
+        if (context.phase == InputActionPhase.Performed && Time.time > lastPushTime + db.pushCooldown)
         {
             AttemptPush();
+            Debug.LogError("push");
             lastPushTime = Time.time;
         }
     }
+
 
     private void AttemptPush()
     {
@@ -33,15 +43,15 @@ public class PlayerPushSystem : NetworkBehaviour
         
         Vector3 rayStart = pushOrigin.position;
         Vector3 rayDirection = transform.forward;
-        if (Physics.Raycast(rayStart, rayDirection, out hit, pushRadius)){
+        if (Physics.Raycast(rayStart, rayDirection, out hit, db.pushRadius)){
             if (hit.collider.TryGetComponent(out PlayerScript targetPlayer) && targetPlayer.netId != netId)
             {
                 Vector3 pushDirection = (hit.collider.transform.position - transform.position).normalized;
-                // Adicionamos um pequeno componente vertical para cima
+                
                 pushDirection += Vector3.up * 0.2f;
                 pushDirection.Normalize();
                 
-                targetPlayer.ApplyPush(pushDirection * pushForce);
+                targetPlayer.ApplyPush(pushDirection * db.pushForce);
             }
         }
     }
@@ -55,7 +65,7 @@ public class PlayerPushSystem : NetworkBehaviour
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, pushRadius);
-        Gizmos.DrawRay(transform.position, transform.forward * pushRadius);
+        Gizmos.DrawWireSphere(transform.position, db.pushRadius);
+        Gizmos.DrawRay(transform.position, transform.forward * db.pushRadius);
     }
 }
