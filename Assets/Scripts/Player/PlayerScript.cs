@@ -3,7 +3,7 @@ using Mirror;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
-
+using System.Collections;
 public class PlayerScript : PlayerScriptBase
 {
     [Header("Configuração do Player")]
@@ -112,7 +112,7 @@ public class PlayerScript : PlayerScriptBase
     private void EventOnCustomMove(Vector2 obj){
         _input = obj;
     }
-
+    [Command]
     public void RespawnAt(Vector3 position)
     {
         if (!isServer) return;
@@ -123,7 +123,7 @@ public class PlayerScript : PlayerScriptBase
     [TargetRpc]
     private void RpcRespawn(Vector3 position)
     {
-        if (_characterController != null)
+        if (_characterController != null && isLocalPlayer)
         {
             _characterController.enabled = false; 
             transform.position = position;
@@ -141,12 +141,39 @@ public class PlayerScript : PlayerScriptBase
     {
         if (_characterController != null)
         {
-            _characterController.Move(force);
             
-            _move.y = force.magnitude * 0.5f;
+            _characterController.Move(force * 0.5f); 
+        
             
-            State = PlayerStates.Air;
-            _inertiaSpeed = force.magnitude;
+            _move = new Vector3(force.x * 1.2f, 0, force.z * 1.2f); 
+        
+            // "levantar" o personagem 
+            _move.y = force.magnitude * 0.7f; 
+        
+            
+            _inertiaSpeed = Mathf.Max(force.magnitude, db.maxAirSpeed);
+        
+           
+            State = PlayerStates.BeingPushed;
+        }
+    
+        
+        StartCoroutine(ReturnToDefaultStateAfterPush());
+    }
+    
+
+    private IEnumerator ReturnToDefaultStateAfterPush()
+    {
+        yield return new WaitForSeconds(0.5f);
+        
+        
+        if (State == PlayerStates.BeingPushed)
+        {
+             
+            if (!_characterController.isGrounded)
+                State = PlayerStates.Air;
+            else
+                State = PlayerStates.Default;
         }
     }
     protected override void OnStateChanged(PlayerStates oldVal, PlayerStates newVal){
