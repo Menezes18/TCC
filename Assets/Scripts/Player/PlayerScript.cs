@@ -71,9 +71,12 @@ public class PlayerScript : PlayerScriptBase
         
         Vector3 inertia = _move;
         inertia.y = 0;
-        inertia += input * Time.deltaTime;
-        
-        inertia = Vector3.ClampMagnitude(inertia, _inertiaSpeed);
+       // inertia += input * Time.deltaTime;
+       //inertia = Vector3.ClampMagnitude(inertia, _inertiaSpeed);
+        inertia = Vector3.Lerp(inertia, input * db.airSpeed, Time.deltaTime * 5f);
+
+    // Permite que o player controle melhor sua direção no ar
+        inertia = Vector3.ClampMagnitude(inertia, db.maxAirSpeed * 0.8f); 
 
         _move = inertia;
         _move.y = vertical;
