@@ -65,63 +65,68 @@ namespace Utp
 		/// </summary>
 		private void Awake()
 		{
+			// Inicializar todos os delegates com handlers minimalistas no início
+			OnServerDataReceived = (connId, data, channel) => { };
+			OnServerConnected = (connId) => { };
+			OnServerDisconnected = (connId) => { };
+			OnClientDataReceived = (data, channel) => { };
+			OnClientConnected = () => { };
+			OnClientDisconnected = () => { };
+    
+			// Agora podemos configurar callbacks mais específicos se necessário
 			SetupDefaultCallbacks();
 
-			//Logging delegates
+			// Configurar logs baseados no nível de log
 			if (LoggerLevel < LogLevel.Verbose) UtpLog.Verbose = _ => { };
 			if (LoggerLevel < LogLevel.Info) UtpLog.Info = _ => { };
 			if (LoggerLevel < LogLevel.Warning) UtpLog.Warning = _ => { };
 			if (LoggerLevel < LogLevel.Error) UtpLog.Error = _ => { };
 
-			//Instantiate new UTP server
+			// Instanciar servidor UTP com callbacks minimalistas
 			server = new UtpServer(
-				(connectionId) => OnServerConnected.Invoke(connectionId),
-				(connectionId, message) => OnServerDataReceived.Invoke(connectionId, message, Channels.Reliable),
-				(connectionId) => OnServerDisconnected.Invoke(connectionId),
+				(connectionId) => OnServerConnected?.Invoke(connectionId),
+				(connectionId, message) => OnServerDataReceived?.Invoke(connectionId, message, Channels.Reliable),
+				(connectionId) => OnServerDisconnected?.Invoke(connectionId),
 				TimeoutMS);
 
-			//Instantiate new UTP client
+			// Instanciar cliente UTP com callbacks minimalistas
 			client = new UtpClient(
-				() => OnClientConnected.Invoke(),
-				(message) => OnClientDataReceived.Invoke(message, Channels.Reliable),
-				() => OnClientDisconnected.Invoke(),
+				() => OnClientConnected?.Invoke(),
+				(message) => OnClientDataReceived?.Invoke(message, Channels.Reliable),
+				() => OnClientDisconnected?.Invoke(),
 				TimeoutMS);
 
+			// Obter ou adicionar gerenciador de Relay
 			if (!TryGetComponent<IRelayManager>(out relayManager))
 			{
-				//Add relay manager component
 				relayManager = gameObject.AddComponent<RelayManager>();
 			}
 
 			UtpLog.Info("UTPTransport initialized!");
 		}
-
+		void ProcessPacket(int connId, ArraySegment<byte> data, int channel)
+		{
+			// Verificar antes de invocar
+			OnServerDataReceived?.Invoke(connId, data, channel);
+		}
 		private void SetupDefaultCallbacks()
 		{
-			if (OnServerConnected == null)
+			
+    
+			// Configurar para logs básicos apenas se estivermos em modo de depuração
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+			if (LoggerLevel >= LogLevel.Info)
 			{
-				OnServerConnected = (connId) => UtpLog.Warning("OnServerConnected called with no handler");
+				
+				if (OnServerDataReceived.GetInvocationList().Length == 1)
+				{
+					OnServerDataReceived = (connId, data, channel) =>
+					{
+					
+					};
+				}
 			}
-			if (OnServerDisconnected == null)
-			{
-				OnServerDisconnected = (connId) => UtpLog.Warning("OnServerDisconnected called with no handler");
-			}
-			if (OnServerDataReceived == null)
-			{
-				OnServerDataReceived = (connId, data, channel) => UtpLog.Warning("OnServerDataReceived called with no handler");
-			}
-			if (OnClientConnected == null)
-			{
-				OnClientConnected = () => UtpLog.Warning("OnClientConnected called with no handler");
-			}
-			if (OnClientDisconnected == null)
-			{
-				OnClientDisconnected = () => UtpLog.Warning("OnClientDisconnected called with no handler");
-			}
-			if (OnClientDataReceived == null)
-			{
-				OnClientDataReceived = (data, channel) => UtpLog.Warning("OnClientDataReceived called with no handler");
-			}
+#endif
 		}
 
 		/// <summary>
@@ -132,7 +137,11 @@ namespace Utp
 		{
 			return Application.platform != RuntimePlatform.WebGLPlayer;
 		}
-
+		private void ProcessIncomingData(int connectionId, ArraySegment<byte> data, int channel)
+		{
+			// Aqui você pode converter os bytes em mensagens específicas, dependendo do seu jogo
+			UtpLog.Info($"[SERVER] Processing data: {BitConverter.ToString(data.Array, data.Offset, data.Count)}");
+		}
 		/// <summary>
 		/// Connects client to a server address.
 		/// </summary>

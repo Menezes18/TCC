@@ -72,10 +72,41 @@ namespace Network
 
         public override void OnStartServer()
         {
+            base.OnStartServer();
+            NetworkServer.RegisterHandler<ChatMessage>(OnChatMessageReceived);
             Debug.Log("MyNetworkManager: Server Started!");
-
-            m_SessionId = System.Guid.NewGuid().ToString();
+            //
+            // m_SessionId = System.Guid.NewGuid().ToString();
+            //
+            // if (NetworkManager.singleton.transport is UtpTransport utpTransport)
+            // {
+            //     // Garante que o handler seja registrado apenas uma vez
+            //     utpTransport.OnServerDataReceived -= HandleServerDataReceived;
+            //     utpTransport.OnServerDataReceived += HandleServerDataReceived;
+            // }
         }
+        void OnChatMessageReceived(NetworkConnectionToClient conn, ChatMessage message)
+        {
+            Debug.Log($"Received message from {conn.connectionId}: {message.content}");
+        }
+        // No método HandleServerDataReceived em MyNetworkManager.cs
+        private void HandleServerDataReceived(int connId, ArraySegment<byte> data, int channel)
+        {
+            if (data.Count == 0)
+            {
+                Debug.LogWarning($"[SERVER] Pacote vazio recebido de {connId}, ignorando.");
+                return;
+            }
+
+            // Em vez de tentar converter para string, apenas registre o recebimento de dados binários
+            Debug.Log($"[SERVER] Pacote recebido de {connId}: {data.Count} bytes");
+    
+            // Deixe o Mirror lidar com o processamento da mensagem
+            // Os dados serão devidamente desserializados pelos manipuladores de mensagens do Mirror
+        }
+
+
+
 
         public override void OnServerAddPlayer(NetworkConnectionToClient conn)
         {
