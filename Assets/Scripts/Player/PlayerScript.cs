@@ -122,7 +122,31 @@ public class PlayerScript : PlayerScriptBase
 
         RpcRespawn(position);
     }
-
+    [ClientRpc]
+    public void RpcTeleport(Vector3 position, Quaternion rotation)
+    {
+        // Desativar temporariamente a física para evitar problemas de sincronização
+        Rigidbody rb = GetComponent<Rigidbody>();
+        bool wasKinematic = false;
+        
+        if (rb != null)
+        {
+            wasKinematic = rb.isKinematic;
+            rb.isKinematic = true;
+        }
+        
+        // Definir posição e rotação
+        transform.position = position;
+        transform.rotation = rotation;
+        
+        // Restaurar a física
+        if (rb != null)
+        {
+            rb.isKinematic = wasKinematic;
+        }
+        
+        Debug.Log($"Player {name} teleported to {position}");
+    }
     [TargetRpc]
     private void RpcRespawn(Vector3 position)
     {
@@ -181,5 +205,73 @@ public class PlayerScript : PlayerScriptBase
     }
     protected override void OnStateChanged(PlayerStates oldVal, PlayerStates newVal){
         base.OnStateChanged(oldVal, newVal);
+    }
+    
+// Método RPC para definir a posição do jogador em todos os clientes
+    [ClientRpc]
+    public void RpcSetPosition(Vector3 position, Quaternion rotation)
+    {
+        // Desativar temporariamente a física para evitar problemas de sincronização
+        Rigidbody rb = GetComponent<Rigidbody>();
+        bool hadRigidbody = false;
+        
+        if (rb != null)
+        {
+            hadRigidbody = rb.isKinematic;
+            rb.isKinematic = true;
+        }
+        
+        // Definir posição e rotação
+        transform.position = position;
+        transform.rotation = rotation;
+        
+        // Restaurar a física
+        if (rb != null && !hadRigidbody)
+        {
+            rb.isKinematic = false;
+        }
+        
+        Debug.Log($"Player {name} position set to {position}");
+    }
+    
+    // Chamado quando o jogador é inicializado no servidor
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        
+        // Registrar no PlayerManager
+        if (PlayerManager.Instance != null)
+        {
+            PlayerManager.Instance.RegisterPlayer(this);
+            Debug.Log($"Player {name} registered with PlayerManager");
+        }
+        else
+        {
+            Debug.LogError("PlayerManager instance not found!");
+        }
+    }
+    
+    // Chamado quando o jogador é inicializado no cliente
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        
+        // Se for o cliente local, registrar no PlayerManager
+        if (isLocalPlayer && PlayerManager.Instance != null)
+        {
+            Debug.Log($"Local player {name} started");
+        }
+    }
+    
+    // Chamado quando o jogador é desconectado no servidor
+    public override void OnStopServer()
+    {
+        base.OnStopServer();
+        
+        // Desregistrar do PlayerManager
+        if (PlayerManager.Instance != null)
+        {
+            PlayerManager.Instance.UnregisterPlayer(this);
+        }
     }
 }
