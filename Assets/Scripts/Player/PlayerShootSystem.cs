@@ -8,20 +8,7 @@ public class PlayerShootSystem : PlayerScriptBase
 {
     [SerializeField] private PlayerControlSO _playerSO;
     [SerializeField] private Transform origemTiro;
-    [SerializeField] private float tempoRecarga = 0.5f;
-    [SerializeField] private GameObject projetilPrefab;
-
-    [Header("Atributos do Tiro")]
-    [Tooltip("Velocidade inicial (magnitude) do projétil.")]
-    [SerializeField] private float velocidadeInicial = 30f;
-    [Tooltip("Ângulo de lançamento em graus (0 = horizontal, 90 = vertical).")]
-    [SerializeField] private float anguloTiro = 45f;
-    [Tooltip("Gravidade (negativa). Normal: -9.81.")]
-    [SerializeField] private float gravidade = -9.81f;
-
-    [Header("Gizmo de trajetória")]
-    [SerializeField] private float tempoMaximoTrajetoria = 3f;
-    [SerializeField] private int passosTrajetoria = 30;
+    [SerializeField] private ProjetilData _projetil;
     
     private Camera cameraJogador;
     private float ultimoTiroTempo;
@@ -60,7 +47,7 @@ public class PlayerShootSystem : PlayerScriptBase
 
     private bool PodeTirarAgora()
     {
-        bool recargaCompleta = Time.time >= ultimoTiroTempo + tempoRecarga;
+        bool recargaCompleta = Time.time >= ultimoTiroTempo + _projetil.tempoRecarga;
         bool estadoValido = IsInState(PlayerStates.Default) || IsInState(PlayerStates.ShootCooldown);
         return recargaCompleta && estadoValido;
     }
@@ -70,7 +57,7 @@ public class PlayerShootSystem : PlayerScriptBase
         yield return new WaitForSeconds(0.2f);
         State = PlayerStates.ShootCooldown;
 
-        float tempoRestante = tempoRecarga - 0.2f;
+        float tempoRestante = _projetil.tempoRecarga - 0.2f;
         if (tempoRestante > 0)
             yield return new WaitForSeconds(tempoRestante);
 
@@ -89,26 +76,26 @@ public class PlayerShootSystem : PlayerScriptBase
         dirXZ.Normalize();
 
         // 2) Converte angulo de graus para radianos.
-        float rad = anguloTiro * Mathf.Deg2Rad;
+        float rad = _projetil.anguloTiro * Mathf.Deg2Rad;
 
         // 3) Decompoe velocidade inicial em horizontal (XZ) e vertical (Y).
-        float vXZ = velocidadeInicial * Mathf.Cos(rad);
-        float vY  = velocidadeInicial * Mathf.Sin(rad);
+        float vXZ = _projetil.velocidadeInicial * Mathf.Cos(rad);
+        float vY  = _projetil.velocidadeInicial * Mathf.Sin(rad);
 
         // 4) Monta o vetor de velocidade inicial => (vXZ na horizontal, vY na vertical).
         Vector3 velocityInicial = dirXZ * vXZ;
         velocityInicial.y = vY;
 
         // 5) Instancia o projétil e inicializa com a velocity calculada
-        if (projetilPrefab != null)
+        if (_projetil.projetilPrefab != null)
         {
-            GameObject projetil = Instantiate(projetilPrefab, origemTiro.position, Quaternion.identity);
+            GameObject projetil = Instantiate(_projetil.projetilPrefab, origemTiro.position, Quaternion.identity);
             NetworkServer.Spawn(projetil);
 
             ProjetilParabolico projParabolico = projetil.GetComponent<ProjetilParabolico>();
             if (projParabolico != null)
             {
-                projParabolico.Inicializar(velocityInicial, gravidade);
+                projParabolico.Inicializar(velocityInicial, _projetil.gravidade);
             }
         }
     }
@@ -134,11 +121,11 @@ public class PlayerShootSystem : PlayerScriptBase
         dirXZ.Normalize();
 
         // 2) Angulo -> radianos
-        float rad = anguloTiro * Mathf.Deg2Rad;
+        float rad = _projetil.anguloTiro * Mathf.Deg2Rad;
 
         // 3) Decompoe
-        float vXZ = velocidadeInicial * Mathf.Cos(rad);
-        float vY  = velocidadeInicial * Mathf.Sin(rad);
+        float vXZ = _projetil.velocidadeInicial * Mathf.Cos(rad);
+        float vY  = _projetil.velocidadeInicial * Mathf.Sin(rad);
 
         // 4) Monta velocity
         Vector3 velInicial = dirXZ * vXZ;
@@ -148,15 +135,15 @@ public class PlayerShootSystem : PlayerScriptBase
         Gizmos.color = Color.red;
 
         Vector3 posAnterior = origemTiro.position;
-        float step = tempoMaximoTrajetoria / passosTrajetoria;
-        for (int i = 1; i <= passosTrajetoria; i++)
+        float step = _projetil.tempoMaximoTrajetoria / _projetil.passosTrajetoria;
+        for (int i = 1; i <= _projetil.passosTrajetoria; i++)
         {
             float t = i * step;
 
             // S(t) = S0 + v0*t + 1/2*g*t^2 (apenas g no Y).
             Vector3 posAtual = origemTiro.position 
                 + velInicial * t
-                + 0.5f * new Vector3(0, gravidade, 0) * (t * t);
+                + 0.5f * new Vector3(0, _projetil.gravidade, 0) * (t * t);
 
             Gizmos.DrawLine(posAnterior, posAtual);
             posAnterior = posAtual;
