@@ -2,5 +2,11 @@
 public enum PlayerStates {
 
     Default,
-    Air
+    Air,
+    Pushing,        
+    BeingPushed,    
+    PushCooldown,
+    Shooting,
+    BeingShot,
+    ShootCooldown
 }

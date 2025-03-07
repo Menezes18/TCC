@@ -3,7 +3,7 @@ using Mirror;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
-
+using System.Collections;
 public class PlayerScript : PlayerScriptBase
 {
     [Header("Configuração do Player")]
@@ -20,6 +20,8 @@ public class PlayerScript : PlayerScriptBase
     private bool _ignoreGroundedOnThisFrame;
     private float _inertiaSpeed;
     [SyncVar(hook = nameof(OnAliasUpdated))]  public string Alias; 
+    [SyncVar]
+    public string sessionId = "";
     private void Start(){
         
         if(base.isOwned == false) return;
@@ -69,9 +71,12 @@ public class PlayerScript : PlayerScriptBase
         
         Vector3 inertia = _move;
         inertia.y = 0;
-        inertia += input * Time.deltaTime;
-        
-        inertia = Vector3.ClampMagnitude(inertia, _inertiaSpeed);
+       // inertia += input * Time.deltaTime;
+       //inertia = Vector3.ClampMagnitude(inertia, _inertiaSpeed);
+        inertia = Vector3.Lerp(inertia, input * db.airSpeed, Time.deltaTime * 5f);
+
+    // Permite que o player controle melhor sua direção no ar
+        inertia = Vector3.ClampMagnitude(inertia, db.maxAirSpeed * 0.8f); 
 
         _move = inertia;
         _move.y = vertical;
@@ -110,7 +115,7 @@ public class PlayerScript : PlayerScriptBase
     private void EventOnCustomMove(Vector2 obj){
         _input = obj;
     }
-
+    [Command]
     public void RespawnAt(Vector3 position)
     {
         if (!isServer) return;
@@ -121,7 +126,7 @@ public class PlayerScript : PlayerScriptBase
     [TargetRpc]
     private void RpcRespawn(Vector3 position)
     {
-        if (_characterController != null)
+        if (_characterController != null && isLocalPlayer)
         {
             _characterController.enabled = false; 
             transform.position = position;
@@ -139,12 +144,39 @@ public class PlayerScript : PlayerScriptBase
     {
         if (_characterController != null)
         {
-            _characterController.Move(force);
             
-            _move.y = force.magnitude * 0.5f;
+            _characterController.Move(force * 0.5f); 
+        
             
-            State = PlayerStates.Air;
-            _inertiaSpeed = force.magnitude;
+            _move = new Vector3(force.x * 1.2f, 0, force.z * 1.2f); 
+        
+            // "levantar" o personagem 
+            _move.y = force.magnitude * 0.7f; 
+        
+            
+            _inertiaSpeed = Mathf.Max(force.magnitude, db.maxAirSpeed);
+        
+           
+            State = PlayerStates.BeingPushed;
+        }
+    
+        
+        StartCoroutine(ReturnToDefaultStateAfterPush());
+    }
+    
+
+    private IEnumerator ReturnToDefaultStateAfterPush()
+    {
+        yield return new WaitForSeconds(0.5f);
+        
+        
+        if (State == PlayerStates.BeingPushed)
+        {
+             
+            if (!_characterController.isGrounded)
+                State = PlayerStates.Air;
+            else
+                State = PlayerStates.Default;
         }
     }
     protected override void OnStateChanged(PlayerStates oldVal, PlayerStates newVal){

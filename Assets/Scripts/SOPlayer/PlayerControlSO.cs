@@ -15,7 +15,11 @@ public class PlayerControlSO : ScriptableObject{
     public Action<Vector2> EventOnLook;
 
     public Action<InputAction.CallbackContext> EventOnPush;
-
+    public Action<InputAction.CallbackContext> EventOnShoot;
+    public void OnShoot(InputAction.CallbackContext context)
+    {
+        EventOnShoot?.Invoke(context);
+    }
 
     public void OnPush(InputAction.CallbackContext context)
     {
