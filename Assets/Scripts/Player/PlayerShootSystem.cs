@@ -10,15 +10,13 @@ public class PlayerShootSystem : PlayerScriptBase
     [SerializeField] private Transform origemTiro;
     [SerializeField] private ProjetilData _projetil;
     
-    private Camera cameraJogador;
+    [SerializeField]  private Camera cameraJogador;
     private float ultimoTiroTempo;
 
     private void Awake()
     {
         if (origemTiro == null)
             origemTiro = transform;
-
-        cameraJogador = Camera.main;
     }
 
     private void Start()
@@ -70,8 +68,8 @@ public class PlayerShootSystem : PlayerScriptBase
     {
         if (!isServer) return;
 
-        // 1) Calcula direção base no XZ (ignora a inclinação vertical da camera).
-        Vector3 dirXZ = cameraJogador.transform.forward;
+        // 1) Usa a rotação do próprio jogador.
+        Vector3 dirXZ = transform.forward;
         dirXZ.y = 0f;
         dirXZ.Normalize();
 
@@ -107,7 +105,7 @@ public class PlayerShootSystem : PlayerScriptBase
         Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(origemTiro.position, 0.1f);
         
-        if (cameraJogador != null && Application.isPlaying)
+        if (Application.isPlaying)
         {
             DesenharTrajetoriaParabolica();
         }
@@ -131,16 +129,17 @@ public class PlayerShootSystem : PlayerScriptBase
         Vector3 velInicial = dirXZ * vXZ;
         velInicial.y = vY;
 
-        // 5) Desenha
+        // Desenha
         Gizmos.color = Color.red;
 
         Vector3 posAnterior = origemTiro.position;
         float step = _projetil.tempoMaximoTrajetoria / _projetil.passosTrajetoria;
+        
         for (int i = 1; i <= _projetil.passosTrajetoria; i++)
         {
             float t = i * step;
 
-            // S(t) = S0 + v0*t + 1/2*g*t^2 (apenas g no Y).
+            // S(t) = S0 + v0*t + 1/2*g*t^2 (apenas g no Y)
             Vector3 posAtual = origemTiro.position 
                 + velInicial * t
                 + 0.5f * new Vector3(0, _projetil.gravidade, 0) * (t * t);
