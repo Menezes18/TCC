@@ -163,7 +163,34 @@ public class PlayerScript : PlayerScriptBase
         
         StartCoroutine(ReturnToDefaultStateAfterPush());
     }
+    [ClientRpc]
+    public void OnHitByShot()
+    {
+        // Muda o estado do player para BeingShot
+        State = PlayerStates.BeingShot;
     
+        // Mostra o debug.log quando o tiro acerta o player
+        Debug.Log($"Player {netId} foi atingido por um tiro!");
+    
+        // Aqui você pode adicionar qualquer lógica específica que deseja executar
+        // quando o player for atingido por um tiro
+    
+        // Retorna ao estado normal após um curto período
+        StartCoroutine(ReturnToDefaultStateAfterShot());
+    }
+
+    private IEnumerator ReturnToDefaultStateAfterShot()
+    {
+        yield return new WaitForSeconds(0.5f);
+    
+        if (State == PlayerStates.BeingShot)
+        {
+            if (!_characterController.isGrounded)
+                State = PlayerStates.Air;
+            else
+                State = PlayerStates.Default;
+        }
+    }
 
     private IEnumerator ReturnToDefaultStateAfterPush()
     {

@@ -10,15 +10,13 @@ public class PlayerShootSystem : PlayerScriptBase
     [SerializeField] private Transform origemTiro;
     [SerializeField] private ProjetilData _projetil;
     
-    private Camera cameraJogador;
+    [SerializeField]  private Camera cameraJogador;
     private float ultimoTiroTempo;
 
     private void Awake()
     {
         if (origemTiro == null)
             origemTiro = transform;
-
-        cameraJogador = Camera.main;
     }
 
     private void Start()
@@ -33,17 +31,17 @@ public class PlayerShootSystem : PlayerScriptBase
             _playerSO.EventOnShoot -= EventOnShoot;
     }
 
-    private void EventOnShoot(InputAction.CallbackContext obj)
-    {
-        if (!isLocalPlayer || !PodeTirarAgora()) return;
-        
-        ultimoTiroTempo = Time.time;
-        State = PlayerStates.Shooting;
-        
-        CmdAtirar();
-        
-        StartCoroutine(VoltarParaDefaultAposTiro());
-    }
+private void EventOnShoot(InputAction.CallbackContext obj)
+{
+    if (!isLocalPlayer || !PodeTirarAgora()) return;
+    
+    ultimoTiroTempo = Time.time;
+    State = PlayerStates.Shooting;
+    
+    CmdAtirar(cameraJogador.transform.forward);
+    
+    StartCoroutine(VoltarParaDefaultAposTiro());
+}
 
     private bool PodeTirarAgora()
     {
@@ -64,38 +62,30 @@ public class PlayerShootSystem : PlayerScriptBase
         if (IsInState(PlayerStates.ShootCooldown))
             State = PlayerStates.Default;
     }
-
+    public float alturaExtra = 5f;
     [Command]
-    private void CmdAtirar()
+    private void CmdAtirar(Vector3 cameraForward)
     {
         if (!isServer) return;
 
-        // 1) Calcula direção base no XZ (ignora a inclinação vertical da camera).
-        Vector3 dirXZ = cameraJogador.transform.forward;
-        dirXZ.y = 0f;
-        dirXZ.Normalize();
+        // Usa a direção da câmera completa, incluindo o componente Y
+        Vector3 direcaoTiro = cameraForward.normalized;
 
-        // 2) Converte angulo de graus para radianos.
-        float rad = _projetil.anguloTiro * Mathf.Deg2Rad;
+        direcaoTiro.y += alturaExtra;
+    
+        // Calcula a velocidade inicial diretamente na direção da câmera
+        Vector3 velocityInicial = direcaoTiro * _projetil.velocidadeInicial;
 
-        // 3) Decompoe velocidade inicial em horizontal (XZ) e vertical (Y).
-        float vXZ = _projetil.velocidadeInicial * Mathf.Cos(rad);
-        float vY  = _projetil.velocidadeInicial * Mathf.Sin(rad);
-
-        // 4) Monta o vetor de velocidade inicial => (vXZ na horizontal, vY na vertical).
-        Vector3 velocityInicial = dirXZ * vXZ;
-        velocityInicial.y = vY;
-
-        // 5) Instancia o projétil e inicializa com a velocity calculada
+        // Instancia o projétil e inicializa com a velocity calculada
         if (_projetil.projetilPrefab != null)
         {
-            GameObject projetil = Instantiate(_projetil.projetilPrefab, origemTiro.position, Quaternion.identity);
+            GameObject projetil = Instantiate(_projetil.projetilPrefab, origemTiro.position, origemTiro.rotation);
             NetworkServer.Spawn(projetil);
 
             ProjetilParabolico projParabolico = projetil.GetComponent<ProjetilParabolico>();
             if (projParabolico != null)
             {
-                projParabolico.Inicializar(velocityInicial, _projetil.gravidade);
+                projParabolico.Inicializar(velocityInicial, _projetil.gravidade, _projetil.velocidadeProjetil);
             }
         }
     }
@@ -107,48 +97,50 @@ public class PlayerShootSystem : PlayerScriptBase
         Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(origemTiro.position, 0.1f);
         
-        if (cameraJogador != null && Application.isPlaying)
+        if (Application.isPlaying)
         {
             DesenharTrajetoriaParabolica();
         }
     }
-
+    private void Update()
+    {
+        if (!isLocalPlayer) return;
+        
+        if (origemTiro != null && cameraJogador != null)
+        {
+            origemTiro.rotation = cameraJogador.transform.rotation;
+        }
+    }
     private void DesenharTrajetoriaParabolica()
     {
-        // 1) Direção base no XZ
-        Vector3 dirXZ = cameraJogador.transform.forward;
-        dirXZ.y = 0f;
-        dirXZ.Normalize();
+        if (cameraJogador == null) return;
+    
+        // Usa a direção completa da câmera
+        Vector3 direcaoTiro = cameraJogador.transform.forward.normalized;
 
-        // 2) Angulo -> radianos
-        float rad = _projetil.anguloTiro * Mathf.Deg2Rad;
+        direcaoTiro.y += alturaExtra;
 
-        // 3) Decompoe
-        float vXZ = _projetil.velocidadeInicial * Mathf.Cos(rad);
-        float vY  = _projetil.velocidadeInicial * Mathf.Sin(rad);
+        // Calcula a velocidade inicial diretamente na direção da câmera
+        Vector3 velInicial = direcaoTiro * _projetil.velocidadeInicial;
 
-        // 4) Monta velocity
-        Vector3 velInicial = dirXZ * vXZ;
-        velInicial.y = vY;
-
-        // 5) Desenha
+        // Desenha
         Gizmos.color = Color.red;
 
         Vector3 posAnterior = origemTiro.position;
         float step = _projetil.tempoMaximoTrajetoria / _projetil.passosTrajetoria;
+    
         for (int i = 1; i <= _projetil.passosTrajetoria; i++)
         {
             float t = i * step;
 
-            // S(t) = S0 + v0*t + 1/2*g*t^2 (apenas g no Y).
+            // S(t) = S0 + v0*t + 1/2*g*t^2 (apenas g no Y)
             Vector3 posAtual = origemTiro.position 
-                + velInicial * t
-                + 0.5f * new Vector3(0, _projetil.gravidade, 0) * (t * t);
-
+                               + velInicial * t
+                               + 0.5f * new Vector3(0, _projetil.gravidade, 0) * (t * t);
             Gizmos.DrawLine(posAnterior, posAtual);
             posAnterior = posAtual;
         }
-        
+    
         Gizmos.DrawWireSphere(posAnterior, 0.1f);
     }
 }
