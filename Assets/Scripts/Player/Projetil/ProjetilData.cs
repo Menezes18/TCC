@@ -17,6 +17,8 @@ public class ProjetilData : ScriptableObject
     [Tooltip("Gravidade (negativa). Normal: -9.81.")]
     public float gravidade = -9.81f;
 
+    public float velocidadeProjetil = 1f;
+    
     [Header("Gizmo de trajetória")]
     public float tempoMaximoTrajetoria = 3f;
     public int passosTrajetoria = 30;
