@@ -16,7 +16,8 @@ public class ProjetilData : ScriptableObject
     public float anguloTiro = 45f;
     [Tooltip("Gravidade (negativa). Normal: -9.81.")]
     public float gravidade = -9.81f;
-
+    [Tooltip("Multiplicador de altura da parábola.")]
+    public float multiplicadorAltura = 1.5f;
     public float velocidadeProjetil = 1f;
     
     [Header("Gizmo de trajetória")]

@@ -1,3 +1,4 @@
+using System;
 using Mirror;
 using UnityEngine;
 
@@ -25,6 +26,13 @@ public class ProjetilParabolico : NetworkBehaviour
         if (velocity.sqrMagnitude > 0.01f)
         {
             transform.rotation = Quaternion.LookRotation(velocity);
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Player")){
+            other.GetComponent<PlayerScript>().OnHitByShot();
         }
     }
 }
