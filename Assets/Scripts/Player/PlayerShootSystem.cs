@@ -62,7 +62,7 @@ private void EventOnShoot(InputAction.CallbackContext obj)
         if (IsInState(PlayerStates.ShootCooldown))
             State = PlayerStates.Default;
     }
-
+    public float alturaExtra = 5f;
     [Command]
     private void CmdAtirar(Vector3 cameraForward)
     {
@@ -70,6 +70,8 @@ private void EventOnShoot(InputAction.CallbackContext obj)
 
         // Usa a direção da câmera completa, incluindo o componente Y
         Vector3 direcaoTiro = cameraForward.normalized;
+
+        direcaoTiro.y += alturaExtra;
     
         // Calcula a velocidade inicial diretamente na direção da câmera
         Vector3 velocityInicial = direcaoTiro * _projetil.velocidadeInicial;
@@ -115,7 +117,9 @@ private void EventOnShoot(InputAction.CallbackContext obj)
     
         // Usa a direção completa da câmera
         Vector3 direcaoTiro = cameraJogador.transform.forward.normalized;
-    
+
+        direcaoTiro.y += alturaExtra;
+
         // Calcula a velocidade inicial diretamente na direção da câmera
         Vector3 velInicial = direcaoTiro * _projetil.velocidadeInicial;
 
@@ -133,7 +137,6 @@ private void EventOnShoot(InputAction.CallbackContext obj)
             Vector3 posAtual = origemTiro.position 
                                + velInicial * t
                                + 0.5f * new Vector3(0, _projetil.gravidade, 0) * (t * t);
-
             Gizmos.DrawLine(posAnterior, posAtual);
             posAnterior = posAtual;
         }
