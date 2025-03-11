@@ -10,7 +10,7 @@ public class PlayerScript : PlayerScriptBase
     [SerializeField]  Database db;
     [SerializeField]  PlayerControlSO _playerSO;
     [SerializeField]  CharacterController _characterController;
-
+    [SerializeField] private GameObject _panel;
     public Vector3 rot => new Vector3(0, Camera.main.transform.rotation.eulerAngles.y, 0);
 
     [SerializeField] private TMP_Text _role;
@@ -164,6 +164,31 @@ public class PlayerScript : PlayerScriptBase
         StartCoroutine(ReturnToDefaultStateAfterPush());
     }
     
+    [TargetRpc]
+    public void TargetOnHitByShot(NetworkConnectionToClient target)
+    {
+    
+        State = PlayerStates.BeingShot;
+    
+        Debug.Log($"Player {netId} foi atingido por um tiro!");
+    
+        _panel.GetComponent<CanvasGroup>().alpha = 1;
+    
+        StartCoroutine(ReturnToDefaultStateAfterShot());
+    }
+
+    private IEnumerator ReturnToDefaultStateAfterShot()
+    {
+        yield return new WaitForSeconds(0.5f);
+        _panel.GetComponent<CanvasGroup>().alpha = 0;
+        if (State == PlayerStates.BeingShot)
+        {
+            if (!_characterController.isGrounded)
+                State = PlayerStates.Air;
+            else
+                State = PlayerStates.Default;
+        }
+    }
 
     private IEnumerator ReturnToDefaultStateAfterPush()
     {
