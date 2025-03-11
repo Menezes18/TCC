@@ -10,7 +10,7 @@ public class PlayerScript : PlayerScriptBase
     [SerializeField]  Database db;
     [SerializeField]  PlayerControlSO _playerSO;
     [SerializeField]  CharacterController _characterController;
-
+    [SerializeField] private GameObject _panel;
     public Vector3 rot => new Vector3(0, Camera.main.transform.rotation.eulerAngles.y, 0);
 
     [SerializeField] private TMP_Text _role;
@@ -163,26 +163,24 @@ public class PlayerScript : PlayerScriptBase
         
         StartCoroutine(ReturnToDefaultStateAfterPush());
     }
-    [ClientRpc]
-    public void OnHitByShot()
+    
+    [TargetRpc]
+    public void TargetOnHitByShot(NetworkConnectionToClient target)
     {
-        // Muda o estado do player para BeingShot
+    
         State = PlayerStates.BeingShot;
     
-        // Mostra o debug.log quando o tiro acerta o player
         Debug.Log($"Player {netId} foi atingido por um tiro!");
     
-        // Aqui você pode adicionar qualquer lógica específica que deseja executar
-        // quando o player for atingido por um tiro
+        _panel.GetComponent<CanvasGroup>().alpha = 1;
     
-        // Retorna ao estado normal após um curto período
         StartCoroutine(ReturnToDefaultStateAfterShot());
     }
 
     private IEnumerator ReturnToDefaultStateAfterShot()
     {
         yield return new WaitForSeconds(0.5f);
-    
+        _panel.GetComponent<CanvasGroup>().alpha = 0;
         if (State == PlayerStates.BeingShot)
         {
             if (!_characterController.isGrounded)

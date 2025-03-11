@@ -124,7 +124,8 @@ public class PlayerShootSystem : PlayerScriptBase
             ProjetilParabolico projParabolico = projetil.GetComponent<ProjetilParabolico>();
             if (projParabolico != null)
             {
-                projParabolico.Inicializar(velocityInicial, _projetil.gravidade, _projetil.velocidadeProjetil);
+                projParabolico.Inicializar(velocityInicial, _projetil.gravidade, 
+                    _projetil.velocidadeProjetil, netIdentity);
             }
         }
     }

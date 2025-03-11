@@ -8,12 +8,13 @@ public class ProjetilParabolico : NetworkBehaviour
     private float multiplicadorVelocidade;
     private Vector3 velocity;
     private float gravidade;
-
-    public void Inicializar(Vector3 velocityInicial, float grav, float velocidadeProjetil)
+    private NetworkIdentity shooterIdentity;
+    public void Inicializar(Vector3 velocityInicial, float grav, float velocidadeProjetil, NetworkIdentity shooter)
     {
         velocity = velocityInicial;
         gravidade = grav;
         multiplicadorVelocidade = velocidadeProjetil;
+        shooterIdentity = shooter;
         Destroy(gameObject, tempoDeVida);
     }
 
@@ -31,9 +32,18 @@ public class ProjetilParabolico : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player")){
-            Debug.LogError("Player collision");
-            other.GetComponent<PlayerScript>().OnHitByShot();
+        // Em P2P a colisão pode acontecer em qualquer cliente que seja host
+        if (other.CompareTag("Player")) {
+            NetworkIdentity hitPlayerIdentity = other.GetComponent<NetworkIdentity>();
+        
+            if (hitPlayerIdentity != null && shooterIdentity != null && 
+                hitPlayerIdentity.netId == shooterIdentity.netId) {
+                return; 
+            }
+            PlayerScript hitPlayer = other.GetComponent<PlayerScript>();
+            if (hitPlayer != null && isServer) {
+                hitPlayer.TargetOnHitByShot(hitPlayer.connectionToClient);
+            }
         }
     }
 }
