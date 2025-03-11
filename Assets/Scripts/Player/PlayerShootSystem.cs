@@ -4,19 +4,29 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(PlayerScript))]
+[RequireComponent(typeof(LineRenderer))]
 public class PlayerShootSystem : PlayerScriptBase
 {
     [SerializeField] private PlayerControlSO _playerSO;
     [SerializeField] private Transform origemTiro;
     [SerializeField] private ProjetilData _projetil;
-    
-    [SerializeField]  private Camera cameraJogador;
+    [SerializeField] private Camera cameraJogador;
+
+    private LineRenderer lineRenderer;
+    private bool segurandoBotao = false;
     private float ultimoTiroTempo;
+
+    public float alturaExtra = 5f;
 
     private void Awake()
     {
         if (origemTiro == null)
             origemTiro = transform;
+
+        // Configura o LineRenderer
+        lineRenderer = GetComponent<LineRenderer>();
+        lineRenderer.enabled = false; // Desativado por padrão
+        lineRenderer.positionCount = 0; // Sem pontos inicialmente
     }
 
     private void Start()
@@ -31,17 +41,50 @@ public class PlayerShootSystem : PlayerScriptBase
             _playerSO.EventOnShoot -= EventOnShoot;
     }
 
-private void EventOnShoot(InputAction.CallbackContext obj)
-{
-    if (!isLocalPlayer || !PodeTirarAgora()) return;
-    
-    ultimoTiroTempo = Time.time;
-    State = PlayerStates.Shooting;
-    
-    CmdAtirar(cameraJogador.transform.forward);
-    
-    StartCoroutine(VoltarParaDefaultAposTiro());
-}
+    private void Update()
+    {
+        if (!isLocalPlayer) return;
+
+        if (segurandoBotao)
+        {
+            // Atualiza a rotação da origem do tiro para seguir a câmera
+            if (origemTiro != null && cameraJogador != null)
+            {
+                origemTiro.rotation = cameraJogador.transform.rotation;
+            }
+
+            // Atualiza o holograma da trajetória
+            AtualizarTrajetoriaParabolica();
+        }
+    }
+
+    private void EventOnShoot(InputAction.CallbackContext context)
+    {
+        if (!isLocalPlayer) return;
+
+        if (context.performed)
+        {
+            // Botão pressionado
+            segurandoBotao = true;
+            lineRenderer.enabled = true; // Ativa o LineRenderer
+        }
+        else if (context.canceled)
+        {
+            // Botão solto
+            segurandoBotao = false;
+            lineRenderer.enabled = false; // Desativa o LineRenderer
+
+            if (PodeTirarAgora())
+            {
+                ultimoTiroTempo = Time.time;
+                State = PlayerStates.Shooting;
+
+                CmdAtirar(cameraJogador.transform.forward);
+
+                StartCoroutine(VoltarParaDefaultAposTiro());
+            }
+        }
+    }
 
     private bool PodeTirarAgora()
     {
@@ -62,21 +105,17 @@ private void EventOnShoot(InputAction.CallbackContext obj)
         if (IsInState(PlayerStates.ShootCooldown))
             State = PlayerStates.Default;
     }
-    public float alturaExtra = 5f;
+
     [Command]
     private void CmdAtirar(Vector3 cameraForward)
     {
         if (!isServer) return;
 
-        // Usa a direção da câmera completa, incluindo o componente Y
         Vector3 direcaoTiro = cameraForward.normalized;
-
         direcaoTiro.y += alturaExtra;
-    
-        // Calcula a velocidade inicial diretamente na direção da câmera
+
         Vector3 velocityInicial = direcaoTiro * _projetil.velocidadeInicial;
 
-        // Instancia o projétil e inicializa com a velocity calculada
         if (_projetil.projetilPrefab != null)
         {
             GameObject projetil = Instantiate(_projetil.projetilPrefab, origemTiro.position, origemTiro.rotation);
@@ -89,7 +128,6 @@ private void EventOnShoot(InputAction.CallbackContext obj)
             }
         }
     }
-
     private void OnDrawGizmos()
     {
         if (origemTiro == null) return;
@@ -100,15 +138,6 @@ private void EventOnShoot(InputAction.CallbackContext obj)
         if (Application.isPlaying)
         {
             DesenharTrajetoriaParabolica();
-        }
-    }
-    private void Update()
-    {
-        if (!isLocalPlayer) return;
-        
-        if (origemTiro != null && cameraJogador != null)
-        {
-            origemTiro.rotation = cameraJogador.transform.rotation;
         }
     }
     private void DesenharTrajetoriaParabolica()
@@ -142,5 +171,31 @@ private void EventOnShoot(InputAction.CallbackContext obj)
         }
     
         Gizmos.DrawWireSphere(posAnterior, 0.1f);
+    }
+    private void AtualizarTrajetoriaParabolica()
+    {
+        if (cameraJogador == null || lineRenderer == null) return;
+
+        Vector3 direcaoTiro = cameraJogador.transform.forward.normalized;
+        direcaoTiro.y += alturaExtra;
+
+        Vector3 velInicial = direcaoTiro * _projetil.velocidadeInicial;
+
+        int passos = Mathf.Min(5, _projetil.passosTrajetoria); // Exibe apenas os primeiros 5 pontos
+        float step = _projetil.tempoMaximoTrajetoria / _projetil.passosTrajetoria;
+
+        lineRenderer.positionCount = passos + 1; // Define o número de pontos
+
+        for (int i = 0; i <= passos; i++)
+        {
+            float t = i * step;
+
+            // Calcula a posição da trajetória
+            Vector3 posAtual = origemTiro.position
+                               + velInicial * t
+                               + 0.5f * new Vector3(0, _projetil.gravidade, 0) * (t * t);
+
+            lineRenderer.SetPosition(i, posAtual); // Atualiza o ponto no LineRenderer
+        }
     }
 }

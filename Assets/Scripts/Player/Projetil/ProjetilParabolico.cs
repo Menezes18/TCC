@@ -32,6 +32,7 @@ public class ProjetilParabolico : NetworkBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player")){
+            Debug.LogError("Player collision");
             other.GetComponent<PlayerScript>().OnHitByShot();
         }
     }
