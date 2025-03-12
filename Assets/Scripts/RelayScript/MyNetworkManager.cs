@@ -123,6 +123,11 @@ namespace Network
                     m_Players.Add(comp);
                 }
             }
+
+            if (m_Players.Count >= 2) {
+                ContadorTempo temp = GameObject.Find("Temporizador").GetComponent<ContadorTempo>();
+                temp.IniciarContador();
+            }
         }
 
         public override void OnStopServer()
