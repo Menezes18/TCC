@@ -36,6 +36,8 @@ public class ContadorTempo : NetworkBehaviour
         if(contadorIniciado) return;
 
         contadorIniciado = true;
+        tempoInicialAtual = data.tempoInicial;
+        tempoPrincipalAtual = data.tempoPrincipal;
         StartCoroutine(ContagemInicial());
     }
 
