@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using Mirror;
 
 public class ChaoQuebrando : ChaoMae
 {
@@ -9,6 +10,7 @@ public class ChaoQuebrando : ChaoMae
     private bool jogadorNoTile = false;
     private int indiceEstadoAtual = 0;
 
+    [ServerCallback]
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
@@ -17,6 +19,7 @@ public class ChaoQuebrando : ChaoMae
         }
     }
 
+    [ServerCallback]
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Player"))
@@ -25,31 +28,37 @@ public class ChaoQuebrando : ChaoMae
         }
     }
 
+    [ServerCallback]
     private void Update()
     {
         if (jogadorNoTile && !chaoTirado)
         {
             tempoAcumulado += Time.deltaTime;
-            if(tempoAcumulado >= dataChao.tempo){
+            if (tempoAcumulado >= dataChao.tempo)
+            {
                 tempoAcumulado = 0;
                 AtualizaEstado();
             }
         }
     }
 
+    [Server]
     private void AtualizaEstado()
     {
         indiceEstadoAtual++;
 
-        if(indiceEstadoAtual < estadosChao.Length){
+        if (indiceEstadoAtual < estadosChao.Length)
+        {
             estadosChao[indiceEstadoAtual].SetActive(true);
             estadosChao[indiceEstadoAtual - 1].SetActive(false);
         }
-        else{
+        else
+        {
             tiraChao();
         }
     }
 
+    [Server]
     public override void tiraChao()
     {
         chaoTirado = true;
@@ -62,6 +71,7 @@ public class ChaoQuebrando : ChaoMae
         gameObject.SetActive(false);
     }
 
+    [Server]
     public override void poeChao()
     {
         transform.position = posIncial;

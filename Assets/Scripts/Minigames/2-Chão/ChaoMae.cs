@@ -1,11 +1,11 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using Mirror;
 
-public abstract class ChaoMae : MonoBehaviour
+public abstract class ChaoMae : NetworkBehaviour
 {
+    [SyncVar]
     [SerializeField]
-    bool _chaoTirado = false;
+    private bool _chaoTirado = false;
     public bool chaoTirado 
     { 
         get { return _chaoTirado; } 
@@ -19,6 +19,5 @@ public abstract class ChaoMae : MonoBehaviour
     }
 
     public abstract void tiraChao();
-
     public abstract void poeChao();
 }
