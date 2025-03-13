@@ -1,21 +1,27 @@
 using System.Collections;
 using UnityEngine;
+using Mirror;
 
-class ChaoCaindo : ChaoMae
+public class ChaoCaindo : ChaoMae
 {
-
-    public void OnTriggerEnter(Collider other)
+    [ServerCallback]
+    private void OnTriggerEnter(Collider other)
     {
-        if(other.CompareTag("Player") && !chaoTirado){
+        if(other.CompareTag("Player") && !chaoTirado)
+        {
             chaoTirado = true;
             tiraChao();
         }
     }
+
+    [Server]
     public override void poeChao()
     {
         transform.position = posIncial;
+        chaoTirado = false;
     }
 
+    [Server]
     public override void tiraChao()
     {
         StartCoroutine(desceChao());

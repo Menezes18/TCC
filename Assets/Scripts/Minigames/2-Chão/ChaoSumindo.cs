@@ -1,16 +1,18 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using Mirror;
 using UnityEngine.ProBuilder;
 
 public class ChaoSumindo : ChaoMae
 {
+    [Server]
     public override void poeChao()
     {
-        //TODO: Adicionar shader de aparecer
+        // TODO: Adicionar shader de aparecer
         transform.position = posIncial;
     }
 
+    [Server]
     public override void tiraChao()
     {
         gameObject.SetActive(false);
