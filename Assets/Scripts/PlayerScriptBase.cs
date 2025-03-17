@@ -35,6 +35,6 @@ public class PlayerScriptBase : NetworkBehaviour
     }
     protected virtual void OnStateChanged(PlayerStates oldVal, PlayerStates newVal)
     {
-       // Debug.LogError($"[{gameObject.name}] Estado alterado: {oldVal} -> {newVal}");
+        Debug.LogError($"[{gameObject.name}] Estado alterado: {oldVal} -> {newVal}");
     }
 }

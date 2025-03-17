@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1112996023910017168}
   - component: {fileID: 1434202208598596796}
+  - component: {fileID: 672244247038954828}
   m_Layer: 0
   m_Name: Virtual Camera
   m_TagString: Untagged
@@ -72,6 +73,36 @@ MonoBehaviour:
         m_Calls: []
   m_LegacyBlendHint: 0
   m_ComponentOwner: {fileID: 7795396353332728555}
+--- !u!114 &672244247038954828
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2923762355597584232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e501d18bb52cf8c40b1853ca4904654f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_CollideAgainst:
+    serializedVersion: 2
+    m_Bits: 1
+  m_IgnoreTag: Player
+  m_TransparentLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_MinimumDistanceFromTarget: 0.1
+  m_AvoidObstacles: 1
+  m_DistanceLimit: 0
+  m_MinimumOcclusionTime: 0
+  m_CameraRadius: 0.1
+  m_Strategy: 1
+  m_MaximumEffort: 4
+  m_SmoothingTime: 0
+  m_Damping: 0
+  m_DampingWhenOccluded: 0
+  m_OptimalTargetDistance: 0
 --- !u!1 &3748720556928000060
 GameObject:
   m_ObjectHideFlags: 0
@@ -1313,7 +1344,7 @@ MonoBehaviour:
   _playerSO: {fileID: 11400000, guid: 9dfba7758fc9c5b4a96c4bc1d3526f10, type: 2}
   origemTiro: {fileID: 549372884117074419}
   _projetil: {fileID: 11400000, guid: c60444fdeabdb1246b568907d8fd768a, type: 2}
-  cameraJogador: {fileID: 908870485810889055}
+  _player: {fileID: 4908738296727809224}
   alturaExtra: 0.4
 --- !u!114 &2393608631824778115
 MonoBehaviour:
@@ -1330,16 +1361,22 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  _db: {fileID: 11400000, guid: d6c25b14977fb5445a4b66c63b66829e, type: 2}
+  pushForce: 20
+  pushDistance: 5
+  slideDuration: 1
+  pushRadius: 3
+  pushCooldown: 1.5
+  bounceForce: 8
+  pushAngle: 45
   pushOrigin: {fileID: 1534114577144625301}
-  playerCamera: {fileID: 908870485810889055}
-  pushEffectPrefab: {fileID: 0}
-  pushSound: {fileID: 0}
-  pushIndicatorPrefab: {fileID: 0}
-  enableDetailedLogs: 0
-  obstacleLayerMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
+  pushVFX: {fileID: 0}
+  pushAudio: {fileID: 0}
+  normalConeColor: {r: 1, g: 1, b: 0, a: 0.3}
+  targetDetectedColor: {r: 1, g: 0, b: 0, a: 0.5}
+  cooldownColor: {r: 0, g: 0, b: 1, a: 0.3}
+  coneSegments: 20
+  showGizmoAlways: 1
+  cameraAngleSensitivity: 0.5
 --- !u!114 &4374977253332207120
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1377,6 +1414,7 @@ MonoBehaviour:
   _characterController: {fileID: 4614322387205366381}
   _panel: {fileID: 6111571359074440818}
   _role: {fileID: 8132212184063200864}
+  cameraJogador: {fileID: 908870485810889055}
   Alias: 
   sessionId: 
 --- !u!114 &2763646331169255014

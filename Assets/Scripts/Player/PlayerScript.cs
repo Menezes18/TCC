@@ -14,6 +14,7 @@ public class PlayerScript : PlayerScriptBase
     public Vector3 rot => new Vector3(0, Camera.main.transform.rotation.eulerAngles.y, 0);
 
     [SerializeField] private TMP_Text _role;
+    public Camera cameraJogador;
     private Vector2 _input;
     private Vector3 _move;
     private bool _isGrounded;

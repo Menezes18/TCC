@@ -10,7 +10,7 @@ public class PlayerShootSystem : PlayerScriptBase
     [SerializeField] private PlayerControlSO _playerSO;
     [SerializeField] private Transform origemTiro;
     [SerializeField] private ProjetilData _projetil;
-    [SerializeField] private Camera cameraJogador;
+    [SerializeField] private PlayerScript _player;
 
     private LineRenderer lineRenderer;
     private bool segurandoBotao = false;
@@ -23,6 +23,7 @@ public class PlayerShootSystem : PlayerScriptBase
         if (origemTiro == null)
             origemTiro = transform;
 
+        _player = GetComponent<PlayerScript>();
         // Configura o LineRenderer
         lineRenderer = GetComponent<LineRenderer>();
         lineRenderer.enabled = false; // Desativado por padrão
@@ -48,9 +49,9 @@ public class PlayerShootSystem : PlayerScriptBase
         if (segurandoBotao)
         {
             // Atualiza a rotação da origem do tiro para seguir a câmera
-            if (origemTiro != null && cameraJogador != null)
+            if (origemTiro != null && _player.cameraJogador != null)
             {
-                origemTiro.rotation = cameraJogador.transform.rotation;
+                origemTiro.rotation = _player.cameraJogador.transform.rotation;
             }
 
             // Atualiza o holograma da trajetória
@@ -79,7 +80,7 @@ public class PlayerShootSystem : PlayerScriptBase
                 ultimoTiroTempo = Time.time;
                 State = PlayerStates.Shooting;
 
-                CmdAtirar(cameraJogador.transform.forward);
+                CmdAtirar(_player.cameraJogador.transform.forward);
 
                 StartCoroutine(VoltarParaDefaultAposTiro());
             }
@@ -143,10 +144,10 @@ public class PlayerShootSystem : PlayerScriptBase
     }
     private void DesenharTrajetoriaParabolica()
     {
-        if (cameraJogador == null) return;
+        if (_player.cameraJogador == null) return;
     
         // Usa a direção completa da câmera
-        Vector3 direcaoTiro = cameraJogador.transform.forward.normalized;
+        Vector3 direcaoTiro = _player.cameraJogador.transform.forward.normalized;
 
         direcaoTiro.y += alturaExtra;
 
@@ -175,9 +176,9 @@ public class PlayerShootSystem : PlayerScriptBase
     }
     private void AtualizarTrajetoriaParabolica()
     {
-        if (cameraJogador == null || lineRenderer == null) return;
+        if (_player.cameraJogador == null || lineRenderer == null) return;
 
-        Vector3 direcaoTiro = cameraJogador.transform.forward.normalized;
+        Vector3 direcaoTiro = _player.cameraJogador.transform.forward.normalized;
         direcaoTiro.y += alturaExtra;
 
         Vector3 velInicial = direcaoTiro * _projetil.velocidadeInicial;
