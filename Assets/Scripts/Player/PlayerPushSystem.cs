@@ -1,6 +1,8 @@
 using UnityEngine;
 using Mirror;
 using System.Collections;
+using UnityEngine.InputSystem;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -9,9 +11,15 @@ public class PartyPushSystem : NetworkBehaviour
 {
     [Header("References")]
     [SerializeField] private Transform pushOrigin;
-
+    [Header("Gizmo Settings Push")]
+    public Color normalConeColor = new Color(1f, 1f, 0f, 0.3f); // Yellow with transparency
+    public Color targetDetectedColor = new Color(1f, 0f, 0f, 0.5f); // Red with transparency
+    public Color cooldownColor = new Color(0f, 0f, 1f, 0.3f); // Blue with transparency
+    public int coneSegments = 20;
+    public bool showGizmoAlways = true;
+    public float cameraAngleSensitivity = 0.5f;
     private PlayerScript _player;
-    private Database _db;
+    public Database _db;
     private CharacterController _characterController;
     private PlayerScriptBase _playerScript;
     private Vector3 _pushVelocity;
@@ -22,22 +30,34 @@ public class PartyPushSystem : NetworkBehaviour
     private bool _isPushed = false;
     private float _distanceTraveled = 0f;
     private bool _targetInCone = false;
-    
+    [SerializeField] PlayerControlSO _playerSO;
+
     private void Start()
     {
         _player = GetComponent<PlayerScript>();
         _characterController = GetComponent<CharacterController>();
         _playerScript = GetComponent<PlayerScriptBase>();
+
+        if (_playerSO == null)
+        {
+            Debug.LogError("PlayerSO não está atribuído!");
+            return;
+        }
+
+        _playerSO.EventOnPush += EventOnPush;
+        Debug.Log("EventOnPush registrado com sucesso");
     }
 
+    private void EventOnPush(InputAction.CallbackContext obj)
+    {
+        Debug.Log($"EventOnPush chamado: {obj.phase}");
+        CmdTryPush();
+    }
     private void Update()
     {
         if (!isLocalPlayer) return;
 
-        if (Input.GetKeyDown(KeyCode.E) && CanPushNow())
-        {
-            CmdTryPush();
-        }
+
 
         HandlePushPhysics();
         CheckForTargetsInCone();
@@ -216,7 +236,7 @@ public class PartyPushSystem : NetworkBehaviour
 
     private void OnDrawGizmos()
     {
-        if (_db.showGizmoAlways && pushOrigin != null)
+        if (showGizmoAlways && pushOrigin != null)
         {
             DrawPushCone();
         }
@@ -224,7 +244,7 @@ public class PartyPushSystem : NetworkBehaviour
     
     private void OnDrawGizmosSelected()
     {
-        if (!_db.showGizmoAlways && pushOrigin != null)
+        if (showGizmoAlways && pushOrigin != null)
         {
             DrawPushCone();
         }
@@ -235,8 +255,8 @@ public class PartyPushSystem : NetworkBehaviour
         if (pushOrigin == null) return;
 
         Color coneColor = _playerScript != null && _playerScript.IsInState(PlayerStates.PushCooldown)
-            ? _db.cooldownColor
-            : (_targetInCone ? _db.targetDetectedColor : _db.normalConeColor);
+            ? cooldownColor
+            : (_targetInCone ? targetDetectedColor : normalConeColor);
         
         // Pegamos a direção do olhar da câmera
         Vector3 cameraForward = _player.cameraJogador.transform.forward;

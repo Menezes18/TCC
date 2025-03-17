@@ -22,13 +22,6 @@ public class Database : ScriptableObject{
     public float pushAngle = 45f; 
     public ParticleSystem pushVFX;
     public AudioSource pushAudio;
-    [Header("Gizmo Settings Push")]
-    public Color normalConeColor = new Color(1f, 1f, 0f, 0.3f); // Yellow with transparency
-    public Color targetDetectedColor = new Color(1f, 0f, 0f, 0.5f); // Red with transparency
-    public Color cooldownColor = new Color(0f, 0f, 1f, 0.3f); // Blue with transparency
-    public int coneSegments = 20;
-    public bool showGizmoAlways = true;
-    public float cameraAngleSensitivity = 0.5f; 
     
     [Header("Shoot Configuration")]
     public float shootCooldown = 1.0f;

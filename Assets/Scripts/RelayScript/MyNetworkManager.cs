@@ -105,9 +105,6 @@ namespace Network
             // Os dados serão devidamente desserializados pelos manipuladores de mensagens do Mirror
         }
 
-
-
-
         public override void OnServerAddPlayer(NetworkConnectionToClient conn)
         {
             base.OnServerAddPlayer(conn);
