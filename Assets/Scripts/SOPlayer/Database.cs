@@ -20,7 +20,7 @@ public class Database : ScriptableObject{
     public float pushCooldown = 1.5f;
     public float bounceForce = 8f;
     public float pushAngle = 45f; 
-    public ParticleSystem pushVFX;
+    public GameObject pushVFX;
     public AudioSource pushAudio;
     
     [Header("Shoot Configuration")]

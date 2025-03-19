@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 using System.Linq;
 
 [RequireComponent(typeof(PlayerScriptBase), typeof(CharacterController))]
-public class PartyPushSystem : NetworkBehaviour
+public class PartyPushSystem : PlayerScriptBase
 {
     [Header("References")]
     [SerializeField] private Transform pushOrigin;
@@ -18,23 +18,26 @@ public class PartyPushSystem : NetworkBehaviour
     [SerializeField] private Color targetDetectedColor = new Color(1f, 0f, 0f, 0.5f);
     [SerializeField] private Color cooldownColor = new Color(0f, 0f, 1f, 0.3f);
     [SerializeField] private int coneSegments = 20;
-
+    
+    
+    
     // Cached components
     private PlayerScript _player;
     private CharacterController _characterController;
     private PlayerScriptBase _playerScript;
+    private PlayerManagerUI _playerManagerUI;
 
     // Push state
     private Vector3 _pushDirection;
     private Vector3 _pushVelocity;
     private float _pushStartTime;
-    private float _lastPushTime;
+    private float _lastPushTime;  // Último momento em que o push foi realizado (para o cooldown)
     private float _currentBounceForce;
     private float _distanceTraveled;
     private bool _isPushed;
     private bool _targetInCone;
 
-    // Network sync variables
+    // Network sync variable para o cooldown
     [SyncVar] private bool _isInPushCooldown;
 
     private void Awake()
@@ -48,6 +51,7 @@ public class PartyPushSystem : NetworkBehaviour
         {
             _playerSO.EventOnPush += HandlePushInput;
         }
+        _playerScript.OnStateChangeEvent += HandleStateChange;
     }
 
     private void OnDisable()
@@ -57,12 +61,19 @@ public class PartyPushSystem : NetworkBehaviour
             _playerSO.EventOnPush -= HandlePushInput;
         }
     }
-
+    private void HandleStateChange(PlayerStates oldState, PlayerStates newState)
+    {
+        if (newState == PlayerStates.PushCooldown && isLocalPlayer && _playerManagerUI != null)
+        {
+            StartCoroutine(_playerManagerUI.FillOverTime(_db.pushCooldown - 0.3f));
+        }
+    }
     private void CacheComponents()
     {
         _player = GetComponent<PlayerScript>();
         _characterController = GetComponent<CharacterController>();
         _playerScript = GetComponent<PlayerScriptBase>();
+        _playerManagerUI = GetComponent<PlayerManagerUI>();
         
         if (!pushOrigin)
         {
@@ -108,17 +119,20 @@ public class PartyPushSystem : NetworkBehaviour
 
     private void HandlePushInput(InputAction.CallbackContext context)
     {
-        if (!isLocalPlayer)  return;
+        if (!isLocalPlayer || _isInPushCooldown)  return;
         
         CmdTryPush();
     }
 
-    // private bool CanPush()
-    // {
-    //     return _playerScript.IsInState(PlayerStates.Default) && 
-    //            Time.time >= _lastPushTime + _db.pushCooldown &&
-    //            !_isInPushCooldown;
-    // }
+    // Agora utilizando _lastPushTime e _db.pushCooldown
+    private bool CanPush()
+    {
+        bool recargaCompleta = Time.time >= _lastPushTime + _db.pushCooldown;
+        bool estadoValido = _playerScript.State == PlayerStates.Default 
+                            || _playerScript.State == PlayerStates.ShootCooldown;
+
+        return recargaCompleta && !_isInPushCooldown;
+    }
 
     private void HandlePushMovement()
     {
@@ -174,11 +188,14 @@ public class PartyPushSystem : NetworkBehaviour
     [Command(requiresAuthority = false)]
     private void CmdTryPush()
     {
-       // if (!CanPush()) return;
+        if (!CanPush()) return;
 
         _lastPushTime = Time.time;
         _isInPushCooldown = true;
         _playerScript.State = PlayerStates.Pushing;
+    
+        bool targetHit = false;
+        Vector3 contactPoint = pushOrigin.position; // Default position
 
         var hitColliders = Physics.OverlapSphere(pushOrigin.position, _db.pushRadius);
         foreach (var col in hitColliders)
@@ -191,11 +208,15 @@ public class PartyPushSystem : NetworkBehaviour
             if (targetPush != null && targetPlayer != null && IsTargetInPushCone(col.transform.position))
             {
                 Vector3 pushDir = CalculatePushDirection(col.transform.position);
-                targetPush.RpcApplyPush(pushDir);
+                // Calculate actual contact point between pushing player and target
+                contactPoint = col.ClosestPoint(pushOrigin.position);
+                targetPush.RpcApplyPush(pushDir, contactPoint);
+                targetHit = true;
             }
         }
 
-        RpcPlayPushEffects();
+        // Use the contact point for VFX, or default to push origin if no target was hit
+        RpcPlayPushEffects(contactPoint);
         StartCoroutine(PushCooldownRoutine());
     }
 
@@ -214,7 +235,7 @@ public class PartyPushSystem : NetworkBehaviour
     }
 
     [ClientRpc]
-    private void RpcApplyPush(Vector3 direction)
+    private void RpcApplyPush(Vector3 direction, Vector3 pushPosition)
     {
         _playerScript.State = PlayerStates.BeingPushed;
         _pushDirection = direction;
@@ -222,22 +243,33 @@ public class PartyPushSystem : NetworkBehaviour
         _currentBounceForce = _db.bounceForce;
         _isPushed = true;
         _distanceTraveled = 0f;
-        
-        PlayEffects();
+    
+        PlayEffects(pushPosition); // Pass the push position
         StartCoroutine(BeingPushedRoutine());
     }
-
+    [Header("VFX")]
+    public GameObject pushVFX;
     [ClientRpc]
-    private void RpcPlayPushEffects()
+    private void RpcPlayPushEffects(Vector3 pushPosition)
     {
-        PlayEffects();
+        PlayEffects(pushPosition);
+    }
+    private void PlayEffects(Vector3 position)
+    {
+        if (pushVFX != null)
+        {
+            GameObject vfxInstance = Instantiate(pushVFX, position, Quaternion.identity);
+            vfxInstance.transform.SetParent(vfxInstance.transform);
+        }
+        else
+        {
+            Debug.LogWarning("pushVFX is not assigned in the inspector.");
+        }
+
+        if (_db.pushAudio != null) 
+            _db.pushAudio.Play();
     }
 
-    private void PlayEffects()
-    {
-        if (_db.pushVFX != null) _db.pushVFX.Play();
-        if (_db.pushAudio != null) _db.pushAudio.Play();
-    }
 
     private void StopPush()
     {
@@ -281,9 +313,10 @@ public class PartyPushSystem : NetworkBehaviour
     {
         if (pushOrigin == null) return;
 
-        Color coneColor = _playerScript != null && _playerScript.IsInState(PlayerStates.PushCooldown)
+        Color coneColor = (_playerScript != null && _playerScript.State == PlayerStates.PushCooldown)
             ? cooldownColor
             : (_targetInCone ? targetDetectedColor : normalConeColor);
+
 
         Vector3 cameraForward = _player != null && _player.cameraJogador != null 
             ? _player.cameraJogador.transform.forward 

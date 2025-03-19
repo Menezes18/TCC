@@ -14,7 +14,7 @@ public class PlayerScriptBase : NetworkBehaviour
     public PlayerStates State
     {
         get => _state;
-         set{
+           set{
             if(_state == value) return;
             PlayerStates oldState = _state;
             _state = value;
