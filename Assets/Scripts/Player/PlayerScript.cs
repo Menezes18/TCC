@@ -23,6 +23,8 @@ public class PlayerScript : PlayerScriptBase
     [SyncVar(hook = nameof(OnAliasUpdated))]  public string Alias; 
     [SyncVar]
     public string sessionId = "";
+
+    public bool teste = true;
     private void Start(){
         
         if(base.isOwned == false) return;
@@ -43,7 +45,7 @@ public class PlayerScript : PlayerScriptBase
     private void Update(){
         
         if(base.isOwned == false) return;
-        
+        if(teste) return;
         BehaviorAir();
         BehaviorDefault();
 

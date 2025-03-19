@@ -38,8 +38,8 @@ public class PlayerCamera : NetworkBehaviour
             _cam.LookAt = _cameraTarget;
         }
 
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
+        // Cursor.visible = false;
+        // Cursor.lockState = CursorLockMode.Locked;
         
         PlayerControlSO.EventOnLook += OnLook;
     }
