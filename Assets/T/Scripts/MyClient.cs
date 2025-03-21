@@ -73,8 +73,8 @@ public class MyClient : NetworkBehaviour
     void ToggleController(bool value) 
     {
         controllerObj.SetActive(value);
-        meshObj.SetActive(value ? !isLocalPlayer : false);
-        camHolder.SetActive(value ? isLocalPlayer : false);
+        meshObj.SetActive(value);
+        camHolder.SetActive(value);
 
         if (!isLocalPlayer) 
             value = false;

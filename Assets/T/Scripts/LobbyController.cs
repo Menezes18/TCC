@@ -40,7 +40,7 @@ public class LobbyController : MonoBehaviour
 
     private void StartGame()
     {
-        NetworkManager.singleton.ServerChangeScene("Stage_1");
+        NetworkManager.singleton.ServerChangeScene("dev");
     }
 
     private bool AllPlayersReady() 
