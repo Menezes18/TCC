@@ -35,6 +35,8 @@ namespace Network
             m_Players = new List<PlayerScript>();
 
             m_Username = SystemInfo.deviceName;
+
+            DontDestroyOnLoad(gameObject);
         }
 
         public async void UnityLogin()
@@ -125,6 +127,25 @@ namespace Network
             if (m_Players.Count >= 2) {
                 ContadorTempo temp = GameObject.Find("Temporizador").GetComponent<ContadorTempo>();
                 temp.IniciarContador();
+            }
+        }
+
+        public override void OnClientSceneChanged()
+        {
+            base.OnClientSceneChanged();
+            
+            // Se o cliente não estiver pronto, marca-o como pronto explicitamente
+            if (!NetworkClient.ready)
+            {
+                NetworkClient.Ready();
+                Debug.Log("Client marcado como Ready");
+            }
+            
+            // Se não houver jogador local e autoCreatePlayer estiver ativo, adiciona o jogador
+            if (autoCreatePlayer && NetworkClient.localPlayer == null)
+            {
+                NetworkClient.AddPlayer();
+                Debug.Log("Player adicionado no cliente");
             }
         }
 

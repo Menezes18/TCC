@@ -10,11 +10,13 @@ public class GameManager : MonoBehaviour
     void Awake()
     {
         manager = this;
+        DontDestroyOnLoad(gameObject);
     }
 
     public void addJogadores(int quantidade)
     {
         jogadoresAtuais += quantidade;
+        Debug.Log("Conectados" + jogadoresAtuais);
     }
 
     public void removeJogadores(int quantidade)
@@ -22,5 +24,6 @@ public class GameManager : MonoBehaviour
         jogadoresAtuais -= quantidade;
         if (jogadoresAtuais < 0)
             jogadoresAtuais = 0;
+        Debug.Log("Conectados" + jogadoresAtuais);
     }
 }
