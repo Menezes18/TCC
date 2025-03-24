@@ -118,6 +118,7 @@ namespace Network
                 {
                     comp.sessionId = m_SessionId;
                     m_Players.Add(comp);
+                    GameManager.manager.addJogadores(1);
                 }
             }
 
@@ -159,6 +160,7 @@ namespace Network
                 if (!playerFound)
                 {
                     m_Players.Remove(player);
+                    GameManager.manager.removeJogadores(1);
                     break;
                 }
             }
