@@ -27,6 +27,7 @@ namespace Network
         /// <summary>
         /// List of players currently connected to the server.
         /// </summary>
+        [SerializeField]
         private List<PlayerScript> m_Players;
 
         public override void Awake()
@@ -120,13 +121,9 @@ namespace Network
                 {
                     comp.sessionId = m_SessionId;
                     m_Players.Add(comp);
-                    GameManager.manager.addJogadores(1);
+                    GameManager.manager.atualizaJogadores(m_Players.Count);
+                    Debug.Log("Conectados no network " + m_Players.Count);
                 }
-            }
-
-            if (m_Players.Count >= 2) {
-                ContadorTempo temp = GameObject.Find("Temporizador").GetComponent<ContadorTempo>();
-                temp.IniciarContador();
             }
         }
 
@@ -181,7 +178,7 @@ namespace Network
                 if (!playerFound)
                 {
                     m_Players.Remove(player);
-                    GameManager.manager.removeJogadores(1);
+                    GameManager.manager.atualizaJogadores(m_Players.Count);
                     break;
                 }
             }

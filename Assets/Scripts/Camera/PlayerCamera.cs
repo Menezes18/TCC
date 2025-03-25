@@ -15,6 +15,8 @@ public class PlayerCamera : NetworkBehaviour
     public PlayerScript PlayerScript;
     private Vector2 targetLook;
     public Vector2 Clamp = new Vector2(-75, 75);
+    public float CurrentCameraYRotation => _mouseX;
+
 
     private void Start()
     {

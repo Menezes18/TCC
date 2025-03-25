@@ -6,6 +6,8 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager manager;
     public int jogadoresAtuais;
+
+    public int minJogadores = 1;
     
     void Awake()
     {
@@ -13,17 +15,15 @@ public class GameManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-    public void addJogadores(int quantidade)
+    public void atualizaJogadores(int jogadores)
     {
-        jogadoresAtuais += quantidade;
+        jogadoresAtuais = jogadores;
         Debug.Log("Conectados" + jogadoresAtuais);
+        if(jogadoresAtuais >= minJogadores) iniciaContador();
     }
 
-    public void removeJogadores(int quantidade)
-    {
-        jogadoresAtuais -= quantidade;
-        if (jogadoresAtuais < 0)
-            jogadoresAtuais = 0;
-        Debug.Log("Conectados" + jogadoresAtuais);
+    public void iniciaContador(){
+        ContadorTempo temp = GameObject.Find("Temporizador").GetComponent<ContadorTempo>();
+        temp.IniciarContador();
     }
 }

@@ -11,7 +11,17 @@ public class PlayerScript : PlayerScriptBase
     [SerializeField]  PlayerControlSO _playerSO;
     [SerializeField]  CharacterController _characterController;
     [SerializeField] private GameObject _panel;
-    public Vector3 rot => new Vector3(0, Camera.main.transform.rotation.eulerAngles.y, 0);
+    public Vector3 rot {
+    get {
+        PlayerCamera cam = GetComponentInChildren<PlayerCamera>();
+        if (cam != null)
+        {
+            return new Vector3(0, cam.CurrentCameraYRotation, 0);
+        }
+        return new Vector3(0, Camera.main.transform.rotation.eulerAngles.y, 0);
+    }
+}
+
 
     [SerializeField] private TMP_Text _role;
     public Camera cameraJogador;
@@ -23,6 +33,14 @@ public class PlayerScript : PlayerScriptBase
     [SyncVar(hook = nameof(OnAliasUpdated))]  public string Alias; 
     [SyncVar]
     public string sessionId = "";
+    private void Awake()
+    {
+        if (_characterController == null)
+        {
+            _characterController = GetComponent<CharacterController>();
+        }
+    }
+
     private void Start(){
         
         if(base.isOwned == false) return;
@@ -30,7 +48,25 @@ public class PlayerScript : PlayerScriptBase
         _playerSO.EventOnCustomMove += EventOnCustomMove;
         _playerSO.EventOnJump += EventOnJump;
     }
-    
+
+    private void OnEnable()
+    {
+        if (isOwned)
+        {
+            _playerSO.EventOnCustomMove += EventOnCustomMove;
+            _playerSO.EventOnJump += EventOnJump;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (isOwned)
+        {
+            _playerSO.EventOnCustomMove -= EventOnCustomMove;
+            _playerSO.EventOnJump -= EventOnJump;
+        }
+    }
+        
     void OnAliasUpdated(string oldVal, string newVal){
         _role.text = newVal;
     }
@@ -102,14 +138,24 @@ public class PlayerScript : PlayerScriptBase
         _move.y = vertical;
     }
 
-    private void EventOnJump(InputAction.CallbackContext obj){
-        if (_characterController.isGrounded == false) return;
-        
+    private void EventOnJump(InputAction.CallbackContext obj)
+    {
+        // Verifica se o CharacterController ainda existe
+        if (_characterController == null)
+        {
+            Debug.LogWarning("CharacterController é nulo; abortando o pulo.");
+            return;
+        }
+
+        // Garante que o personagem esteja no chão antes de pular
+        if (!_characterController.isGrounded)
+            return;
+
+        // Lógica para o pulo
         _inertiaSpeed = new Vector3(_move.x, 0, _move.z).magnitude;
         _inertiaSpeed = Mathf.Clamp(_inertiaSpeed, db.playerSpeed, db.maxAirSpeed);
         State = PlayerStates.Air;
         _ignoreGroundedOnThisFrame = true;
-        
         _move.y = db.jumpHeight;
     }
 
