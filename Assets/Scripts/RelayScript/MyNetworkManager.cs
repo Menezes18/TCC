@@ -111,12 +111,12 @@ namespace Network
         public override void OnServerAddPlayer(NetworkConnectionToClient conn)
         {
             base.OnServerAddPlayer(conn);
+            
+            m_Players.RemoveAll(item => item == null);
 
             foreach (KeyValuePair<uint, NetworkIdentity> kvp in NetworkServer.spawned)
             {
                 PlayerScript comp = kvp.Value.GetComponent<PlayerScript>();
-
-                // Add to player list if new
                 if (comp != null && !m_Players.Contains(comp))
                 {
                     comp.sessionId = m_SessionId;
