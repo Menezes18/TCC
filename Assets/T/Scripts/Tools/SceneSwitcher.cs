@@ -39,7 +39,7 @@ public class SceneManagerWindow : EditorWindow
 
     #region Menu & Janela
 
-    [MenuItem("Tools/Scene Manager %#S")]
+    [MenuItem("Tools/Scene Manager %#G")] // Ctrl + Shift + G
     public static void ShowWindow()
     {
         var window = GetWindow<SceneManagerWindow>("Scene Manager");
