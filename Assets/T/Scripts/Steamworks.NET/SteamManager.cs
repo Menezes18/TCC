@@ -120,7 +120,7 @@ public class SteamManager : MonoBehaviour {
 		// Valve's documentation for this is located here:
 		// https://partner.steamgames.com/doc/sdk/api#initialization_and_shutdown
 		m_bInitialized = SteamAPI.Init();
-		if (!m_bInitialized) {
+		if (!m_bInitialized) { //falar q n abriu a steam
 			Debug.LogError("[Steamworks.NET] SteamAPI_Init() failed. Refer to Valve's documentation or the comment above this line for more information.", this);
 
 			return;

@@ -40,11 +40,11 @@ public class Movement : NetworkBehaviour
 
     void FixedUpdate()
     {
-        if (!isLocalPlayer) return;
-
-        CheckIfGrounded();
-        bool isRunning = Input.GetKey(KeyCode.LeftShift);
-        MovementHandler(isRunning);
+        // if (!isLocalPlayer) return;
+        //
+        // CheckIfGrounded();
+        // bool isRunning = Input.GetKey(KeyCode.LeftShift);
+        // MovementHandler(isRunning);
     }
 
     private void MovementHandler(bool isRunning)
@@ -79,11 +79,11 @@ public class Movement : NetworkBehaviour
     {
         if (!isLocalPlayer) return;
 
-        inputDir = new Vector2(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y"));
-        rotationX += -inputDir.y * lookSpeed;
-        rotationX = Mathf.Clamp(rotationX, -lookXLimit, lookXLimit);
-        camHolder.transform.localRotation = Quaternion.Euler(rotationX, 0, 0);
-        transform.rotation *= Quaternion.Euler(0, inputDir.x * lookSpeed, 0);
+        //  inputDir = new Vector2(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y"));
+        // rotationX += -inputDir.y * lookSpeed;
+        // rotationX = Mathf.Clamp(rotationX, -lookXLimit, lookXLimit);
+        // camHolder.transform.localRotation = Quaternion.Euler(rotationX, 0, 0);
+        // transform.rotation *= Quaternion.Euler(0, inputDir.x * lookSpeed, 0);
     }
 
     private void OnDrawGizmos()

@@ -13,7 +13,6 @@ public class PlayerScript : PlayerScriptBase
     [SerializeField] private GameObject _panel;
     public Vector3 rot => new Vector3(0, Camera.main.transform.rotation.eulerAngles.y, 0);
 
-    [SerializeField] private TMP_Text _role;
     public Camera cameraJogador;
     private Vector2 _input;
     private Vector3 _move;
@@ -29,10 +28,10 @@ public class PlayerScript : PlayerScriptBase
         
         _playerSO.EventOnCustomMove += EventOnCustomMove;
         _playerSO.EventOnJump += EventOnJump;
+        _characterController = GetComponent<CharacterController>();
     }
     
     void OnAliasUpdated(string oldVal, string newVal){
-        _role.text = newVal;
     }
     
     [Command]

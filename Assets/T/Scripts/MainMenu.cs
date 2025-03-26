@@ -5,7 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public enum MenuState { Home, InParty}
+public enum MenuState { Home, InParty }
 public class MainMenu : MonoBehaviour
 {
     public static MainMenu instance;
@@ -30,7 +30,7 @@ public class MainMenu : MonoBehaviour
         partyUI.SetActive(state == MenuState.InParty);
     }
 
-    public void CreateParty() 
+    public void CreateParty()
     {
 
         PopupManager.instance.Popup_Show("Creating Party");
@@ -44,11 +44,11 @@ public class MainMenu : MonoBehaviour
         LobbyController.instance.StartGameSolo();
     }
 
-    public void LeaveParty() 
+    public void LeaveParty()
     {
         if (!NetworkClient.active) return;
 
-        if(NetworkClient.localPlayer.isServer)
+        if (NetworkClient.localPlayer.isServer)
             NetworkManager.singleton.StopHost();
         else
             NetworkManager.singleton.StopClient();

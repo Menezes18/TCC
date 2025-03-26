@@ -2,6 +2,7 @@ using System;
 using Cinemachine;
 using Mirror;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class PlayerCamera : NetworkBehaviour
 {
@@ -38,11 +39,15 @@ public class PlayerCamera : NetworkBehaviour
             _cam.LookAt = _cameraTarget;
         }
 
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
+        // Cursor.visible = false;
+        // Cursor.lockState = CursorLockMode.Locked;
         
         PlayerControlSO.EventOnLook += OnLook;
+        PlayerControlSO.EventOnCursor += EventOnCursor;
     }
+
+
+
 
     private void LateUpdate()
     {
@@ -68,5 +73,16 @@ public class PlayerCamera : NetworkBehaviour
     {
         _cameraTarget.transform.rotation = Quaternion.Euler(_mouseY, _mouseX, 0);
         transform.rotation = Quaternion.Euler(0, _mouseX, 0);
+    }
+    
+    private void EventOnCursor(InputAction.CallbackContext obj)
+    {
+        Debug.Log("EventOnCursor");
+
+        // Alterna a visibilidade do cursor
+        Cursor.visible = !Cursor.visible;
+
+        // Se o cursor estiver visível, ele deve estar livre; caso contrário, ele deve estar travado
+        Cursor.lockState = Cursor.visible ? CursorLockMode.None : CursorLockMode.Locked;
     }
 }

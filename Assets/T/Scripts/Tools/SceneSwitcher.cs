@@ -9,8 +9,13 @@ using UnityEngine.SceneManagement;
 
 public class SceneManagerWindow : EditorWindow
 {
-    #region Fields & Constants
+    // Constantes e chaves para EditorPrefs
+    private const int MaxRecent = 5;
+    private const string VisibilityPrefsKey = "SceneManager_Visibility";
+    private const string FavoritesPrefsKey = "SceneManager_Favorites";
+    private const string RecentPrefsKey = "SceneManager_Recent";
 
+    // Campos
     private Vector2 scrollPosition;
     private string searchFilter = "";
     private bool showAllScenes = true;
@@ -19,29 +24,22 @@ public class SceneManagerWindow : EditorWindow
     private Color defaultColor;
 
     private List<string> favoriteScenes = new List<string>();
-
-    private const int MAX_RECENT = 5;
     private Dictionary<string, bool> sceneVisibility = new Dictionary<string, bool>();
 
-    private const string VISIBILITY_PREFS_KEY = "SceneManager_Visibility";
-    private const string FAVORITES_PREFS_KEY = "SceneManager_Favorites";
-    private const string RECENT_PREFS_KEY = "SceneManager_Recent";
-
-    // UI Styles
+    // Estilos de GUI e conteúdos
     private GUIStyle headerStyle;
     private GUIStyle sceneButtonStyle;
     private GUIStyle categoryBoxStyle;
     private GUIStyle favoriteButtonStyle;
     private GUIStyle actionButtonStyle;
+
     private GUIContent favoriteOnContent;
     private GUIContent favoriteOffContent;
     private GUIContent menuContent;
 
-    #endregion
+    #region Menu & Janela
 
-    #region Menu & Window Setup
-
-    [MenuItem("Tools/Scene Manager %#S")] // Ctrl/Cmd + Shift + S
+    [MenuItem("Tools/Scene Manager %#S")]
     public static void ShowWindow()
     {
         var window = GetWindow<SceneManagerWindow>("Scene Manager");
@@ -53,77 +51,22 @@ public class SceneManagerWindow : EditorWindow
         defaultColor = GUI.backgroundColor;
         LoadPreferences();
         LoadVisibilityState();
-
         EditorApplication.delayCall += InitializeStyles;
     }
 
-
     #endregion
 
-    #region State Persistence
-
-    private void SaveVisibilityState()
-    {
-        string visibilityData = string.Join("|", sceneVisibility.Select(kvp => $"{kvp.Key}:{kvp.Value}"));
-        EditorPrefs.SetString(VISIBILITY_PREFS_KEY, visibilityData);
-    }
-
-    private void LoadVisibilityState()
-    {
-        string visibilityData = EditorPrefs.GetString(VISIBILITY_PREFS_KEY, "");
-        sceneVisibility.Clear();
-
-        if (!string.IsNullOrEmpty(visibilityData))
-        {
-            foreach (string entry in visibilityData.Split('|'))
-            {
-                string[] parts = entry.Split(':');
-                if (parts.Length == 2 && bool.TryParse(parts[1], out bool visible))
-                {
-                    sceneVisibility[parts[0]] = visible;
-                }
-            }
-        }
-    }
-
-    private void SavePreferences()
-    {
-        EditorPrefs.SetString(FAVORITES_PREFS_KEY, string.Join("|", favoriteScenes));
-    }
-
-    private void LoadPreferences()
-    {
-        string favoritesString = EditorPrefs.GetString(FAVORITES_PREFS_KEY, "");
-
-        favoriteScenes = string.IsNullOrEmpty(favoritesString) ? new List<string>() : favoritesString.Split('|').ToList();
-    }
-
-    private void ResetAllPreferences()
-    {
-        EditorPrefs.DeleteKey(VISIBILITY_PREFS_KEY);
-        EditorPrefs.DeleteKey(FAVORITES_PREFS_KEY);
-        EditorPrefs.DeleteKey(RECENT_PREFS_KEY);
-        sceneVisibility.Clear();
-        favoriteScenes.Clear();
-    }
-
-    #endregion
-
-    #region GUI Styles
-
+    #region Inicialização dos Estilos
 
     private void InitializeStyles()
     {
-        // Header style
-        
         headerStyle = new GUIStyle(EditorStyles.boldLabel)
         {
-            fontSize = 0,
             alignment = TextAnchor.MiddleLeft,
             padding = new RectOffset(5, 5, 8, 8),
             margin = new RectOffset(5, 5, 5, 0)
         };
-        // Scene button style - more compact and visually appealing
+
         sceneButtonStyle = new GUIStyle(EditorStyles.miniButton)
         {
             fontSize = 11,
@@ -133,14 +76,12 @@ public class SceneManagerWindow : EditorWindow
             fixedHeight = 28
         };
 
-        // Category box style
         categoryBoxStyle = new GUIStyle(EditorStyles.helpBox)
         {
             padding = new RectOffset(5, 5, 5, 5),
             margin = new RectOffset(5, 5, 5, 10)
         };
 
-        // Button styles for actions
         favoriteButtonStyle = new GUIStyle(EditorStyles.miniButton)
         {
             fixedWidth = 24,
@@ -157,7 +98,6 @@ public class SceneManagerWindow : EditorWindow
             margin = new RectOffset(2, 2, 3, 3)
         };
 
-        // Create icons for buttons
         favoriteOnContent = new GUIContent("★", "Remove from Favorites");
         favoriteOffContent = new GUIContent("☆", "Add to Favorites");
         menuContent = new GUIContent("⋮", "Scene Options");
@@ -169,39 +109,43 @@ public class SceneManagerWindow : EditorWindow
 
     private void OnGUI()
     {
-        // Avoid layout errors while compiling
         if (EditorApplication.isCompiling)
+        {
+            EditorGUILayout.LabelField("Compilando scripts, aguarde...");
             return;
+        }
 
+        DrawToolbar();
+        EditorGUILayout.Space(5);
+
+        // Envolve o Begin/End ScrollView com try/finally para garantir que o layout seja finalizado
+        scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
         try
         {
-            DrawToolbar();
-            EditorGUILayout.Space(5);
-
-            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
-
             if (showFavorites && favoriteScenes.Count > 0)
+            {
                 DrawFavoriteScenes();
-
+                EditorGUILayout.Space(5);
+            }
             if (showBuildScenes)
+            {
                 DrawBuildScenes();
-
+                EditorGUILayout.Space(5);
+            }
             if (showAllScenes)
                 DrawAllScenes();
-
-            EditorGUILayout.EndScrollView();
-
-            DrawStatusBar();
         }
-        catch (Exception e)
+        finally
         {
-            Debug.LogError($"Scene Manager Window GUI Error: {e}");
+            EditorGUILayout.EndScrollView();
         }
+
+        DrawStatusBar();
     }
 
     #endregion
 
-    #region Toolbar & Status Bar
+    #region Toolbar & StatusBar
 
     private void DrawToolbar()
     {
@@ -225,12 +169,11 @@ public class SceneManagerWindow : EditorWindow
 
         GUILayout.FlexibleSpace();
 
-        // Search field
         GUILayout.Label("🔍", GUILayout.Width(18));
         searchFilter = EditorGUILayout.TextField(searchFilter, EditorStyles.toolbarSearchField, GUILayout.Width(150));
-        
+
         GUILayout.Space(5);
-        
+
         if (GUILayout.Button("Reset", EditorStyles.toolbarButton, GUILayout.Width(45)))
         {
             if (EditorUtility.DisplayDialog("Reset All Preferences",
@@ -240,48 +183,41 @@ public class SceneManagerWindow : EditorWindow
                 ResetAllPreferences();
             }
         }
-        
+
         EditorGUILayout.EndHorizontal();
     }
 
     private void DrawStatusBar()
     {
         EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
-        
-        string currentSceneName = EditorSceneManager.GetActiveScene().name;
-        string displayName = string.IsNullOrEmpty(currentSceneName) ? "<No Scene>" : currentSceneName;
-        
-        EditorGUILayout.LabelField($"Current: {displayName}", EditorStyles.miniLabel);
-        
+        string currentScene = EditorSceneManager.GetActiveScene().name;
+        string displayScene = string.IsNullOrEmpty(currentScene) ? "<No Scene>" : currentScene;
+        EditorGUILayout.LabelField($"Current: {displayScene}", EditorStyles.miniLabel);
         GUILayout.FlexibleSpace();
-            
         EditorGUILayout.EndHorizontal();
     }
 
     #endregion
 
-    #region Scene Draw Methods
+    #region Desenho das Cenas
 
     private void DrawFavoriteScenes()
     {
         EditorGUILayout.LabelField("★ Favorite Scenes", headerStyle);
         EditorGUILayout.BeginVertical(categoryBoxStyle);
 
-        bool anyShown = false;
+        bool anyMatch = false;
         foreach (string scenePath in favoriteScenes.ToList())
         {
             if (MatchesFilter(scenePath))
             {
                 DrawSceneButton(scenePath, true);
-                anyShown = true;
+                anyMatch = true;
             }
         }
-
-        if (!anyShown)
+        if (!anyMatch)
             EditorGUILayout.LabelField("No favorite scenes match the filter", EditorStyles.centeredGreyMiniLabel);
-
         EditorGUILayout.EndVertical();
-        EditorGUILayout.Space(5);
     }
 
     private void DrawBuildScenes()
@@ -289,22 +225,20 @@ public class SceneManagerWindow : EditorWindow
         EditorGUILayout.LabelField("🔨 Build Scenes", headerStyle);
         EditorGUILayout.BeginVertical(categoryBoxStyle);
 
-        var buildScenes = EditorBuildSettings.scenes;
-        bool anyShown = false;
-        
+        EditorBuildSettingsScene[] buildScenes = EditorBuildSettings.scenes;
+        bool anyMatch = false;
         for (int i = 0; i < buildScenes.Length; i++)
         {
             var sceneSetting = buildScenes[i];
             if (!MatchesFilter(sceneSetting.path))
                 continue;
 
-            anyShown = true;
+            anyMatch = true;
             EditorGUILayout.BeginHorizontal();
 
-            // Visibility toggle
             if (!sceneVisibility.ContainsKey(sceneSetting.path))
                 sceneVisibility[sceneSetting.path] = true;
-                
+
             bool isVisible = sceneVisibility[sceneSetting.path];
             bool newVisible = EditorGUILayout.Toggle(isVisible, GUILayout.Width(16));
             if (newVisible != isVisible)
@@ -313,42 +247,30 @@ public class SceneManagerWindow : EditorWindow
                 SaveVisibilityState();
             }
 
-            // Scene button with color indication for enabled state
             Color originalColor = GUI.backgroundColor;
             GUI.backgroundColor = sceneSetting.enabled ? new Color(0.7f, 1.0f, 0.7f) : new Color(0.8f, 0.8f, 0.8f);
-            
             string sceneName = System.IO.Path.GetFileNameWithoutExtension(sceneSetting.path);
-            bool isCurrentScene = sceneSetting.path == EditorSceneManager.GetActiveScene().path;
-            
-            if (isCurrentScene)
+            bool isCurrent = sceneSetting.path == EditorSceneManager.GetActiveScene().path;
+            if (isCurrent)
                 GUI.backgroundColor = new Color(0.7f, 0.9f, 1.0f);
-                
+
             if (GUILayout.Button(new GUIContent(sceneName, sceneSetting.path), sceneButtonStyle, GUILayout.ExpandWidth(true)))
             {
                 if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-                {
                     EditorSceneManager.OpenScene(sceneSetting.path);
-                }
             }
             GUI.backgroundColor = originalColor;
 
-            // Scene is enabled in build
             sceneSetting.enabled = EditorGUILayout.Toggle(sceneSetting.enabled, GUILayout.Width(16));
             EditorBuildSettings.scenes = buildScenes;
 
-            // Move up
             if (GUILayout.Button("↑", GUILayout.Width(22)) && i > 0)
                 SwapBuildScenes(i, i - 1);
-
-            // Move down
             if (GUILayout.Button("↓", GUILayout.Width(22)) && i < buildScenes.Length - 1)
                 SwapBuildScenes(i, i + 1);
-
-            // Remove from build
             if (GUILayout.Button("✕", GUILayout.Width(22)))
                 RemoveSceneFromBuild(i);
 
-            // Favorite toggle
             bool isFavorite = favoriteScenes.Contains(sceneSetting.path);
             if (GUILayout.Button(isFavorite ? favoriteOnContent : favoriteOffContent, favoriteButtonStyle))
                 ToggleFavorite(sceneSetting.path);
@@ -356,33 +278,31 @@ public class SceneManagerWindow : EditorWindow
             EditorGUILayout.EndHorizontal();
         }
 
-        if (!anyShown)
+        if (!anyMatch)
             EditorGUILayout.LabelField("No build scenes match the filter", EditorStyles.centeredGreyMiniLabel);
-
         EditorGUILayout.EndVertical();
-        EditorGUILayout.Space(5);
     }
 
     private void DrawAllScenes()
     {
-        EditorGUILayout.BeginVertical(categoryBoxStyle);
+        // Em vez de retornar caso o estilo esteja nulo, inicializamos e continuamos
+        if (categoryBoxStyle == null)
+            InitializeStyles();
 
+        EditorGUILayout.BeginVertical(categoryBoxStyle);
         string[] guids = AssetDatabase.FindAssets("t:Scene");
-        bool anyShown = false;
-        
+        bool anyMatch = false;
         foreach (string guid in guids)
         {
             string scenePath = AssetDatabase.GUIDToAssetPath(guid);
             if (MatchesFilter(scenePath))
             {
-                DrawSceneButton(scenePath, false);
-                anyShown = true;
+                DrawSceneButton(scenePath, favoriteScenes.Contains(scenePath));
+                anyMatch = true;
             }
         }
-
-        if (!anyShown)
+        if (!anyMatch)
             EditorGUILayout.LabelField("No scenes match the filter", EditorStyles.centeredGreyMiniLabel);
-
         EditorGUILayout.EndVertical();
     }
 
@@ -390,52 +310,41 @@ public class SceneManagerWindow : EditorWindow
     {
         if (!sceneVisibility.ContainsKey(scenePath))
             sceneVisibility[scenePath] = true;
-
         if (!sceneVisibility[scenePath] && string.IsNullOrEmpty(searchFilter))
             return;
 
         EditorGUILayout.BeginHorizontal();
-        
         try
         {
-            // Visibility toggle
-            bool isVisible = sceneVisibility[scenePath];
-            bool newVisible = EditorGUILayout.Toggle(isVisible, GUILayout.Width(16));
-            if (newVisible != isVisible)
+            bool visible = sceneVisibility[scenePath];
+            bool newVisible = EditorGUILayout.Toggle(visible, GUILayout.Width(16));
+            if (newVisible != visible)
             {
                 sceneVisibility[scenePath] = newVisible;
                 SaveVisibilityState();
             }
 
             string sceneName = System.IO.Path.GetFileNameWithoutExtension(scenePath);
-            bool isCurrentScene = scenePath == EditorSceneManager.GetActiveScene().path;
+            bool isCurrent = scenePath == EditorSceneManager.GetActiveScene().path;
             bool isInBuild = EditorBuildSettings.scenes.Any(s => s.path == scenePath);
 
-            // Set button color based on scene status
             Color originalColor = GUI.backgroundColor;
-            if (isCurrentScene)
-                GUI.backgroundColor = new Color(0.7f, 0.9f, 1.0f); // Light blue for current scene
+            if (isCurrent)
+                GUI.backgroundColor = new Color(0.7f, 0.9f, 1.0f);
             else if (isInBuild)
-                GUI.backgroundColor = new Color(0.9f, 0.9f, 0.9f); // Light gray for build scenes
+                GUI.backgroundColor = new Color(0.9f, 0.9f, 0.9f);
 
-            // Get display name - add in build indicator
             string displayName = isInBuild ? $"{sceneName} [Build]" : sceneName;
-
-            // Scene button
             if (GUILayout.Button(new GUIContent(displayName, scenePath), sceneButtonStyle, GUILayout.ExpandWidth(true)))
             {
                 if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-                {
                     EditorSceneManager.OpenScene(scenePath);
-                }
             }
             GUI.backgroundColor = originalColor;
 
-            // Favorite toggle
             if (GUILayout.Button(isFavorite ? favoriteOnContent : favoriteOffContent, favoriteButtonStyle))
                 ToggleFavorite(scenePath);
 
-            // Options menu
             if (GUILayout.Button(menuContent, actionButtonStyle))
                 ShowSceneContextMenu(scenePath);
         }
@@ -447,59 +356,53 @@ public class SceneManagerWindow : EditorWindow
 
     #endregion
 
-    #region Helper Methods
+    #region Helper & Persistência
 
     private bool MatchesFilter(string scenePath)
     {
         if (string.IsNullOrEmpty(searchFilter))
             return true;
-            
         string sceneName = System.IO.Path.GetFileNameWithoutExtension(scenePath);
-        return sceneName.ToLower().Contains(searchFilter.ToLower()) || 
+        return sceneName.ToLower().Contains(searchFilter.ToLower()) ||
                scenePath.ToLower().Contains(searchFilter.ToLower());
     }
+
     private void ToggleFavorite(string scenePath)
     {
         if (favoriteScenes.Contains(scenePath))
             favoriteScenes.Remove(scenePath);
         else
             favoriteScenes.Add(scenePath);
-
         SavePreferences();
     }
 
     private void ShowSceneContextMenu(string scenePath)
     {
         GenericMenu menu = new GenericMenu();
-        
         bool isInBuild = EditorBuildSettings.scenes.Any(s => s.path == scenePath);
-        
         if (isInBuild)
             menu.AddItem(new GUIContent("Remove from Build"), false, () => RemoveFromBuild(scenePath));
         else
             menu.AddItem(new GUIContent("Add to Build Settings"), false, () => AddSceneToBuild(scenePath));
-            
+
         menu.AddItem(new GUIContent("Show in Project"), false, () => ShowSceneInProject(scenePath));
         menu.AddItem(new GUIContent("Copy Path"), false, () => EditorGUIUtility.systemCopyBuffer = scenePath);
         menu.AddSeparator("");
-        
+
         bool isFavorite = favoriteScenes.Contains(scenePath);
         menu.AddItem(new GUIContent(isFavorite ? "Remove from Favorites" : "Add to Favorites"), false, () => ToggleFavorite(scenePath));
-        
         menu.AddSeparator("");
-        
         menu.AddItem(new GUIContent(sceneVisibility[scenePath] ? "Hide Scene" : "Show Scene"), false, () =>
         {
             sceneVisibility[scenePath] = !sceneVisibility[scenePath];
             SaveVisibilityState();
         });
-        
         menu.ShowAsContext();
     }
 
     private void RemoveFromBuild(string scenePath)
     {
-        var scenes = EditorBuildSettings.scenes.ToList();
+        List<EditorBuildSettingsScene> scenes = EditorBuildSettings.scenes.ToList();
         scenes.RemoveAll(s => s.path == scenePath);
         EditorBuildSettings.scenes = scenes.ToArray();
     }
@@ -515,29 +418,75 @@ public class SceneManagerWindow : EditorWindow
 
     private void RemoveSceneFromBuild(int index)
     {
-        var scenesList = EditorBuildSettings.scenes.ToList();
-        scenesList.RemoveAt(index);
-        EditorBuildSettings.scenes = scenesList.ToArray();
+        List<EditorBuildSettingsScene> scenes = EditorBuildSettings.scenes.ToList();
+        if (index >= 0 && index < scenes.Count)
+        {
+            scenes.RemoveAt(index);
+            EditorBuildSettings.scenes = scenes.ToArray();
+        }
     }
 
     private void AddSceneToBuild(string scenePath)
     {
-        var scenesList = EditorBuildSettings.scenes.ToList();
-        if (!scenesList.Any(s => s.path == scenePath))
+        List<EditorBuildSettingsScene> scenes = EditorBuildSettings.scenes.ToList();
+        if (!scenes.Any(s => s.path == scenePath))
         {
-            scenesList.Add(new EditorBuildSettingsScene(scenePath, true));
-            EditorBuildSettings.scenes = scenesList.ToArray();
+            scenes.Add(new EditorBuildSettingsScene(scenePath, true));
+            EditorBuildSettings.scenes = scenes.ToArray();
         }
     }
 
     private void ShowSceneInProject(string scenePath)
     {
-        var sceneObject = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(scenePath);
-        if (sceneObject != null)
+        UnityEngine.Object sceneAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(scenePath);
+        if (sceneAsset != null)
         {
-            EditorGUIUtility.PingObject(sceneObject);
-            Selection.activeObject = sceneObject;
+            EditorGUIUtility.PingObject(sceneAsset);
+            Selection.activeObject = sceneAsset;
         }
+    }
+
+    private void SaveVisibilityState()
+    {
+        string data = string.Join("|", sceneVisibility.Select(kvp => $"{kvp.Key}:{kvp.Value}"));
+        EditorPrefs.SetString(VisibilityPrefsKey, data);
+    }
+
+    private void LoadVisibilityState()
+    {
+        string data = EditorPrefs.GetString(VisibilityPrefsKey, "");
+        sceneVisibility.Clear();
+        if (!string.IsNullOrEmpty(data))
+        {
+            foreach (string entry in data.Split('|'))
+            {
+                string[] parts = entry.Split(':');
+                if (parts.Length == 2 && bool.TryParse(parts[1], out bool visible))
+                    sceneVisibility[parts[0]] = visible;
+            }
+        }
+    }
+
+    private void SavePreferences()
+    {
+        EditorPrefs.SetString(FavoritesPrefsKey, string.Join("|", favoriteScenes));
+    }
+
+    private void LoadPreferences()
+    {
+        string favData = EditorPrefs.GetString(FavoritesPrefsKey, "");
+        favoriteScenes = string.IsNullOrEmpty(favData)
+            ? new List<string>()
+            : favData.Split('|').ToList();
+    }
+
+    private void ResetAllPreferences()
+    {
+        EditorPrefs.DeleteKey(VisibilityPrefsKey);
+        EditorPrefs.DeleteKey(FavoritesPrefsKey);
+        EditorPrefs.DeleteKey(RecentPrefsKey);
+        sceneVisibility.Clear();
+        favoriteScenes.Clear();
     }
 
     #endregion

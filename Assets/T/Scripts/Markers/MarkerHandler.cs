@@ -10,7 +10,7 @@ public class MarkerHandler : MonoBehaviour
     [SerializeField] private Transform markerContainer;
 
     List<Marker> markerInstances = new List<Marker>();
-    Camera cam;
+    public Camera cam;
 
     private void Awake()
     {
@@ -19,7 +19,7 @@ public class MarkerHandler : MonoBehaviour
 
     private void Start()
     {
-        cam = Camera.main;
+        //cam = Camera.main;
     }
 
     private void LateUpdate()
