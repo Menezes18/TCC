@@ -18,7 +18,7 @@ public class CheckMudarCena : NetworkBehaviour
         {
             jogadoresPlataforma++;
             Debug.Log("Jogadores na plataforma: " + jogadoresPlataforma);
-            if (jogadoresPlataforma == GameManager.manager.jogadoresAtuais)
+            if (jogadoresPlataforma == MyNetworkManager.manager.allClients.Count)
             {
                 TrocarCena("MiniGame");
             }

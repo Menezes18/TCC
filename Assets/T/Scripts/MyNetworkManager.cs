@@ -7,6 +7,7 @@ using UnityEngine;
 public class MyNetworkManager : NetworkManager 
 {
     public static bool isMulitplayer;
+    public static MyNetworkManager manager { get; internal set; }
 
     public List<MyClient> allClients = new List<MyClient>();
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)
