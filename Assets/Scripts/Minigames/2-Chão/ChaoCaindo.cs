@@ -4,16 +4,22 @@ using Mirror;
 
 public class ChaoCaindo : ChaoMae
 {
-    [ServerCallback]
+    
     private void OnTriggerEnter(Collider other)
     {
         if(other.CompareTag("Player") && !chaoTirado)
         {
+            CmdTentarCair();
+        }
+    }
+    [Command(requiresAuthority = false)]
+    private void CmdTentarCair()
+    {
+        if (!chaoTirado){
             chaoTirado = true;
             tiraChao();
         }
     }
-
     [Server]
     public override void poeChao()
     {
