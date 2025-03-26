@@ -10,6 +10,13 @@ public class MyNetworkManager : NetworkManager
     public static MyNetworkManager manager { get; internal set; }
 
     public List<MyClient> allClients = new List<MyClient>();
+
+    public override void Awake()
+    {
+        base.Awake();
+        manager = this;
+    }
+
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)
     {
         base.OnServerAddPlayer(conn);
