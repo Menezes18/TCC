@@ -23,7 +23,6 @@ public class PlayerScript : PlayerScriptBase
 }
 
 
-    [SerializeField] private TMP_Text _role;
     public Camera cameraJogador;
     private Vector2 _input;
     private Vector3 _move;
@@ -47,6 +46,7 @@ public class PlayerScript : PlayerScriptBase
         
         _playerSO.EventOnCustomMove += EventOnCustomMove;
         _playerSO.EventOnJump += EventOnJump;
+        _characterController = GetComponent<CharacterController>();
     }
 
     private void OnEnable()
@@ -68,7 +68,6 @@ public class PlayerScript : PlayerScriptBase
     }
         
     void OnAliasUpdated(string oldVal, string newVal){
-        _role.text = newVal;
     }
     
     [Command]
