@@ -26,11 +26,11 @@ public class MyClient : NetworkBehaviour
     [SyncVar(hook = nameof(IsReadyUpdate))]
     public bool IsReady;
 
-   [Header("Controller")]
-    [SerializeField] private GameObject controllerObj;
-    [SerializeField] private GameObject meshObj;
-    [SerializeField] private GameObject camHolder;
-    [SerializeField] private Behaviour[] controllerComponents;
+   // [Header("Controller")]
+   //  [SerializeField] private GameObject controllerObj;
+   //  [SerializeField] private GameObject meshObj;
+   //  [SerializeField] private GameObject camHolder;
+   //  [SerializeField] private Behaviour[] controllerComponents;
 
     public Sprite icon { get; private set; }
     public CharacterSkinElement characterInstance { get; set; }
@@ -60,33 +60,33 @@ public class MyClient : NetworkBehaviour
         if(CharacterSkinHandler.instance) CharacterSkinHandler.instance.SpawnCharacterMesh(this);
         avatarImageLoaded = Callback<AvatarImageLoaded_t>.Create(OnAvatarImageLoaded);
 
-        if (SceneManager.GetActiveScene().name != "MainMenu")
-        {
-            ToggleController(true);
-        }
-        else
-        { 
-            ToggleController(false);
-        }
+        // if (SceneManager.GetActiveScene().name != "MainMenu")
+        // {
+        //     ToggleController(true);
+        // }
+        // else
+        // { 
+        //     ToggleController(false);
+        // }
     }
 
-    void ToggleController(bool value) 
-    {
-        controllerObj.SetActive(value);
-        meshObj.SetActive(value);
-        camHolder.SetActive(value);
-
-        if (!isLocalPlayer) 
-            value = false;
-
-        
-        foreach (var component in controllerComponents)
-        {
-            component.enabled = value;
-        }
-
-        GetComponent<CharacterController>().enabled = value;
-    }
+    // void ToggleController(bool value) 
+    // {
+    //     controllerObj.SetActive(value);
+    //     meshObj.SetActive(value);
+    //     camHolder.SetActive(value);
+    //
+    //     if (!isLocalPlayer) 
+    //         value = false;
+    //
+    //     
+    //     foreach (var component in controllerComponents)
+    //     {
+    //         component.enabled = value;
+    //     }
+    //
+    //     GetComponent<CharacterController>().enabled = value;
+    // }
 
     #region Ready Up
     public void ToggleReady() => Cmd_ToggleReady();
