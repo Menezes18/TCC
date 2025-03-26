@@ -10,6 +10,7 @@ public class MyNetworkManager : NetworkManager
     public static MyNetworkManager manager { get; internal set; }
 
     public List<MyClient> allClients = new List<MyClient>();
+    public int minJogadores = 1;
 
     public override void Awake()
     {
@@ -24,6 +25,8 @@ public class MyNetworkManager : NetworkManager
         MyClient client = conn.identity.GetComponent<MyClient>();
         CSteamID steamId = SteamLobby.LobbyID.m_SteamID == 0 ? SteamUser.GetSteamID() : SteamMatchmaking.GetLobbyMemberByIndex(SteamLobby.LobbyID, allClients.Count);
         client.playerInfo = new PlayerInfoData(SteamFriends.GetFriendPersonaName(steamId), steamId.m_SteamID);
+        Debug.Log("Conectados" + allClients.Count);
+        if(allClients.Count >= minJogadores) iniciaContador();
     }
 
     public override void OnServerDisconnect(NetworkConnectionToClient conn)
@@ -62,5 +65,10 @@ public class MyNetworkManager : NetworkManager
         else 
         
             NetworkServer.dontListen = true;
+    }
+
+    public void iniciaContador(){
+        ContadorTempo temp = GameObject.Find("Temporizador").GetComponent<ContadorTempo>();
+        temp.IniciarContador();
     }
 }
