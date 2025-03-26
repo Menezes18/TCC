@@ -27,13 +27,14 @@ public class MyNetworkManager : NetworkManager
         client.playerInfo = new PlayerInfoData(SteamFriends.GetFriendPersonaName(steamId), steamId.m_SteamID);
         Debug.Log("Conectados" + allClients.Count);
         if(allClients.Count >= minJogadores) iniciaContador();
+        CharacterSkinHandler.instance.DestroyMesh();
     }
 
     public override void OnServerDisconnect(NetworkConnectionToClient conn)
     {
         base.OnServerDisconnect(conn);
     }
-
+    
     public override void OnStartClient()
     {
         if (isMulitplayer) 

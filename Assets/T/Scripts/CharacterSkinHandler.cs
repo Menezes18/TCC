@@ -64,6 +64,16 @@ public class CharacterSkinHandler : MonoBehaviour
         return 0;
     }
 
+    public void DestroyMesh()
+    {
+        if (clientsCharacters.Length > 0){
+            foreach (var character in clientsCharacters){
+                if(character == null)
+                    continue;
+                Destroy(character.gameObject);
+            }
+        }
+    }
     public void DestroyCharacterMesh(MyClient client) 
     {
         foreach (var character in clientsCharacters) 
