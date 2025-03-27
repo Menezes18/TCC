@@ -62,12 +62,11 @@ public class ChaoQuebrando : ChaoMae
     public override void tiraChao()
     {
         chaoTirado = true;
-        StartCoroutine(DesativaTile());
+        DesativaTile();
     }
 
-    private IEnumerator DesativaTile()
+    private void DesativaTile()
     {
-        yield return new WaitForSeconds(0.5f);
         gameObject.SetActive(false);
     }
 
