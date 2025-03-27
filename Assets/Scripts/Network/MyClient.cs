@@ -25,7 +25,8 @@ public class MyClient : NetworkBehaviour
 
     [SyncVar(hook = nameof(IsReadyUpdate))]
     public bool IsReady;
-
+    [SyncVar]
+    public bool isPartyOwner = false;
    // [Header("Controller")]
    //  [SerializeField] private GameObject controllerObj;
    //  [SerializeField] private GameObject meshObj;
