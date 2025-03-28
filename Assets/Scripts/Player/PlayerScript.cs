@@ -29,11 +29,13 @@ public class PlayerScript : PlayerScriptBase
     private bool _isGrounded;
     private bool _ignoreGroundedOnThisFrame;
     private float _inertiaSpeed;
+    [SerializeField ]private PlayerInput _playerInput;
     [SyncVar(hook = nameof(OnAliasUpdated))]  public string Alias; 
     [SyncVar]
     public string sessionId = "";
     private void Awake()
     {
+        _playerInput = GetComponent<PlayerInput>();
         if (_characterController == null)
         {
             _characterController = GetComponent<CharacterController>();
@@ -58,6 +60,18 @@ public class PlayerScript : PlayerScriptBase
         }
     }
 
+    public bool teste = false;
+    protected override void OnValidate()
+    {
+        if (!teste && _playerInput != null){
+            //SetInputActionEnabled(new string[] { "Player"}, true);
+            SetInputEnabled(new string[] { "Player"}, true, true);
+        }
+        else if (_playerInput != null){
+            //SetInputActionEnabled(new string[] { "Player"}, false);
+            SetInputEnabled(new string[] { "Player"}, false, true);
+        }
+    }
     private void OnDisable()
     {
         if (isOwned)
@@ -248,6 +262,42 @@ public class PlayerScript : PlayerScriptBase
                 State = PlayerStates.Air;
             else
                 State = PlayerStates.Default;
+        }
+    }
+    public void SetInputEnabled(string[] inputNames, bool enabled, bool useActionMap = false)
+    {
+        foreach (string name in inputNames)
+        {
+            if (useActionMap)
+            {
+                InputActionMap map = _playerInput.actions.FindActionMap(name);
+                if (map != null)
+                {
+                    if (enabled)
+                        map.Enable();
+                    else
+                        map.Disable();
+                }
+                else
+                {
+                    Debug.LogWarning($"ActionMap '{name}' não encontrado.");
+                }
+            }
+            else
+            {
+                InputAction action = _playerInput.actions.FindAction(name);
+                if (action != null)
+                {
+                    if (enabled)
+                        action.Enable();
+                    else
+                        action.Disable();
+                }
+                else
+                {
+                    Debug.LogWarning($"Action '{name}' não encontrada.");
+                }
+            }
         }
     }
     protected override void OnStateChanged(PlayerStates oldVal, PlayerStates newVal){
