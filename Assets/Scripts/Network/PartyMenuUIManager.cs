@@ -18,12 +18,12 @@ public class PartyMenuUIManager : MonoBehaviour{
 
     void Start()
     {
-        if (partyMenuPanel != null)
-        {
-            foreach (var menu in partyMenuPanel){
-                menu.SetActive(false);
-            }
-        }
+        // if (partyMenuPanel != null)
+        // {
+        //     foreach (var menu in partyMenuPanel){
+        //         menu.SetActive(false);
+        //     }
+        // }
     }
 
     void Update()
