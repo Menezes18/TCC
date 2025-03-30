@@ -90,7 +90,10 @@ public class PlayerShootSystem : PlayerScriptBase
     private bool PodeTirarAgora()
     {
         bool recargaCompleta = Time.time >= ultimoTiroTempo + _projetil.tempoRecarga;
-        bool estadoValido = IsInState(PlayerStates.Default) || IsInState(PlayerStates.ShootCooldown);
+        bool estadoValido = IsInState(PlayerStates.Default) || 
+                            IsInState(PlayerStates.ShootCooldown) ||
+                            IsInState(PlayerStates.Pushing) ||  
+                            IsInState(PlayerStates.PushCooldown);
         return recargaCompleta && estadoValido;
     }
 
