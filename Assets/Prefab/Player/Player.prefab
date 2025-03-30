@@ -1142,6 +1142,10 @@ MonoBehaviour:
     m_ActionId: 70b4851b-0f87-421f-a361-5c89ea8cb603
     m_ActionName: Player/Shoot[/Mouse/leftButton]
   - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: 9d40b042-4a49-49a9-8712-bc2ca8a13ce7
+    m_ActionName: UI/UI
+  - m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 11400000, guid: 9dfba7758fc9c5b4a96c4bc1d3526f10, type: 2}
         m_TargetAssemblyTypeName: PlayerControlSO, Assembly-CSharp
@@ -1155,12 +1159,8 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-    m_ActionId: a68227da-9c6a-4993-9509-953421dbd627
+    m_ActionId: 422c4f1d-85cb-447e-b85e-cfd428c0b743
     m_ActionName: Player/Cursor[/Keyboard/alt]
-  - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: 9d40b042-4a49-49a9-8712-bc2ca8a13ce7
-    m_ActionName: UI/UI
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: Player
@@ -1185,15 +1185,7 @@ MonoBehaviour:
     username: 
     steamId: 0
   IsReady: 0
-  controllerObj: {fileID: 3748720556928000060}
-  meshObj: {fileID: 6681384970284431451}
-  camHolder: {fileID: 8196471383041986599}
-  controllerComponents:
-  - {fileID: 3424443424656011663}
-  - {fileID: 2393608631824778115}
-  - {fileID: 4908738296727809224}
-  - {fileID: 2763646331169255014}
-  - {fileID: -7722020084432254880}
+  isPartyOwner: 0
 --- !u!114 &3424443424656011663
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1274,8 +1266,10 @@ MonoBehaviour:
   _characterController: {fileID: 4614322387205366381}
   _panel: {fileID: 6111571359074440818}
   cameraJogador: {fileID: 908870485810889055}
+  _playerInput: {fileID: 0}
   Alias: 
   sessionId: 
+  teste: 0
 --- !u!114 &2763646331169255014
 MonoBehaviour:
   m_ObjectHideFlags: 0
