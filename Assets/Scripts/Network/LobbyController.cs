@@ -40,7 +40,7 @@ public class LobbyController : MonoBehaviour
 
     private void StartGame()
     {
-        NetworkManager.singleton.ServerChangeScene("MainMenu");
+        NetworkManager.singleton.ServerChangeScene("MiniGame");
     }
 
     private bool AllPlayersReady() 
