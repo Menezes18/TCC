@@ -10,7 +10,6 @@ public class ChaoQuebrando : ChaoMae
     private bool jogadorNoTile = false;
     private int indiceEstadoAtual = 0;
 
-    [ServerCallback]
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
@@ -19,7 +18,6 @@ public class ChaoQuebrando : ChaoMae
         }
     }
 
-    [ServerCallback]
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Player"))
@@ -28,7 +26,6 @@ public class ChaoQuebrando : ChaoMae
         }
     }
 
-    [ServerCallback]
     private void Update()
     {
         if (jogadorNoTile && !chaoTirado)
@@ -37,9 +34,16 @@ public class ChaoQuebrando : ChaoMae
             if (tempoAcumulado >= dataChao.tempo)
             {
                 tempoAcumulado = 0;
-                AtualizaEstado();
+                CmdEstado();
             }
         }
+    }
+
+    [Command(requiresAuthority = false)]
+    public void CmdEstado()
+    {
+        AtualizaEstado();
+        RpcAtualizaEstado(indiceEstadoAtual);
     }
 
     [Server]
@@ -58,22 +62,50 @@ public class ChaoQuebrando : ChaoMae
         }
     }
 
+    [ClientRpc]
+    private void RpcAtualizaEstado(int novoIndice)
+    {
+        if (isServer) return; // Evita que o servidor execute isso duas vezes
+
+        if (novoIndice < estadosChao.Length)
+        {
+            estadosChao[novoIndice].SetActive(true);
+            estadosChao[novoIndice - 1].SetActive(false);
+        }
+        else
+        {
+            DesativaTile();
+        }
+    }
+
     [Server]
     public override void tiraChao()
     {
         chaoTirado = true;
-        StartCoroutine(DesativaTile());
+        DesativaTile();
     }
 
-    private IEnumerator DesativaTile()
+    private void DesativaTile()
     {
-        yield return new WaitForSeconds(0.5f);
         gameObject.SetActive(false);
     }
 
     [Server]
     public override void poeChao()
     {
+        transform.position = posIncial;
+        tempoAcumulado = 0f;
+        chaoTirado = false;
+        indiceEstadoAtual = 0;
+        estadosChao[indiceEstadoAtual].SetActive(true);
+        RpcResetarChao();
+    }
+
+    [ClientRpc]
+    private void RpcResetarChao()
+    {
+        if (isServer) return;
+
         transform.position = posIncial;
         tempoAcumulado = 0f;
         chaoTirado = false;

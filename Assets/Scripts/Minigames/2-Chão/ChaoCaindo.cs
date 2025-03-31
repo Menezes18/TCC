@@ -36,7 +36,7 @@ public class ChaoCaindo : ChaoMae
     private IEnumerator desceChao()
     {
         float tempoDecorrido = 0f;
-        yield return new WaitForSeconds(0.6f);
+        yield return new WaitForSeconds(0.5f);
         while (tempoDecorrido < dataChao.tempo)
         {
             transform.position -= Vector3.up * dataChao.speed * Time.deltaTime;
