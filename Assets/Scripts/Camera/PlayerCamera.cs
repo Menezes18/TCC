@@ -47,10 +47,8 @@ public class PlayerCamera : NetworkBehaviour
             _cam.Follow = _cameraTarget;
             _cam.LookAt = _cameraTarget;
         }
-
-        // Cursor.visible = false;
-        // Cursor.lockState = CursorLockMode.Locked;
         
+        SetCursorState(true);        
         PlayerControlSO.EventOnLook += OnLook;
         PlayerControlSO.EventOnCursor += EventOnCursor;
     }

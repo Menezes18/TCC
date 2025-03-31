@@ -1,10 +1,12 @@
 using Mirror;
 using UnityEngine;
 
+[RequireComponent(typeof(Collider))]
+[RequireComponent(typeof(NetworkIdentity))]
 public class CheckMudarCena : NetworkBehaviour
 {
-    public int jogadoresPlataforma = 0;
-
+    [SerializeField] private string mudarCena = string.Empty;
+    [SerializeField, Min(0)] private int jogadoresPlataforma = 0;
     [Server]
     void TrocarCena(string cena)
     {
@@ -20,7 +22,7 @@ public class CheckMudarCena : NetworkBehaviour
             Debug.Log("Jogadores na plataforma: " + jogadoresPlataforma);
             if (jogadoresPlataforma == MyNetworkManager.manager.allClients.Count)
             {
-                TrocarCena("MiniGame");
+                TrocarCena(mudarCena);
             }
         }
     }

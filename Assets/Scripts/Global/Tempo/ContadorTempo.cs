@@ -96,7 +96,7 @@ public class ContadorTempo : NetworkBehaviour
             uiTempoPrincipal.text = "Tempo Esgotado!";
             if (NetworkServer.active)
             {
-                NetworkManager.singleton.ServerChangeScene("dev");
+                NetworkManager.singleton.ServerChangeScene("MainMenu");
             }
         }
     }
