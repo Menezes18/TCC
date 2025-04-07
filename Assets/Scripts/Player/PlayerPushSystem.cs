@@ -244,7 +244,7 @@ public class PartyPushSystem : NetworkBehaviour
         _isPushed = false;
         _pushVelocity = Vector3.zero;
         _distanceTraveled = 0f;
-        _playerScript.State = PlayerStates.Default;
+        _playerScript.State = PlayerStates.Moving;
     }
 
     private IEnumerator PushCooldownRoutine()
@@ -252,14 +252,14 @@ public class PartyPushSystem : NetworkBehaviour
         yield return new WaitForSeconds(0.3f);
         _playerScript.State = PlayerStates.PushCooldown;
         yield return new WaitForSeconds(_db.pushCooldown - 0.3f);
-        _playerScript.State = PlayerStates.Default;
+        _playerScript.State = PlayerStates.Moving;
         _isInPushCooldown = false;
     }
 
     private IEnumerator BeingPushedRoutine()
     {
         yield return new WaitUntil(() => !_isPushed);
-        _playerScript.State = PlayerStates.Default;
+        _playerScript.State = PlayerStates.Moving;
     }
 
     #region Gizmos
