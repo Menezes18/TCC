@@ -12,15 +12,15 @@ public class PlayerScript : PlayerScriptBase
     [SerializeField]  CharacterController _characterController;
     [SerializeField] private GameObject _panel;
     public Vector3 rot {
-    get {
-        PlayerCamera cam = GetComponentInChildren<PlayerCamera>();
-        if (cam != null)
-        {
-            return new Vector3(0, cam.CurrentCameraYRotation, 0);
+        get {
+            PlayerCamera cam = GetComponentInChildren<PlayerCamera>();
+            if (cam != null)
+            {
+                return new Vector3(0, cam.CurrentCameraYRotation, 0);
+            }
+            return new Vector3(0, Camera.main.transform.rotation.eulerAngles.y, 0);
         }
-        return new Vector3(0, Camera.main.transform.rotation.eulerAngles.y, 0);
     }
-}
 
 
     public Camera cameraJogador;
@@ -83,14 +83,14 @@ public class PlayerScript : PlayerScriptBase
         
     void OnAliasUpdated(string oldVal, string newVal){
     }
-    
+
     [Command]
     private void Command(string str){
-      Alias = str;
+        Alias = str;
       
     }
     private void Update(){
-        
+
         if(base.isOwned == false) return;
         
         BehaviorAir();
@@ -199,6 +199,51 @@ public class PlayerScript : PlayerScriptBase
 
         Debug.Log($"[CLIENT] Player {netId} respawned at {position}");
     }
+
+    [Command]
+    public void Die()
+    {
+        State = PlayerStates.Dead;
+        _characterController.enabled = false; 
+        RpcSpectate();
+    }
+
+    [TargetRpc]
+    private void RpcSpectate()
+    {
+        if (_playerInput != null)
+        {
+            _playerInput.enabled = false;
+        }
+
+        PlayerCamera cam = GetComponentInChildren<PlayerCamera>();
+        if (cam != null)
+        {
+            Transform newTarget = FindSpectatorTarget();
+            if (newTarget != null)
+            {
+                cam.SwitchTarget(newTarget);
+            }
+            else
+            {
+                Debug.LogWarning("Nenhum target de espectador encontrado!");
+            }
+        }
+    }
+
+    private Transform FindSpectatorTarget()
+    {
+        PlayerScript[] players = FindObjectsOfType<PlayerScript>();
+        foreach (var player in players)
+        {
+            if (player != this && player.State != PlayerStates.Dead)
+            {
+                return player.transform;
+            }
+        }
+        return null;
+    }
+
     [ClientRpc]
     public void ApplyPush(Vector3 force)
     {

@@ -8,5 +8,6 @@ public enum PlayerStates {
     PushCooldown,
     Shooting,
     BeingShot,
-    ShootCooldown
+    ShootCooldown,
+    Dead
 }

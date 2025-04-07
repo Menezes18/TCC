@@ -112,4 +112,12 @@ public class PlayerCamera : NetworkBehaviour
         Debug.LogError("EventOnCursor" + locked);
         Debug.Log($"Cursor definido para: Visible={Cursor.visible}, LockState={Cursor.lockState}");
     }
+    public void SwitchTarget(Transform newTarget)
+    {
+        if (_cam != null)
+        {
+            _cam.Follow = newTarget;
+            _cam.LookAt = newTarget;
+        }
+    }
 }
