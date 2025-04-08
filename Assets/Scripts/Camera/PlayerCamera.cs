@@ -1,5 +1,5 @@
 using System;
-using Cinemachine;
+using Unity.Cinemachine;
 using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;

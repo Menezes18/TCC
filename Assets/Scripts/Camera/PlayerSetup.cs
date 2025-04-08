@@ -1,6 +1,6 @@
 using UnityEngine;
 using Mirror;
-using Cinemachine;
+using Unity.Cinemachine;
 
 public class PlayerSetup : NetworkBehaviour
 {
