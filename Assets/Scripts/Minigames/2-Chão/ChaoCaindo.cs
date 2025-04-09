@@ -4,7 +4,7 @@ using Mirror;
 
 public class ChaoCaindo : ChaoMae
 {
-    
+    public float tempoPraCair = 0.5f;
     private void OnTriggerEnter(Collider other)
     {
         if(other.CompareTag("Player") && !chaoTirado)
@@ -24,6 +24,7 @@ public class ChaoCaindo : ChaoMae
     public override void poeChao()
     {
         transform.position = posIncial;
+        gameObject.GetComponent<BoxCollider> ().enabled = true;
         chaoTirado = false;
     }
 
@@ -36,11 +37,12 @@ public class ChaoCaindo : ChaoMae
     private IEnumerator desceChao()
     {
         float tempoDecorrido = 0f;
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(tempoPraCair);
         while (tempoDecorrido < dataChao.tempo)
         {
             transform.position -= Vector3.up * dataChao.speed * Time.deltaTime;
             tempoDecorrido += Time.deltaTime;
+            gameObject.GetComponent<BoxCollider> ().enabled = false;
             yield return null;
         }
         yield return new WaitForSeconds(5f);
