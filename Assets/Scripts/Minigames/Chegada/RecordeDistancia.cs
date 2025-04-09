@@ -9,7 +9,7 @@ public class RecordeDistanciaEndpoint : MonoBehaviour
     public GameObject player;
     public float initialDistance = 0;
     public float maxTraveled = 0;
-    private float recordDist = 0f;
+    public float traveled = 0f;
 
     private void Start()
     {
@@ -31,7 +31,7 @@ public class RecordeDistanciaEndpoint : MonoBehaviour
         }
 
         float currentDistance = Vector3.Distance(player.transform.position, transform.position);
-        float traveled = initialDistance - currentDistance;
+        traveled = initialDistance - currentDistance;
         
         if (traveled > maxTraveled)
         {
