@@ -58,34 +58,45 @@ public class PlayerShootSystem : PlayerScriptBase
             AtualizarTrajetoriaParabolica();
         }
     }
-
-    private void EventOnShoot(InputAction.CallbackContext context)
+    private bool jaDisparouAnimacao = false;
+    public void EventOnShoot(InputAction.CallbackContext context)
     {
         if (!isLocalPlayer) return;
 
-        if (context.performed)
+        if ((context.started || context.performed) && !jaDisparouAnimacao)
         {
-            // Botão pressionado
             segurandoBotao = true;
-            lineRenderer.enabled = true; // Ativa o LineRenderer
+            lineRenderer.enabled = true;
+
+            AnimatorStateInfo anim = _player._animator.GetCurrentAnimatorStateInfo(0);
+            if (!anim.IsName("ShootStart") && !anim.IsName("ShootHold") && !anim.IsName("ShootRelease"))
+            {
+                _player._animator.SetTrigger("TriggerStartShoot");
+                jaDisparouAnimacao = true;
+            }
         }
+
         else if (context.canceled)
         {
-            // Botão solto
+            Debug.Log("SOLTEI");
             segurandoBotao = false;
-            lineRenderer.enabled = false; // Desativa o LineRenderer
+            lineRenderer.enabled = false;
+
+            _player._animator.SetTrigger("TriggerRelease");
+
+            jaDisparouAnimacao = false;
 
             if (PodeTirarAgora())
             {
                 ultimoTiroTempo = Time.time;
-                State = PlayerStates.Shooting;
-
+                _player.State = PlayerStates.Shooting;
                 CmdAtirar(_player.cameraJogador.transform.forward);
-
                 StartCoroutine(VoltarParaDefaultAposTiro());
             }
         }
     }
+
+
 
     private bool PodeTirarAgora()
     {
@@ -134,6 +145,35 @@ public class PlayerShootSystem : PlayerScriptBase
             }
         }
     }
+    
+    private void AtualizarTrajetoriaParabolica()
+    {
+        if (_player.cameraJogador == null || lineRenderer == null) return;
+
+        Vector3 direcaoTiro = _player.cameraJogador.transform.forward.normalized;
+        direcaoTiro.y += alturaExtra;
+
+        Vector3 velInicial = direcaoTiro * _projetil.velocidadeInicial;
+
+        int passos = Mathf.Min(5, _projetil.passosTrajetoria); // Exibe apenas os primeiros 5 pontos
+        float step = _projetil.tempoMaximoTrajetoria / _projetil.passosTrajetoria;
+
+        lineRenderer.positionCount = passos + 1; // Define o número de pontos
+
+        for (int i = 0; i <= passos; i++)
+        {
+            float t = i * step;
+
+            // Calcula a posição da trajetória
+            Vector3 posAtual = origemTiro.position
+                               + velInicial * t
+                               + 0.5f * new Vector3(0, _projetil.gravidade, 0) * (t * t);
+
+            lineRenderer.SetPosition(i, posAtual); // Atualiza o ponto no LineRenderer
+        }
+    }
+    
+    #region Gizmo
     private void OnDrawGizmos()
     {
         if (origemTiro == null) return;
@@ -178,30 +218,7 @@ public class PlayerShootSystem : PlayerScriptBase
     
         Gizmos.DrawWireSphere(posAnterior, 0.1f);
     }
-    private void AtualizarTrajetoriaParabolica()
-    {
-        if (_player.cameraJogador == null || lineRenderer == null) return;
+    
 
-        Vector3 direcaoTiro = _player.cameraJogador.transform.forward.normalized;
-        direcaoTiro.y += alturaExtra;
-
-        Vector3 velInicial = direcaoTiro * _projetil.velocidadeInicial;
-
-        int passos = Mathf.Min(5, _projetil.passosTrajetoria); // Exibe apenas os primeiros 5 pontos
-        float step = _projetil.tempoMaximoTrajetoria / _projetil.passosTrajetoria;
-
-        lineRenderer.positionCount = passos + 1; // Define o número de pontos
-
-        for (int i = 0; i <= passos; i++)
-        {
-            float t = i * step;
-
-            // Calcula a posição da trajetória
-            Vector3 posAtual = origemTiro.position
-                               + velInicial * t
-                               + 0.5f * new Vector3(0, _projetil.gravidade, 0) * (t * t);
-
-            lineRenderer.SetPosition(i, posAtual); // Atualiza o ponto no LineRenderer
-        }
-    }
+    #endregion
 }

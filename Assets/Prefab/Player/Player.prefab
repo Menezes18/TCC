@@ -855,6 +855,7 @@ GameObject:
   - component: {fileID: -7722020084432254880}
   - component: {fileID: -8131194978157388685}
   - component: {fileID: 6178418409306749926}
+  - component: {fileID: 955949767500222104}
   m_Layer: 7
   m_Name: Player
   m_TagString: Player
@@ -1202,6 +1203,7 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+  _animator: {fileID: 1611427101189391890}
   _playerSO: {fileID: 11400000, guid: 9dfba7758fc9c5b4a96c4bc1d3526f10, type: 2}
   origemTiro: {fileID: 549372884117074419}
   _projetil: {fileID: 11400000, guid: c60444fdeabdb1246b568907d8fd768a, type: 2}
@@ -1262,13 +1264,15 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+  _animator: {fileID: 1611427101189391890}
   db: {fileID: 11400000, guid: d6c25b14977fb5445a4b66c63b66829e, type: 2}
   _playerSO: {fileID: 11400000, guid: 9dfba7758fc9c5b4a96c4bc1d3526f10, type: 2}
   _characterController: {fileID: 4614322387205366381}
   _panel: {fileID: 6111571359074440818}
+  _playerInputScript: {fileID: 4374977253332207120}
   cameraJogador: {fileID: 908870485810889055}
   _input: {x: 0, y: 0}
-  _playerInput: {fileID: 0}
+  _playerInput: {fileID: 8150701183189303020}
   Alias: 
   sessionId: 
   teste: 0
@@ -1359,6 +1363,23 @@ MonoBehaviour:
   serverOnly: 0
   visibility: 0
   hasSpawned: 0
+--- !u!114 &955949767500222104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9032602418151776553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f6f3bf89aa97405989c802ba270f815, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 1
+  syncMode: 0
+  syncInterval: 0
+  clientAuthority: 0
+  animator: {fileID: 1611427101189391890}
 --- !u!1001 &7534204815159152425
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1445,10 +1466,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1611427101189391890}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d51e869d0be7a774eae919c18dfa52ad,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 8618914635428927898}
   m_SourcePrefab: {fileID: 100100000, guid: d51e869d0be7a774eae919c18dfa52ad, type: 3}
 --- !u!1 &7228196645481247352 stripped
 GameObject:
@@ -1477,31 +1494,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &8618914635428927898
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7228196645481247352}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 31c562862c80b3346a6cc83272d08d5b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  animationClips:
-  - state: 1
-    animationName: MovementBlend
-    transitionDuration: 0.1
-    layer: 0
-    useBlendTree: 1
-    blendParameterX: MoveX
-    blendParameterY: MoveY
-  walkThreshold: 0.1
-  runThreshold: 0.5
-  animator: {fileID: 1611427101189391890}
-  playerScript: {fileID: 3424443424656011663}
-  playerInput: {fileID: 4374977253332207120}
 --- !u!4 &7999631134166362306 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d51e869d0be7a774eae919c18dfa52ad,

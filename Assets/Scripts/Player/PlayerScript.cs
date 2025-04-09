@@ -11,6 +11,8 @@ public class PlayerScript : PlayerScriptBase
     [SerializeField]  PlayerControlSO _playerSO;
     [SerializeField]  CharacterController _characterController;
     [SerializeField] private GameObject _panel;
+
+    public PlayerInputScript _playerInputScript;
     public Vector3 rot {
     get {
         PlayerCamera cam = GetComponentInChildren<PlayerCamera>();
@@ -22,7 +24,7 @@ public class PlayerScript : PlayerScriptBase
     }
 }
 
-
+    public Animator _animator;
     public Camera cameraJogador;
     public Vector2 _input;
     private Vector3 _move;
@@ -33,6 +35,7 @@ public class PlayerScript : PlayerScriptBase
     [SyncVar(hook = nameof(OnAliasUpdated))]  public string Alias; 
     [SyncVar]
     public string sessionId = "";
+    private PlayerShootSystem _playerShootSystem;
     private void Awake()
     {
         _playerInput = GetComponent<PlayerInput>();
@@ -65,11 +68,13 @@ public class PlayerScript : PlayerScriptBase
     {
         if (!teste && _playerInput != null){
             //SetInputActionEnabled(new string[] { "Player"}, true);
-            SetInputEnabled(new string[] { "Player"}, true, true);
+            //SetInputEnabled(new string[] { "Player"}, true, true);
+            _animator.SetBool("PushPFrente", true);
         }
         else if (_playerInput != null){
+            _animator.SetBool("PushPFrente", false);
             //SetInputActionEnabled(new string[] { "Player"}, false);
-            SetInputEnabled(new string[] { "Player"}, false, true);
+            //SetInputEnabled(new string[] { "Player"}, false, true);
         }
     }
     private void OnDisable()
@@ -170,6 +175,9 @@ public class PlayerScript : PlayerScriptBase
         _move = Quaternion.Euler(rot) * _move;
         _move *= db.playerSpeed;
         _move.y = vertical;
+        
+        _animator.SetFloat("MoveX", _playerInputScript.GetInput().x);
+        _animator.SetFloat("MoveY", _playerInputScript.GetInput().y);
     }
 
     private void EventOnJump(InputAction.CallbackContext obj)

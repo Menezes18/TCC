@@ -109,7 +109,7 @@ public class PartyPushSystem : NetworkBehaviour
     private void HandlePushInput(InputAction.CallbackContext context)
     {
         if (!isLocalPlayer)  return;
-        
+        _player._animator.SetTrigger("Push");
         CmdTryPush();
     }
 
