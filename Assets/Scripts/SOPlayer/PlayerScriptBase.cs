@@ -10,7 +10,6 @@ public class PlayerScriptBase : NetworkBehaviour
     
     public event Action<PlayerStates, PlayerStates> OnStateChangeEvent;
     
-    
     public PlayerStates State
     {
         get => _state;

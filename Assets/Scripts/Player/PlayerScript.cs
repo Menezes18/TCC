@@ -11,6 +11,8 @@ public class PlayerScript : PlayerScriptBase
     [SerializeField]  PlayerControlSO _playerSO;
     [SerializeField]  CharacterController _characterController;
     [SerializeField] private GameObject _panel;
+
+    public PlayerInputScript _playerInputScript;
     public Vector3 rot {
         get {
             PlayerCamera cam = GetComponentInChildren<PlayerCamera>();
@@ -22,9 +24,9 @@ public class PlayerScript : PlayerScriptBase
         }
     }
 
-
+    public Animator _animator;
     public Camera cameraJogador;
-    private Vector2 _input;
+    public Vector2 _input;
     private Vector3 _move;
     private bool _isGrounded;
     private bool _ignoreGroundedOnThisFrame;
@@ -33,6 +35,7 @@ public class PlayerScript : PlayerScriptBase
     [SyncVar(hook = nameof(OnAliasUpdated))]  public string Alias; 
     [SyncVar]
     public string sessionId = "";
+    private PlayerShootSystem _playerShootSystem;
     private void Awake()
     {
         _playerInput = GetComponent<PlayerInput>();
@@ -65,11 +68,13 @@ public class PlayerScript : PlayerScriptBase
     {
         if (!teste && _playerInput != null){
             //SetInputActionEnabled(new string[] { "Player"}, true);
-            SetInputEnabled(new string[] { "Player"}, true, true);
+            //SetInputEnabled(new string[] { "Player"}, true, true);
+            _animator.SetBool("PushPFrente", true);
         }
         else if (_playerInput != null){
+            _animator.SetBool("PushPFrente", false);
             //SetInputActionEnabled(new string[] { "Player"}, false);
-            SetInputEnabled(new string[] { "Player"}, false, true);
+            //SetInputEnabled(new string[] { "Player"}, false, true);
         }
     }
     private void OnDisable()
@@ -94,6 +99,7 @@ public class PlayerScript : PlayerScriptBase
         if(base.isOwned == false) return;
         
         BehaviorAir();
+        BehaviorIdle();
         BehaviorDefault();
 
         _move += Vector3.up * db.gravity * Time.deltaTime;
@@ -102,13 +108,33 @@ public class PlayerScript : PlayerScriptBase
         
         if (_characterController.isGrounded == true)
             _move.y = db.gravityGrounded;
-        
+        if (!IsInSpecialState()){
+            
+            if (_input.magnitude > 0.01f)
+            {
+                if (State != PlayerStates.Moving)
+                    State = PlayerStates.Moving;
+            }
+            else
+            {
+                if (State != PlayerStates.Idle)
+                    State = PlayerStates.Idle;
+            }
+        }
         
         if(_input.magnitude == 0) return;
         
         Command(_input.ToString());
     }
+    private void BehaviorIdle()
+    {
+        if (State != PlayerStates.Idle) return;
     
+        float vertical = _move.y;
+        _move = Vector3.zero;
+        _move.y = vertical;
+    }
+
     private void BehaviorAir(){
         if(State != PlayerStates.Air) return; // Enter condition check
         
@@ -138,40 +164,44 @@ public class PlayerScript : PlayerScriptBase
         
         if (_characterController.isGrounded == true){ // Exit condition  
             
-            State = PlayerStates.Default;
+            State = PlayerStates.Moving;
         }
     }
     private void BehaviorDefault(){
-        if(State != PlayerStates.Default) return;
+        if(State != PlayerStates.Moving) return;
         float vertical = _move.y;
         
         _move = new Vector3(_input.x, 0, _input.y);
         _move = Quaternion.Euler(rot) * _move;
         _move *= db.playerSpeed;
         _move.y = vertical;
+        
+        _animator.SetFloat("MoveX", _playerInputScript.GetInput().x);
+        _animator.SetFloat("MoveY", _playerInputScript.GetInput().y);
     }
 
     private void EventOnJump(InputAction.CallbackContext obj)
     {
         // Verifica se o CharacterController ainda existe
-        if (_characterController == null)
-        {
-            Debug.LogWarning("CharacterController é nulo; abortando o pulo.");
+        if (_characterController == null || !_characterController.isGrounded)
             return;
-        }
-
-        // Garante que o personagem esteja no chão antes de pular
-        if (!_characterController.isGrounded)
-            return;
+        
+        
 
         // Lógica para o pulo
         _inertiaSpeed = new Vector3(_move.x, 0, _move.z).magnitude;
         _inertiaSpeed = Mathf.Clamp(_inertiaSpeed, db.playerSpeed, db.maxAirSpeed);
-        State = PlayerStates.Air;
+        State = PlayerStates.Jump;
         _ignoreGroundedOnThisFrame = true;
         _move.y = db.jumpHeight;
+        StartCoroutine(JumpToAirCoroutine());
     }
-
+    private IEnumerator JumpToAirCoroutine()
+    {
+        yield return new WaitForSeconds(0.1f); 
+        if (State == PlayerStates.Jump)
+            State = PlayerStates.Air;
+    }
     private void EventOnCustomMove(Vector2 obj){
         _input = obj;
     }
@@ -291,7 +321,7 @@ public class PlayerScript : PlayerScriptBase
             if (!_characterController.isGrounded)
                 State = PlayerStates.Air;
             else
-                State = PlayerStates.Default;
+                State = PlayerStates.Moving;
         }
     }
 
@@ -306,7 +336,7 @@ public class PlayerScript : PlayerScriptBase
             if (!_characterController.isGrounded)
                 State = PlayerStates.Air;
             else
-                State = PlayerStates.Default;
+                State = PlayerStates.Moving;
         }
     }
     public void SetInputEnabled(string[] inputNames, bool enabled, bool useActionMap = false)
@@ -345,6 +375,14 @@ public class PlayerScript : PlayerScriptBase
             }
         }
     }
+    private bool IsInSpecialState()
+    {
+        return State == PlayerStates.Air ||
+               State == PlayerStates.Jump ||
+               State == PlayerStates.BeingShot ||
+               State == PlayerStates.BeingPushed;
+    }
+
     protected override void OnStateChanged(PlayerStates oldVal, PlayerStates newVal){
         base.OnStateChanged(oldVal, newVal);
     }

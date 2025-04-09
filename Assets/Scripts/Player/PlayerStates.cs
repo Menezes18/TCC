@@ -1,7 +1,8 @@
 
 public enum PlayerStates {
-
-    Default,
+    Idle,
+    Moving,
+    Jump,
     Air,
     Pushing,        
     BeingPushed,    

@@ -42,5 +42,9 @@ using UnityEngine.InputSystem;
             _rawH = obj.x;
             _rawV = obj.y;
         }
+        public Vector2 GetInput()
+        {
+            return new Vector2(_h, _v);
+        }
         
     }
