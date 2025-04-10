@@ -30,6 +30,7 @@ public class MyNetworkManager : NetworkManager
     [SerializeField]
     public PlayerScoreboard scoreboard = new PlayerScoreboard();
     private Dictionary<ulong, PlayerData> pointsBoard = new Dictionary<ulong, PlayerData>();
+    public HSteamNetConnection steamConnection = HSteamNetConnection.Invalid;
     public bool testMode = false;
     private void Awake()
     {

@@ -38,7 +38,7 @@ public class ChaoSumindo : ChaoMae, IObserver
         Instrutor instrutor = subject as Instrutor;
         if(instrutor != null)
         {
-            if(currentColor != instrutor.currentColor && instrutor.currentColor != Color.white)
+            if(currentColor == instrutor.imagem.color)
             {
                 tiraChao();
             }

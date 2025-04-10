@@ -109,7 +109,6 @@ public class PartyPushSystem : NetworkBehaviour
     private void HandlePushInput(InputAction.CallbackContext context)
     {
         if (!isLocalPlayer)  return;
-        _player._animator.SetTrigger("Push");
         CmdTryPush();
     }
 
@@ -174,8 +173,8 @@ public class PartyPushSystem : NetworkBehaviour
     [Command(requiresAuthority = false)]
     private void CmdTryPush()
     {
-       // if (!CanPush()) return;
-
+        // if (!CanPush()) return;
+        _player._animator.SetTrigger("Push");
         _lastPushTime = Time.time;
         _isInPushCooldown = true;
         _playerScript.State = PlayerStates.Pushing;
