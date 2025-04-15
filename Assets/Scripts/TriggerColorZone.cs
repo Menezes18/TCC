@@ -3,7 +3,8 @@ using Mirror;
 
 public class TriggerColorZone : NetworkBehaviour
 {
-    [SerializeField] private Material materialSend;
+    [SerializeField] private string materialToSend = "red"; // ou "blue"
+
     private void OnTriggerEnter(Collider other)
     {
         if (!isServer) return;
@@ -11,11 +12,9 @@ public class TriggerColorZone : NetworkBehaviour
         if (other.CompareTag("Player"))
         {
             ColorChange colorChange = other.GetComponent<ColorChange>();
-            colorChange.materialReceive = materialSend;
             if (colorChange != null)
             {
-                colorChange.RpcChangeColor(); // Chama no próprio jogador
-                Debug.Log("Chamei");
+                colorChange.SetMaterial(materialToSend); // só muda a SyncVar
             }
         }
     }

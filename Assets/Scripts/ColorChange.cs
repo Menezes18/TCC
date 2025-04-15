@@ -3,12 +3,41 @@ using Mirror;
 
 public class ColorChange : NetworkBehaviour
 {
-    public Material materialReceive;
+    public Material redMaterial;
+    public Material blueMaterial;
+    public Material greenMaterial;
 
-    [Server]
-    public void RpcChangeColor()
+    [SyncVar(hook = nameof(OnMaterialNameChanged))]
+    private string currentMaterialName = "default";
+
+    // Chamado automaticamente quando o SyncVar muda
+    private void OnMaterialNameChanged(string oldValue, string newValue)
     {
-        Debug.Log("Respondi");
+        ApplyMaterial(newValue);
+    }
+
+    public void SetMaterial(string materialName)
+    {
+        if (isServer)
+        {
+            currentMaterialName = materialName;
+        }
+    }
+
+    private void ApplyMaterial(string materialName)
+    {
+        Material targetMaterial = null;
+
+        if (materialName == "red") targetMaterial = redMaterial;
+        else if (materialName == "blue") targetMaterial = blueMaterial;
+        else targetMaterial = greenMaterial;
+
+        if (targetMaterial == null)
+        {
+            Debug.LogWarning("Material não encontrado: " + materialName);
+            return;
+        }
+
         Transform meshChild = transform.Find("MacacoAnimacoes");
         if (meshChild == null)
         {
@@ -24,7 +53,7 @@ public class ColorChange : NetworkBehaviour
             Renderer rend = bodyPart.GetComponent<Renderer>();
             if (rend != null)
             {
-                rend.material = new Material(materialReceive);
+                rend.material = new Material(targetMaterial);
                 count++;
             }
         }
