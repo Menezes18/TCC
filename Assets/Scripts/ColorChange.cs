@@ -5,7 +5,7 @@ public class ColorChange : NetworkBehaviour
 {
     public Material materialReceive;
 
-    [ClientRpc]
+    [Server]
     public void RpcChangeColor()
     {
         Debug.Log("Respondi");
