@@ -7,11 +7,11 @@ public class TriggerColorZone : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!isServer) return;
+        if (!isServer) return; // Só pra verificar o status
 
-        if (other.CompareTag("Player"))
+        if (other.CompareTag("Player")) //Verificação padrão pro meu trigger
         {
-            ColorChange colorChange = other.GetComponent<ColorChange>();
+            ColorChange colorChange = other.GetComponent<ColorChange>(); // pegar o script
             if (colorChange != null)
             {
                 colorChange.SetMaterial(materialToSend); // só muda a SyncVar
