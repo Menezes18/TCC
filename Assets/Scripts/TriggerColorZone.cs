@@ -1,7 +1,7 @@
 using UnityEngine;
 using Mirror;
 
-public enum PlayerColor
+public enum PlayerColor //Enum com todas minhas cores possíveis
 {
     None,
     Red,
@@ -12,7 +12,7 @@ public enum PlayerColor
 
 public class TriggerColorZone : NetworkBehaviour
 {
-    [SerializeField] private PlayerColor colorToApply = PlayerColor.Red;
+    [SerializeField] private PlayerColor colorToApply = PlayerColor.Red; // Cor que o player transformará ao tocar
 
     
 
@@ -23,7 +23,7 @@ public class TriggerColorZone : NetworkBehaviour
         if (other.CompareTag("Player")) //Verificação padrão pro meu trigger
         {
             ColorChange colorChange = other.GetComponent<ColorChange>(); // pegar o script
-            if (colorChange != null)
+            if (colorChange != null) // verificação de erro
             {
                 bool sucesso = colorChange.TrySetColor(colorToApply);
                 if(!sucesso)Debug.Log("Cor em uso por" + colorToApply);
