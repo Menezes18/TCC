@@ -9,9 +9,11 @@ public class CharacterSkinHandler : MonoBehaviour
 {
     public static CharacterSkinHandler instance;
 
+    public CelularTag celularTag;
     [SerializeField] private GameObject characterSkinPrefab;
     [SerializeField] private Transform[] spawnPositions;
     public CharacterSkinElement[] clientsCharacters;
+    
     private void Awake()
     {
         instance = this;

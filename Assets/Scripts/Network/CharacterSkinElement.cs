@@ -25,6 +25,8 @@ public class CharacterSkinElement : MonoBehaviour
         if(tex)
             icon = SteamHelper.ConvertTextureToSprite(tex);
         nametagMarker.UpdatePFP(icon);
+        CharacterSkinHandler.instance.celularTag.UpdatePFP(icon);
+        
     }
 
     public void Initialize(MyClient client, bool _isReady) 
@@ -34,7 +36,7 @@ public class CharacterSkinElement : MonoBehaviour
 
         steamId = client ? new CSteamID(client.playerInfo.steamId) : SteamUser.GetSteamID();
 
-        if (nametagMarker == null)
+       // if (nametagMarker == null)
             nametagMarker = (NametagMarker)MarkerHandler.instance.SpawnMarker(0, nametagPos.position, null);
 
         if (client != null)
@@ -56,6 +58,9 @@ public class CharacterSkinElement : MonoBehaviour
 
         nametagMarker.UpdateTag(username, isReady);
         nametagMarker.UpdatePFP(icon);
+        
+        CharacterSkinHandler.instance.celularTag.UpdatePFP(icon);
+        CharacterSkinHandler.instance.celularTag.UpdateTagCelular(username, "4590");
     }
 
     private void OnDestroy()
