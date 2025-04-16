@@ -1,68 +1,82 @@
-using System.Collections;
-using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
+using TMPro;
 using UnityEngine.UI;
+using DG.Tweening;
 
 public class PopupManager : MonoBehaviour
 {
     public static PopupManager instance;
 
-    public TMP_Text text_title;
+    [Header("UI References")]
+    public GameObject popUp; // painel geral
+    public CanvasGroup canvasGroup; // para fade
+    public RectTransform popupRect; // para scale/ shake
+    public TMP_Text titleText;
 
-    public GameObject popUp;
+    [Header("Animation Settings")]
+    public float fadeDuration = 0.3f;
+    public float scaleDuration = 0.3f;
+    public float shakeStrength = 20f;
+    public int vibrato = 10;
 
     private void Awake()
     {
         instance = this;
-    }
-
-    public void Popup_Show(string title)
-    {
-        text_title.text = title;
-        popUp.SetActive(true);
-    }
-    public void Popup_Close()
-    {
+        canvasGroup.alpha = 0;
         popUp.SetActive(false);
     }
 
-}
-/*public class PopupContent
-{
-    public string title;
-    public string text;
-    public Sprite icon;
-    public PopupContent_Button[] buttons;
-
-    public PopupContent(string popup_title, string popup_text, Sprite popup_icon, PopupContent_Button[] popup_buttons)
+    public void Popup_Show(string title, bool shake = false, bool shakeloop = false)
     {
-        title = popup_title;
-        text = popup_text;
-        icon = popup_icon;
-        buttons = popup_buttons;
+        titleText.text = title;
+        popUp.SetActive(true);
+
+        canvasGroup.alpha = 0;
+        popupRect.localScale = Vector3.zero;
+
+        canvasGroup.DOFade(1, fadeDuration);
+        popupRect.DOScale(Vector3.one, scaleDuration).SetEase(Ease.OutBack);
+        if (shakeloop)
+            Popup_ShowShakeLoop(title);
+        else if (shake)
+            popupRect.DOShakeAnchorPos(0.4f, shakeStrength, vibrato, 90, false, true);
+    }
+    Tween shakeTween;
+
+    public void Popup_ShowShakeLoop(string title)
+    {
+        titleText.text = title;
+        popUp.SetActive(true);
+
+        canvasGroup.alpha = 0;
+        popupRect.localScale = Vector3.zero;
+
+        canvasGroup.DOFade(1, fadeDuration);
+        popupRect.DOScale(Vector3.one, scaleDuration).SetEase(Ease.OutBack);
+
+        
+        shakeTween?.Kill();
+        shakeTween = popupRect.DOShakeAnchorPos(
+            2f, 
+            shakeStrength,
+            vibrato,
+            90,
+            true,
+            true
+        ).SetLoops(-1, LoopType.Restart); 
+    }
+
+    public void Popup_Close()
+    {
+        shakeTween?.Kill(); 
+        shakeTween = null;
+
+        Sequence closeSeq = DOTween.Sequence();
+        closeSeq.Append(canvasGroup.DOFade(0, fadeDuration));
+        closeSeq.Join(popupRect.DOScale(Vector3.zero, scaleDuration).SetEase(Ease.InBack));
+        closeSeq.OnComplete(() =>
+        {
+            popUp.SetActive(false);
+        });
     }
 }
-
-public class PopupContent_Button
-{
-    public string text = "OK";
-    public string function = "";
-    public MonoBehaviour function_caller;
-
-    //shows default ok button
-    public PopupContent_Button()
-    {
-        text = "OK";
-        function = "";
-        function_caller = null;
-    }
-
-    //show special button
-    public PopupContent_Button(string button_text, string button_function, MonoBehaviour button_function_caller)
-    {
-        text = button_text;
-        function = button_function;
-        function_caller = button_function_caller;
-    }
-}*/
