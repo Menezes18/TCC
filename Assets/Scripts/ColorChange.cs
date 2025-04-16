@@ -1,53 +1,58 @@
 using UnityEngine;
 using Mirror;
+using System.Linq;
 
 public class ColorChange : NetworkBehaviour
 {
-    //Fiz por string, mas é código de preguiçoso, formatar pra Enum ou algo do tipo
     public Material redMaterial;
     public Material blueMaterial;
     public Material greenMaterial;
 
-    [SyncVar(hook = nameof(OnMaterialNameChanged))] // persistencia de dados
-    private string currentMaterialName = "default";
+    [SyncVar(hook = nameof(OnColorChanged))]
+    private PlayerColor currentColor = PlayerColor.None;
 
-    // Chamado automaticamente quando o SyncVar muda
-    private void OnMaterialNameChanged(string oldValue, string newValue)
+    private void OnColorChanged(PlayerColor oldColor, PlayerColor newColor)
     {
-        ApplyMaterial(newValue);
+        ApplyMaterial(newColor);
     }
 
-    public void SetMaterial(string materialName)
+    public bool TrySetColor(PlayerColor newColor)
     {
-        if (isServer)
-        {
-            currentMaterialName = materialName;
-        }
+        if (IsColorTaken(newColor)) return false;
+
+        currentColor = newColor;
+        return true;
     }
 
-    private void ApplyMaterial(string materialName) // aplicação do material
+    private bool IsColorTaken(PlayerColor color)
+    {
+        if (color == PlayerColor.None) return false;
+
+        return FindObjectsOfType<ColorChange>().Any(player =>
+            player != this && player.currentColor == color
+        );
+    }
+
+    private void ApplyMaterial(PlayerColor color)
     {
         Material targetMaterial = null;
 
-        //O certo seria ter o do green mas no caso é minha excessão :P
-        if (materialName == "red") targetMaterial = redMaterial;
-        else if (materialName == "blue") targetMaterial = blueMaterial;
-        else targetMaterial = greenMaterial;
-
-        if (targetMaterial == null) //Se não achar material
+        switch (color)
         {
-            Debug.LogWarning("Material não encontrado: " + materialName);
-            return;
+            case PlayerColor.Red: targetMaterial = redMaterial; break;
+            case PlayerColor.Blue: targetMaterial = blueMaterial; break;
+            case PlayerColor.Green: targetMaterial = greenMaterial; break;
+            default: return;
         }
 
         Transform meshChild = transform.Find("MacacoAnimacoes");
-        if (meshChild == null) // se não achar a mesh
+        if (meshChild == null)
         {
             Debug.LogWarning("Mesh 'MacacoAnimacoes' não encontrada.");
             return;
         }
 
-        int count = 0; // pintar o macaco todo
+        int count = 0;
         foreach (Transform bodyPart in meshChild)
         {
             if (count >= 4) break;
@@ -59,5 +64,10 @@ public class ColorChange : NetworkBehaviour
                 count++;
             }
         }
+    }
+
+    public PlayerColor GetCurrentColor()
+    {
+        return currentColor;
     }
 }

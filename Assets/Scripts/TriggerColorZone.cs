@@ -1,9 +1,19 @@
 using UnityEngine;
 using Mirror;
 
+public enum PlayerColor
+{
+    None,
+    Red,
+    Blue,
+    Green
+}
+
 public class TriggerColorZone : NetworkBehaviour
 {
-    [SerializeField] private string materialToSend = "red"; // ou "blue"
+    [SerializeField] private PlayerColor colorToApply = PlayerColor.Red;
+
+    
 
     private void OnTriggerEnter(Collider other)
     {
@@ -14,7 +24,8 @@ public class TriggerColorZone : NetworkBehaviour
             ColorChange colorChange = other.GetComponent<ColorChange>(); // pegar o script
             if (colorChange != null)
             {
-                colorChange.SetMaterial(materialToSend); // só muda a SyncVar
+                bool sucesso = colorChange.TrySetColor(colorToApply);
+                if(!sucesso)Debug.Log("Cor em uso por" + colorToApply);
             }
         }
     }
