@@ -34,7 +34,7 @@ public class MainMenu : MonoBehaviour
     public void CreateParty()
     {
 
-        PopupManager.instance.Popup_Show("Creating Party");
+        PopupManager.instance.Popup_Show("Creating Party", true);
 
         ((MyNetworkManager)NetworkManager.singleton).SetMultiplayer(true);
         SteamLobby.instance.CreateLobby();    
