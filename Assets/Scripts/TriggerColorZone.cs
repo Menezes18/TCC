@@ -6,6 +6,7 @@ public enum PlayerColor
     None,
     Red,
     Blue,
+    Purple,
     Green
 }
 

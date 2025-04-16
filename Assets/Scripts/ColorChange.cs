@@ -7,6 +7,7 @@ public class ColorChange : NetworkBehaviour
     public Material redMaterial;
     public Material blueMaterial;
     public Material greenMaterial;
+    public Material purpleMaterial;
 
     [SyncVar(hook = nameof(OnColorChanged))]
     private PlayerColor currentColor = PlayerColor.None;
@@ -42,6 +43,7 @@ public class ColorChange : NetworkBehaviour
             case PlayerColor.Red: targetMaterial = redMaterial; break;
             case PlayerColor.Blue: targetMaterial = blueMaterial; break;
             case PlayerColor.Green: targetMaterial = greenMaterial; break;
+            case PlayerColor.Purple: targetMaterial = purpleMaterial; break;
             default: return;
         }
 
