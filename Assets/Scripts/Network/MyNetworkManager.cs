@@ -86,6 +86,7 @@ public class MyNetworkManager : NetworkManager
         }
         Debug.Log("Conectados" + allClients.Count);
         if(allClients.Count >= minJogadores) iniciaContador();
+        iniciaContador();
         CharacterSkinHandler.instance.DestroyMesh();
     }
     [Server]
