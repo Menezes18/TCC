@@ -9,6 +9,7 @@ public class PlayerCamera : NetworkBehaviour
     [Header("Configuração da Câmera")]
     [SerializeField] private PlayerControlSO PlayerControlSO;
     [SerializeField] private Transform _cameraTarget;
+    [Range(0.01f, 5f)] public float mouseSensitivity = 0.1f;
 
     private CinemachineVirtualCamera _cam;
     private float _mouseX, _mouseY;
@@ -20,7 +21,6 @@ public class PlayerCamera : NetworkBehaviour
 
     private bool _isCursorLocked = true;
     private PlayerScript _playerScript;
-
     private void Awake()
     {
         _playerScript = GetComponent<PlayerScript>();
@@ -72,7 +72,7 @@ public class PlayerCamera : NetworkBehaviour
 
     public void OnLook(Vector2 input)
     {
-        Vector2 mouseDelta = input * 0.1f;
+        Vector2 mouseDelta = input * mouseSensitivity;
         
         _mouseX += mouseDelta.x;
         _mouseY = Mathf.Clamp(_mouseY - mouseDelta.y, Clamp.x, Clamp.y);
