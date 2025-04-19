@@ -5,7 +5,6 @@ using UnityEngine;
 public class Database : ScriptableObject{
 
     public float playerSpeed;
-
     public float airSpeed;
     public float maxAirSpeed;
     public float gravityGrounded;
@@ -28,4 +27,6 @@ public class Database : ScriptableObject{
     public float shootDamage = 10f;
     public float shootRange = 20f;
     public float pushForceShoot = 5f;
+    
+    
 }
