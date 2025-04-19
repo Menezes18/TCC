@@ -872,6 +872,7 @@ GameObject:
   - component: {fileID: 2763646331169255014}
   - component: {fileID: -7722020084432254880}
   - component: {fileID: 2379576400157866426}
+  - component: {fileID: -2753885660519188380}
   - component: {fileID: -8131194978157388685}
   - component: {fileID: 6178418409306749926}
   - component: {fileID: 955949767500222104}
@@ -1166,7 +1167,19 @@ MonoBehaviour:
     m_ActionId: 70b4851b-0f87-421f-a361-5c89ea8cb603
     m_ActionName: 'Player/Shoot[/Mouse/leftButton]'
   - m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 11400000, guid: 9dfba7758fc9c5b4a96c4bc1d3526f10, type: 2}
+        m_TargetAssemblyTypeName: PlayerControlSO, Assembly-CSharp
+        m_MethodName: OnMenuCelular
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
     m_ActionId: 9d40b042-4a49-49a9-8712-bc2ca8a13ce7
     m_ActionName: UI/UI
   - m_PersistentCalls:
@@ -1185,6 +1198,22 @@ MonoBehaviour:
         m_CallState: 2
     m_ActionId: 422c4f1d-85cb-447e-b85e-cfd428c0b743
     m_ActionName: 'Player/Cursor[/Keyboard/alt]'
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 11400000, guid: 9dfba7758fc9c5b4a96c4bc1d3526f10, type: 2}
+        m_TargetAssemblyTypeName: PlayerControlSO, Assembly-CSharp
+        m_MethodName: OnMenuCelular
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: e869c16f-ac25-429d-8be3-4bd2293dfa9b
+    m_ActionName: 'Player/MenuCelular[/Keyboard/tab]'
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: Player
@@ -1352,6 +1381,22 @@ MonoBehaviour:
   blueMaterial: {fileID: 2100000, guid: 49bc47d3427cba649b74cc5033306d82, type: 2}
   greenMaterial: {fileID: 2100000, guid: cd38c6dc7e016bc47a5810da29bc1a71, type: 2}
   purpleMaterial: {fileID: 2100000, guid: 61c95ae40a6df9a4fa16417f4ed95d8c, type: 2}
+--- !u!114 &-2753885660519188380
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9032602418151776553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 44fce24203e31894e939d028386ce35f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  playerControlSO: {fileID: 11400000, guid: 9dfba7758fc9c5b4a96c4bc1d3526f10, type: 2}
 --- !u!114 &-8131194978157388685
 MonoBehaviour:
   m_ObjectHideFlags: 0
