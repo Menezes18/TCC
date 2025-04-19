@@ -59,42 +59,39 @@ public class PlayerShootSystem : PlayerScriptBase
         }
     }
     private bool jaDisparouAnimacao = false;
-    public void EventOnShoot(InputAction.CallbackContext context)
+    public void EventOnShoot(InputAction.CallbackContext ctx)
     {
         if (!isLocalPlayer) return;
 
-        if ((context.started || context.performed) && !jaDisparouAnimacao)
+        if (ctx.started)
         {
             segurandoBotao = true;
             lineRenderer.enabled = true;
 
-            AnimatorStateInfo anim = _player._animator.GetCurrentAnimatorStateInfo(0);
-            if (!anim.IsName("ShootStart") && !anim.IsName("ShootHold") && !anim.IsName("ShootRelease"))
-            {
-                _player._animator.SetTrigger("TriggerStartShoot");
-                jaDisparouAnimacao = true;
-            }
+            // começa a animação de 'início'
+            _player._animator.SetTrigger("StartHold");
+            // habilita o loop de segurando
+            _player._animator.SetBool("IsHolding", true);
         }
-
-        else if (context.canceled)
+        else if (ctx.canceled)
         {
-            Debug.Log("SOLTEI");
             segurandoBotao = false;
             lineRenderer.enabled = false;
 
-            _player._animator.SetTrigger("TriggerRelease");
+            // sai do loop de segurando
+            _player._animator.SetBool("IsHolding", false);
+            // dispara a animação de arremesso
+            _player._animator.SetTrigger("Throw");
 
-            jaDisparouAnimacao = false;
-
+            // resto do seu código de spawn...
             if (PodeTirarAgora())
             {
-                ultimoTiroTempo = Time.time;
-                _player.State = PlayerStates.Shooting;
                 CmdAtirar(_player.cameraJogador.transform.forward);
                 StartCoroutine(VoltarParaDefaultAposTiro());
             }
         }
     }
+
 
 
 

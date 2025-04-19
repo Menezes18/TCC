@@ -64,19 +64,7 @@ public class PlayerScript : PlayerScriptBase
     }
 
     public bool teste = false;
-    protected override void OnValidate()
-    {
-        if (!teste && _playerInput != null){
-            //SetInputActionEnabled(new string[] { "Player"}, true);
-            //SetInputEnabled(new string[] { "Player"}, true, true);
-            _animator.SetBool("PushPFrente", true);
-        }
-        else if (_playerInput != null){
-            _animator.SetBool("PushPFrente", false);
-            //SetInputActionEnabled(new string[] { "Player"}, false);
-            //SetInputEnabled(new string[] { "Player"}, false, true);
-        }
-    }
+   
     private void OnDisable()
     {
         if (isOwned)
@@ -137,7 +125,7 @@ public class PlayerScript : PlayerScriptBase
 
     private void BehaviorAir(){
         if(State != PlayerStates.Air) return; // Enter condition check
-        
+        _animator.SetBool("Air", true);
         Vector3 input = new Vector3(_input.x, 0, _input.y);
         input = Quaternion.Euler(rot) * input;
         input *= db.airSpeed;
@@ -165,7 +153,20 @@ public class PlayerScript : PlayerScriptBase
         if (_characterController.isGrounded == true){ // Exit condition  
             
             State = PlayerStates.Moving;
+            _animator.SetBool("Air", false);
         }
+    }
+    [Command]
+    private void CmdSetAirBool(bool value)
+    {
+        RpcSetAirBool(value);
+    }
+
+    [ClientRpc]
+    private void RpcSetAirBool(bool value)
+    {
+        if (!isOwned)
+            _animator.SetBool("Air", value);
     }
     private void BehaviorDefault(){
         if(State != PlayerStates.Moving) return;
@@ -182,19 +183,41 @@ public class PlayerScript : PlayerScriptBase
 
     private void EventOnJump(InputAction.CallbackContext obj)
     {
-        // Verifica se o CharacterController ainda existe
         if (_characterController == null || !_characterController.isGrounded)
             return;
-        
-        
 
-        // Lógica para o pulo
-        _inertiaSpeed = new Vector3(_move.x, 0, _move.z).magnitude;
-        _inertiaSpeed = Mathf.Clamp(_inertiaSpeed, db.playerSpeed, db.maxAirSpeed);
         State = PlayerStates.Jump;
         _ignoreGroundedOnThisFrame = true;
+
+        _animator.SetTrigger("Jump");
+        CmdTriggerJumpAnimation();
+
+        StartCoroutine(ApplyJumpWithDelay());
+    }
+    
+    private IEnumerator ApplyJumpWithDelay()
+    {
+        yield return new WaitForSeconds(0.1f); 
+        _inertiaSpeed = new Vector3(_move.x, 0, _move.z).magnitude;
+        _inertiaSpeed = Mathf.Clamp(_inertiaSpeed, db.playerSpeed, db.maxAirSpeed);
+
         _move.y = db.jumpHeight;
+
         StartCoroutine(JumpToAirCoroutine());
+    }
+
+    
+    [Command]
+    private void CmdTriggerJumpAnimation()
+    {
+        RpcTriggerJumpAnimation();
+    }
+
+    [ClientRpc]
+    private void RpcTriggerJumpAnimation()
+    {
+        if (!isOwned) 
+            _animator.SetTrigger("Jump");
     }
     private IEnumerator JumpToAirCoroutine()
     {
