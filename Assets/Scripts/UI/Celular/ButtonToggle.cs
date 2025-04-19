@@ -27,24 +27,40 @@ public class ButtonToggle : MonoBehaviour
     public UnityEvent onDeactivated;  
 
     private Button button;
-    private bool   isOn = false;
+    public bool _isOn;
+    public bool isOn
+    {
+        get => _isOn;
+        set
+        {
+            if (_isOn == value) return; 
+            _isOn = value;
+            AnimateToggle();
+
+            if (_isOn)
+                onActivated.Invoke();
+            else
+                onDeactivated.Invoke();
+        }
+    }
 
     private void Awake()
     {
+        AnimateToggle();
         button = GetComponent<Button>();
         button.onClick.AddListener(OnButtonClick);
 
-        // Estado inicial
         backgroundImage.color         = offColor;
         handleTransform.anchoredPosition = offHandlePos;
+        isOn = _isOn;
     }
 
     private void OnButtonClick()
     {
-        isOn = !isOn;
+        _isOn = !_isOn;
         AnimateToggle();
 
-        if (isOn)
+        if (_isOn)
             onActivated.Invoke();
         else
             onDeactivated.Invoke();
@@ -53,11 +69,11 @@ public class ButtonToggle : MonoBehaviour
     private void AnimateToggle()
     {
         backgroundImage
-            .DOColor(isOn ? onColor : offColor, animationDuration)
+            .DOColor(_isOn ? onColor : offColor, animationDuration)
             .SetEase(easeType);
 
         handleTransform
-            .DOAnchorPos(isOn ? onHandlePos : offHandlePos, animationDuration)
+            .DOAnchorPos(_isOn ? onHandlePos : offHandlePos, animationDuration)
             .SetEase(easeType);
     }
 }
