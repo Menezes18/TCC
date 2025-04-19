@@ -5,7 +5,6 @@ public class ShowPingCommand : ISettingCommand
 {
     public void Execute(object value)
     {
-        Debug.Log("ShowPingCommand");
 
         bool show = (bool)value;
         SettingsManager.Instance.pingText.SetActive(show);
