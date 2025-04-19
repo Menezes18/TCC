@@ -31426,6 +31426,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1126880500}
   - component: {fileID: 1126880501}
+  - component: {fileID: 1126880502}
   m_Layer: 5
   m_Name: Settings_Buttons
   m_TagString: Untagged
@@ -31475,6 +31476,20 @@ MonoBehaviour:
   fpsText: {fileID: 1599920377}
   pingText: {fileID: 1023799173}
   qualityText: {fileID: 1628995288}
+--- !u!114 &1126880502
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1126880499}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1757db54ddd49f04e8b170b56691ff55, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fontSizeSlider: {fileID: 1764076588}
+  uiRoot: {fileID: 1126880500}
 --- !u!1001 &1132949003
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -46311,6 +46326,18 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1757911249}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1764076588 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4384223552209094637, guid: 9043edb5bed30f14d8e857a335a8073f,
+    type: 3}
+  m_PrefabInstance: {fileID: 8059721031480668430}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67db9e8f0e2ae9c40bc1e2b64352a6b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &1765304826
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -57471,7 +57498,7 @@ PrefabInstance:
     - target: {fileID: 2488097293258423287, guid: 26613f223147a2741b027b8b92012e08,
         type: 3}
       propertyPath: m_Name
-      value: Header - Toggle
+      value: Header - Toggle Dark Mode
       objectReference: {fileID: 0}
     - target: {fileID: 7685532707371751890, guid: 26613f223147a2741b027b8b92012e08,
         type: 3}
@@ -57613,7 +57640,7 @@ PrefabInstance:
     - target: {fileID: 2322466653759553160, guid: 6a410c8ef99e1c14eb39cc7075daf09b,
         type: 3}
       propertyPath: m_Name
-      value: Header - Dropdown
+      value: Header - Dropdown Language
       objectReference: {fileID: 0}
     - target: {fileID: 2382508062201728971, guid: 6a410c8ef99e1c14eb39cc7075daf09b,
         type: 3}
@@ -57838,7 +57865,22 @@ PrefabInstance:
     - target: {fileID: 3435900959414674971, guid: 9043edb5bed30f14d8e857a335a8073f,
         type: 3}
       propertyPath: m_Name
-      value: Header - Slider
+      value: Header - Slider UI scale
+      objectReference: {fileID: 0}
+    - target: {fileID: 4384223552209094637, guid: 9043edb5bed30f14d8e857a335a8073f,
+        type: 3}
+      propertyPath: m_Value
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4384223552209094637, guid: 9043edb5bed30f14d8e857a335a8073f,
+        type: 3}
+      propertyPath: m_MaxValue
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4384223552209094637, guid: 9043edb5bed30f14d8e857a335a8073f,
+        type: 3}
+      propertyPath: m_MinValue
+      value: 0.1
       objectReference: {fileID: 0}
     - target: {fileID: 5269308162482369008, guid: 9043edb5bed30f14d8e857a335a8073f,
         type: 3}
