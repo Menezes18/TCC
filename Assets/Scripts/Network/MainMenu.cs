@@ -58,6 +58,7 @@ public class MainMenu : MonoBehaviour
         this.state = state;
         homeUI.SetActive(state == MenuState.Home);
         partyUI.SetActive(state == MenuState.InParty);
+        if(state == MenuState.InParty) ToggleCelular();
     }
 
     public void CreateParty()
