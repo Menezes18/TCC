@@ -22,11 +22,6 @@ public class Database : ScriptableObject{
     public ParticleSystem pushVFX;
     public AudioSource pushAudio;
     
-    [Header("Shoot Configuration")]
-    public float shootCooldown = 1.0f;
-    public float shootDamage = 10f;
-    public float shootRange = 20f;
-    public float pushForceShoot = 5f;
     
     
 }
