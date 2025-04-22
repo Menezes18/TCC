@@ -188,6 +188,7 @@ public class PartyPushSystem : PlayerScriptBase
         if (Time.time < _lastPushTime + _db.pushCooldown)
             return;
         _player._animator.SetTrigger("Push");
+        CmdNotifyPush();
         _lastPushTime = Time.time;
         _isInPushCooldown = true;
         _playerScript.State = PlayerStates.Pushing;
@@ -210,7 +211,17 @@ public class PartyPushSystem : PlayerScriptBase
         RpcPlayPushEffects();
         StartCoroutine(PushCooldownRoutine());
     }
-
+    [Command]
+    void CmdNotifyPush()
+    {
+        RpcOnPush();
+    }
+    [ClientRpc]
+    void RpcOnPush()
+    {
+        if (isLocalPlayer) return;
+        _player._animator.SetTrigger("Push");
+    }
     private bool IsTargetInPushCone(Vector3 targetPosition)
     {
         Vector3 directionToTarget = (targetPosition - pushOrigin.position).normalized;
