@@ -19,8 +19,7 @@ public class CharacterSkinElement : MonoBehaviour
 
     private void Awake()
     {
-        if (UIManager.Instance != null)
-            UIManager.Instance.SpawnLocalUI();
+
     }
 
     private void OnAvatarImageLoaded(AvatarImageLoaded_t callback)
@@ -37,8 +36,9 @@ public class CharacterSkinElement : MonoBehaviour
     private string _name;
     public void Initialize(MyClient client, bool _isReady) 
     {
+        UIManager.Instance.SpawnLocalUI();
         
-        var celular = UIManager.Instance._localUI
+        var celular = UIManager.Instance.LocalUI
             .GetComponentInChildren<CelularTag>(includeInactive: true);
         CharacterSkinHandler.instance.celularTag = celular;
         celular.currentSkinElement = this;

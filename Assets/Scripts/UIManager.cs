@@ -1,37 +1,34 @@
 using UnityEngine;
 using Mirror;
-using System.Collections;
-
-
 
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
     [SerializeField] private GameObject uiPrefab;
-    public GameObject _localUI;
+    public GameObject LocalUI { get; private set; }
 
     void Awake()
     {
-        if (Instance == null) { Instance = this; DontDestroyOnLoad(this); }
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
         else Destroy(gameObject);
 
     }
     
     public void SpawnLocalUI()
     {
-        Debug.Log("Spawning local UI");
-        SpawnWhenReady();
-        
-    }
+        if (LocalUI != null) return;
 
-    private void SpawnWhenReady()
-    {
-
-        _localUI = Instantiate(uiPrefab);
-        var canvas = _localUI.GetComponent<Canvas>();
+        LocalUI = Instantiate(uiPrefab);
+        var canvas = LocalUI.GetComponent<Canvas>();
         if (canvas.renderMode == RenderMode.ScreenSpaceCamera)
+        {
             canvas.worldCamera =
                 NetworkClient.connection.identity
                     .GetComponentInChildren<Camera>();
+        }
     }
 }
