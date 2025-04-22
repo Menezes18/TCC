@@ -34,31 +34,26 @@ public class MyNetworkManager : NetworkManager
     public bool testMode = false;
     private void Awake()
     {
-        // Encontra todos os MyNetworkManager na cena
         MyNetworkManager[] managers = FindObjectsOfType<MyNetworkManager>();
 
-        // Se este não é o primeiro (mais antigo) MyNetworkManager
         if (managers.Length > 1)
         {
-            // Ordena os managers por ordem de criação (TimeStamp)
             System.Array.Sort(managers, (a, b) => a.gameObject.GetInstanceID().CompareTo(b.gameObject.GetInstanceID()));
 
-            // Se este não é o primeiro da lista (mais antigo)
             if (managers[0] != this)
             {
-                // Destrói este objeto pois não é o primeiro
                 Destroy(gameObject);
                 return;
             }
         }
 
-        // Se chegou aqui, este é o primeiro/único manager
         if (manager == null)
         {
             manager = this;
             DontDestroyOnLoad(gameObject);
         }
-        
+            //     if (UIManager.Instance != null)
+            // UIManager.Instance.SpawnLocalUI();
         base.Awake();
     }
 
