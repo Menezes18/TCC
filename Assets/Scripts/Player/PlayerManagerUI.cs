@@ -5,39 +5,40 @@ using UnityEngine.InputSystem;
 
 public class PlayerManagerUI : NetworkBehaviour
 {
-    public PlayerControlSO playerControlSO;
-    public GameObject celular;
 
+    public PlayerControlSO playerControlSO;
     private PlayerScript _playerScript;
     private bool _valueCelular = false;
-
+    
+    public GameObject celular;
     private void Start()
     {
-        _playerScript = GetComponent<PlayerScript>();
+        if (!isLocalPlayer) return;  
         celular.SetActive(false);
-
-        if (isLocalPlayer)
-        {
-            playerControlSO.EventOnCelularMenu += EventOnCelularMenu;
-        }
+        _playerScript = GetComponent<PlayerScript>();
+        playerControlSO.EventOnCelularMenu += EventOnCelularMenu;
     }
 
-    private void EventOnCelularMenu(InputAction.CallbackContext ctx)
+    private void EventOnCelularMenu(InputAction.CallbackContext obj)
     {
-        _valueCelular = !_valueCelular;
-        CmdSetCelular(_valueCelular);
+        bool newValue = !_valueCelular;
+        CmdToggleCelular(newValue);
+    
+        MainMenu.instance.ToggleCelular();
+        celular.SetActive(newValue);
     }
-
+    
     [Command]
-    private void CmdSetCelular(bool activate)
+    private void CmdToggleCelular(bool value)
     {
-        RpcSetCelular(activate);
+        _valueCelular = value;
+        RpcToggleCelular(value);
+    }
+    [ClientRpc]
+    private void RpcToggleCelular(bool value)
+    {
+        _playerScript._animator.SetBool("ActiveCelular", value);
     }
 
-    [ClientRpc]
-    private void RpcSetCelular(bool activate)
-    {
-        celular.SetActive(activate);
-        _playerScript._animator.SetBool("ActiveCelular", activate);
-    }
+
 }
