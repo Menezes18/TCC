@@ -211,7 +211,7 @@ public class PartyPushSystem : PlayerScriptBase
         RpcPlayPushEffects();
         StartCoroutine(PushCooldownRoutine());
     }
-    [Command]
+    [Command(requiresAuthority = false)]
     void CmdNotifyPush()
     {
         RpcOnPush();
