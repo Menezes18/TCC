@@ -188,7 +188,7 @@ public class PartyPushSystem : PlayerScriptBase
         if (Time.time < _lastPushTime + _db.pushCooldown)
             return;
         _player._animator.SetTrigger("Push");
-        CmdNotifyPush();
+        RpcOnPush();
         _lastPushTime = Time.time;
         _isInPushCooldown = true;
         _playerScript.State = PlayerStates.Pushing;
@@ -211,11 +211,13 @@ public class PartyPushSystem : PlayerScriptBase
         RpcPlayPushEffects();
         StartCoroutine(PushCooldownRoutine());
     }
-    [Command(requiresAuthority = false)]
+    
     void CmdNotifyPush()
     {
         RpcOnPush();
     }
+    
+    
     [ClientRpc]
     void RpcOnPush()
     {

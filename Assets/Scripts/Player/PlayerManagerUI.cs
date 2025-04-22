@@ -42,7 +42,7 @@ public class PlayerManagerUI : NetworkBehaviour
 
         celular.SetActive(_valueCelular);
 
-        _playerScript._animator.SetBool("ActiveCelular", _valueCelular);
+        //_playerScript._animator.SetBool("ActiveCelular", _valueCelular);
 
         mainMenu.ToggleCelular();
     }
