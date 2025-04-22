@@ -11,7 +11,7 @@ public class Marker : MonoBehaviour
 /*    public CanvasGroup fadeGroup;
     public CanvasGroup aimFadeGroup;
     public AnimationCurve fadeRemap;*/
-
+    public Transform FollowTransform => objToFollow;
     public Vector3 targetPos { get; private set; }
     public GameObject worldObject { get; private set; }
 

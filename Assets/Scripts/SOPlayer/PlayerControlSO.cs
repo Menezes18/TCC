@@ -17,6 +17,7 @@ public class PlayerControlSO : ScriptableObject{
     public Action<InputAction.CallbackContext> EventOnPush;
     public Action<InputAction.CallbackContext> EventOnShoot;
     public Action<InputAction.CallbackContext> EventOnCursor;
+    public Action<InputAction.CallbackContext> EventOnCelularMenu;
     public void OnShoot(InputAction.CallbackContext context)
     {
         EventOnShoot?.Invoke(context);
@@ -31,6 +32,11 @@ public class PlayerControlSO : ScriptableObject{
     {
         if(context.performed)
             EventOnCursor?.Invoke(context);
+    }    
+    public void OnMenuCelular(InputAction.CallbackContext context)
+    {
+        if(context.performed)
+            EventOnCelularMenu?.Invoke(context);
     }
     public void OnLook(InputAction.CallbackContext context){
         EventOnLook?.Invoke(context.ReadValue<Vector2>());

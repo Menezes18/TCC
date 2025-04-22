@@ -12,6 +12,7 @@ public class CharacterSkinHandler : MonoBehaviour
     public CelularTag celularTag;
     [SerializeField] private GameObject characterSkinPrefab;
     [SerializeField] private Transform[] spawnPositions;
+    [SerializeField] private GameObject[] spawnGameObjects;
     public CharacterSkinElement[] clientsCharacters;
     
     private void Awake()
@@ -22,6 +23,7 @@ public class CharacterSkinHandler : MonoBehaviour
     private void Start()
     {
         clientsCharacters = new CharacterSkinElement[NetworkManager.singleton.maxConnections];
+        spawnGameObjects = new GameObject[NetworkManager.singleton.maxConnections];
 
         StartCoroutine(WaitTillSteamInitialized());
     }
@@ -76,25 +78,19 @@ public class CharacterSkinHandler : MonoBehaviour
             }
         }
     }
+    [Server]
     public void DestroyCharacterMesh(MyClient client) 
     {
-        foreach (var character in clientsCharacters) 
+        for (int i = 0; i < clientsCharacters.Length; i++) 
         {
-            if(character == null)
-                continue;
-
-            if (character.client == client)
+            var ch = clientsCharacters[i];
+            if (ch != null && ch.client == client) 
             {
-                if (character == clientsCharacters[0]) 
-                {
-                    clientsCharacters[0].Initialize(client, false);
-                    MainMenu.instance.UpdateReadyButton(false);
-                }
-                else
-                    Destroy(character.gameObject);
-
+                NetworkServer.Destroy(ch.gameObject);
+                clientsCharacters[i] = null;
                 break;
             }
         }
     }
+
 }
