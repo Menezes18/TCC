@@ -17,6 +17,12 @@ public class CharacterSkinElement : MonoBehaviour
     Sprite icon;
     protected Callback<AvatarImageLoaded_t> avatarImageLoaded;
 
+    private void Awake()
+    {
+        if (UIManager.Instance != null)
+            UIManager.Instance.SpawnLocalUI();
+    }
+
     private void OnAvatarImageLoaded(AvatarImageLoaded_t callback)
     {
         if (callback.m_steamID != steamId) return;
@@ -25,17 +31,23 @@ public class CharacterSkinElement : MonoBehaviour
         if(tex)
             icon = SteamHelper.ConvertTextureToSprite(tex);
         nametagMarker.UpdatePFP(icon);
+        CharacterSkinHandler.instance.celularTag.UpdatePFP(icon);
+        
     }
-
+    private string _name;
     public void Initialize(MyClient client, bool _isReady) 
     {
+        
+        var celular = UIManager.Instance._localUI
+            .GetComponentInChildren<CelularTag>(includeInactive: true);
+        CharacterSkinHandler.instance.celularTag = celular;
+        celular.currentSkinElement = this;
         string username = SteamFriends.GetPersonaName();
         bool isReady = _isReady;
+        _name = username;
+        steamId = client != null ? new CSteamID(client.playerInfo.steamId) : SteamUser.GetSteamID();
 
-        steamId = client ? new CSteamID(client.playerInfo.steamId) : SteamUser.GetSteamID();
-
-        if (nametagMarker == null)
-            nametagMarker = (NametagMarker)MarkerHandler.instance.SpawnMarker(0, nametagPos.position, null);
+        nametagMarker = (NametagMarker)MarkerHandler.instance.SpawnMarker(0, nametagPos.position, null);
 
         if (client != null)
         {
@@ -51,13 +63,23 @@ public class CharacterSkinElement : MonoBehaviour
 
             Texture2D tex = SteamHelper.GetAvatar(steamId);
             if (tex)
-                icon = SteamHelper.ConvertTextureToSprite(tex); nametagMarker.UpdatePFP(icon);        
+                icon = SteamHelper.ConvertTextureToSprite(tex); 
+
+            nametagMarker.UpdatePFP(icon);        
         }
 
         nametagMarker.UpdateTag(username, isReady);
         nametagMarker.UpdatePFP(icon);
-    }
 
+
+        if (steamId == SteamUser.GetSteamID())
+        {
+            Debug.Log("avatar image loaded");
+            CharacterSkinHandler.instance.celularTag.UpdatePFP(icon);
+            CharacterSkinHandler.instance.celularTag.UpdateTagCelular(username, "4590");
+        }
+    }
+    
     private void OnDestroy()
     {
         if (nametagMarker)

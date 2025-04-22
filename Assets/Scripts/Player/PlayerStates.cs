@@ -1,12 +1,14 @@
 
 public enum PlayerStates {
-
-    Default,
+    Idle,
+    Moving,
+    Jump,
     Air,
     Pushing,        
     BeingPushed,    
     PushCooldown,
     Shooting,
     BeingShot,
-    ShootCooldown
+    ShootCooldown,
+    Dead
 }

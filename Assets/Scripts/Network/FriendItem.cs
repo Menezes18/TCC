@@ -28,7 +28,8 @@ public class FriendItem : MonoBehaviour
         isOnline = status;
 
         _usernameText.text = username;
-        //_statusImage.color = isOnline ? onlineColor : offlineColor;
+        _statusImage.color = isOnline ? Color.green : Color.red;
+
 
         //_iconImage.sprite = SteamHelper.GetAvatar(steamID);
         GetIcon();

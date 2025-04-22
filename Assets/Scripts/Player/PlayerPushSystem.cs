@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 using System.Linq;
 
 [RequireComponent(typeof(PlayerScriptBase), typeof(CharacterController))]
-public class PartyPushSystem : NetworkBehaviour
+public class PartyPushSystem : PlayerScriptBase
 {
     [Header("References")]
     [SerializeField] private Transform pushOrigin;
@@ -23,12 +23,14 @@ public class PartyPushSystem : NetworkBehaviour
     private PlayerScript _player;
     private CharacterController _characterController;
     private PlayerScriptBase _playerScript;
+    private PlayerShootSystem _playerShootSystem;
 
     // Push state
     private Vector3 _pushDirection;
     private Vector3 _pushVelocity;
     private float _pushStartTime;
-    private float _lastPushTime;
+    [SyncVar] private float _lastPushTime = -999f;
+    private float _lastPushLocalTime = -999f; 
     private float _currentBounceForce;
     private float _distanceTraveled;
     private bool _isPushed;
@@ -61,6 +63,7 @@ public class PartyPushSystem : NetworkBehaviour
     private void CacheComponents()
     {
         _player = GetComponent<PlayerScript>();
+        _playerShootSystem = GetComponent<PlayerShootSystem>();
         _characterController = GetComponent<CharacterController>();
         _playerScript = GetComponent<PlayerScriptBase>();
         
@@ -109,16 +112,24 @@ public class PartyPushSystem : NetworkBehaviour
     private void HandlePushInput(InputAction.CallbackContext context)
     {
         if (!isLocalPlayer)  return;
-        
-        CmdTryPush();
+        if (context.performed && CanPush() && _playerShootSystem.segurandoBotao == false)
+        {
+            CmdTryPush();
+        }
     }
 
-    // private bool CanPush()
-    // {
-    //     return _playerScript.IsInState(PlayerStates.Default) && 
-    //            Time.time >= _lastPushTime + _db.pushCooldown &&
-    //            !_isInPushCooldown;
-    // }
+    private bool CanPush()
+    {
+        return
+            Time.time >= _lastPushLocalTime + _db.pushCooldown
+            && !_isInPushCooldown
+            && (
+                IsInState(PlayerStates.Moving)
+                || IsInState(PlayerStates.Idle)
+                || IsInState(PlayerStates.ShootCooldown)
+            );
+    }
+
 
     private void HandlePushMovement()
     {
@@ -174,8 +185,9 @@ public class PartyPushSystem : NetworkBehaviour
     [Command(requiresAuthority = false)]
     private void CmdTryPush()
     {
-       // if (!CanPush()) return;
-
+        if (Time.time < _lastPushTime + _db.pushCooldown)
+            return;
+        _player._animator.SetTrigger("Push");
         _lastPushTime = Time.time;
         _isInPushCooldown = true;
         _playerScript.State = PlayerStates.Pushing;
@@ -244,7 +256,7 @@ public class PartyPushSystem : NetworkBehaviour
         _isPushed = false;
         _pushVelocity = Vector3.zero;
         _distanceTraveled = 0f;
-        _playerScript.State = PlayerStates.Default;
+        _playerScript.State = PlayerStates.Moving;
     }
 
     private IEnumerator PushCooldownRoutine()
@@ -252,14 +264,14 @@ public class PartyPushSystem : NetworkBehaviour
         yield return new WaitForSeconds(0.3f);
         _playerScript.State = PlayerStates.PushCooldown;
         yield return new WaitForSeconds(_db.pushCooldown - 0.3f);
-        _playerScript.State = PlayerStates.Default;
+        _playerScript.State = PlayerStates.Idle;
         _isInPushCooldown = false;
     }
 
     private IEnumerator BeingPushedRoutine()
     {
         yield return new WaitUntil(() => !_isPushed);
-        _playerScript.State = PlayerStates.Default;
+        _playerScript.State = PlayerStates.Idle;
     }
 
     #region Gizmos

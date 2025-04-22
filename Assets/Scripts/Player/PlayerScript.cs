@@ -11,20 +11,22 @@ public class PlayerScript : PlayerScriptBase
     [SerializeField]  PlayerControlSO _playerSO;
     [SerializeField]  CharacterController _characterController;
     [SerializeField] private GameObject _panel;
+
+    public PlayerInputScript _playerInputScript;
     public Vector3 rot {
-    get {
-        PlayerCamera cam = GetComponentInChildren<PlayerCamera>();
-        if (cam != null)
-        {
-            return new Vector3(0, cam.CurrentCameraYRotation, 0);
+        get {
+            PlayerCamera cam = GetComponentInChildren<PlayerCamera>();
+            if (cam != null)
+            {
+                return new Vector3(0, cam.CurrentCameraYRotation, 0);
+            }
+            return new Vector3(0, Camera.main.transform.rotation.eulerAngles.y, 0);
         }
-        return new Vector3(0, Camera.main.transform.rotation.eulerAngles.y, 0);
     }
-}
 
-
+    public Animator _animator;
     public Camera cameraJogador;
-    private Vector2 _input;
+    public Vector2 _input;
     private Vector3 _move;
     private bool _isGrounded;
     private bool _ignoreGroundedOnThisFrame;
@@ -33,6 +35,7 @@ public class PlayerScript : PlayerScriptBase
     [SyncVar(hook = nameof(OnAliasUpdated))]  public string Alias; 
     [SyncVar]
     public string sessionId = "";
+    private PlayerShootSystem _playerShootSystem;
     private void Awake()
     {
         _playerInput = GetComponent<PlayerInput>();
@@ -61,17 +64,7 @@ public class PlayerScript : PlayerScriptBase
     }
 
     public bool teste = false;
-    protected override void OnValidate()
-    {
-        if (!teste && _playerInput != null){
-            //SetInputActionEnabled(new string[] { "Player"}, true);
-            SetInputEnabled(new string[] { "Player"}, true, true);
-        }
-        else if (_playerInput != null){
-            //SetInputActionEnabled(new string[] { "Player"}, false);
-            SetInputEnabled(new string[] { "Player"}, false, true);
-        }
-    }
+   
     private void OnDisable()
     {
         if (isOwned)
@@ -83,17 +76,18 @@ public class PlayerScript : PlayerScriptBase
         
     void OnAliasUpdated(string oldVal, string newVal){
     }
-    
+
     [Command]
     private void Command(string str){
-      Alias = str;
+        Alias = str;
       
     }
     private void Update(){
-        
+
         if(base.isOwned == false) return;
         
         BehaviorAir();
+        BehaviorIdle();
         BehaviorDefault();
 
         _move += Vector3.up * db.gravity * Time.deltaTime;
@@ -102,16 +96,36 @@ public class PlayerScript : PlayerScriptBase
         
         if (_characterController.isGrounded == true)
             _move.y = db.gravityGrounded;
-        
+        if (!IsInSpecialState()){
+            
+            if (_input.magnitude > 0.01f)
+            {
+                if (State != PlayerStates.Moving)
+                    State = PlayerStates.Moving;
+            }
+            else
+            {
+                if (State != PlayerStates.Idle)
+                    State = PlayerStates.Idle;
+            }
+        }
         
         if(_input.magnitude == 0) return;
         
         Command(_input.ToString());
     }
+    private void BehaviorIdle()
+    {
+        if (State != PlayerStates.Idle) return;
     
+        float vertical = _move.y;
+        _move = Vector3.zero;
+        _move.y = vertical;
+    }
+
     private void BehaviorAir(){
         if(State != PlayerStates.Air) return; // Enter condition check
-        
+        _animator.SetBool("Air", true);
         Vector3 input = new Vector3(_input.x, 0, _input.y);
         input = Quaternion.Euler(rot) * input;
         input *= db.airSpeed;
@@ -138,40 +152,79 @@ public class PlayerScript : PlayerScriptBase
         
         if (_characterController.isGrounded == true){ // Exit condition  
             
-            State = PlayerStates.Default;
+            State = PlayerStates.Moving;
+            _animator.SetBool("Air", false);
         }
     }
+    [Command]
+    private void CmdSetAirBool(bool value)
+    {
+        RpcSetAirBool(value);
+    }
+
+    [ClientRpc]
+    private void RpcSetAirBool(bool value)
+    {
+        if (!isOwned)
+            _animator.SetBool("Air", value);
+    }
     private void BehaviorDefault(){
-        if(State != PlayerStates.Default) return;
+        if(State != PlayerStates.Moving) return;
         float vertical = _move.y;
         
         _move = new Vector3(_input.x, 0, _input.y);
         _move = Quaternion.Euler(rot) * _move;
         _move *= db.playerSpeed;
         _move.y = vertical;
+        
+        _animator.SetFloat("MoveX", _playerInputScript.GetInput().x);
+        _animator.SetFloat("MoveY", _playerInputScript.GetInput().y);
     }
 
     private void EventOnJump(InputAction.CallbackContext obj)
     {
-        // Verifica se o CharacterController ainda existe
-        if (_characterController == null)
-        {
-            Debug.LogWarning("CharacterController é nulo; abortando o pulo.");
-            return;
-        }
-
-        // Garante que o personagem esteja no chão antes de pular
-        if (!_characterController.isGrounded)
+        if (_characterController == null || !_characterController.isGrounded)
             return;
 
-        // Lógica para o pulo
+        State = PlayerStates.Jump;
+        _ignoreGroundedOnThisFrame = true;
+
+        _animator.SetTrigger("Jump");
+        CmdTriggerJumpAnimation();
+
+        StartCoroutine(ApplyJumpWithDelay());
+    }
+    
+    private IEnumerator ApplyJumpWithDelay()
+    {
+        yield return new WaitForSeconds(0.1f); 
         _inertiaSpeed = new Vector3(_move.x, 0, _move.z).magnitude;
         _inertiaSpeed = Mathf.Clamp(_inertiaSpeed, db.playerSpeed, db.maxAirSpeed);
-        State = PlayerStates.Air;
-        _ignoreGroundedOnThisFrame = true;
+
         _move.y = db.jumpHeight;
+
+        StartCoroutine(JumpToAirCoroutine());
     }
 
+    
+    [Command]
+    private void CmdTriggerJumpAnimation()
+    {
+        RpcTriggerJumpAnimation();
+    }
+
+    [ClientRpc]
+    private void RpcTriggerJumpAnimation()
+    {
+        if (!isOwned) 
+            _animator.SetTrigger("Jump");
+    }
+    private IEnumerator JumpToAirCoroutine()
+    {
+        yield return new WaitForSeconds(0.1f); 
+        if (State == PlayerStates.Jump)
+            State = PlayerStates.Air;
+    }
     private void EventOnCustomMove(Vector2 obj){
         _input = obj;
     }
@@ -199,6 +252,51 @@ public class PlayerScript : PlayerScriptBase
 
         Debug.Log($"[CLIENT] Player {netId} respawned at {position}");
     }
+
+    [Command]
+    public void Die()
+    {
+        State = PlayerStates.Dead;
+        _characterController.enabled = false; 
+        RpcSpectate();
+    }
+
+    [TargetRpc]
+    private void RpcSpectate()
+    {
+        if (_playerInput != null)
+        {
+            _playerInput.enabled = false;
+        }
+
+        PlayerCamera cam = GetComponentInChildren<PlayerCamera>();
+        if (cam != null)
+        {
+            Transform newTarget = FindSpectatorTarget();
+            if (newTarget != null)
+            {
+                cam.SwitchTarget(newTarget);
+            }
+            else
+            {
+                Debug.LogWarning("Nenhum target de espectador encontrado!");
+            }
+        }
+    }
+
+    private Transform FindSpectatorTarget()
+    {
+        PlayerScript[] players = FindObjectsOfType<PlayerScript>();
+        foreach (var player in players)
+        {
+            if (player != this && player.State != PlayerStates.Dead)
+            {
+                return player.transform;
+            }
+        }
+        return null;
+    }
+
     [ClientRpc]
     public void ApplyPush(Vector3 force)
     {
@@ -246,7 +344,7 @@ public class PlayerScript : PlayerScriptBase
             if (!_characterController.isGrounded)
                 State = PlayerStates.Air;
             else
-                State = PlayerStates.Default;
+                State = PlayerStates.Moving;
         }
     }
 
@@ -261,7 +359,7 @@ public class PlayerScript : PlayerScriptBase
             if (!_characterController.isGrounded)
                 State = PlayerStates.Air;
             else
-                State = PlayerStates.Default;
+                State = PlayerStates.Moving;
         }
     }
     public void SetInputEnabled(string[] inputNames, bool enabled, bool useActionMap = false)
@@ -300,6 +398,14 @@ public class PlayerScript : PlayerScriptBase
             }
         }
     }
+    private bool IsInSpecialState()
+    {
+        return State == PlayerStates.Air ||
+               State == PlayerStates.Jump ||
+               State == PlayerStates.BeingShot ||
+               State == PlayerStates.BeingPushed;
+    }
+
     protected override void OnStateChanged(PlayerStates oldVal, PlayerStates newVal){
         base.OnStateChanged(oldVal, newVal);
     }

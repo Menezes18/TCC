@@ -6,6 +6,7 @@ using UnityEngine;
 public class TriggerCheck : NetworkBehaviour
 {
     public Transform spawnPoint; 
+    public bool kill = false;
 
     private void OnTriggerEnter(Collider other)
     {
@@ -13,7 +14,8 @@ public class TriggerCheck : NetworkBehaviour
         {
             if (identity.isLocalPlayer) 
             {
-                other.GetComponent<PlayerScript>().RespawnAt(spawnPoint.position);
+                if(!kill)other.GetComponent<PlayerScript>().RespawnAt(spawnPoint.position);
+                else other.GetComponent<PlayerScript>().Die();
             }
         }
     }

@@ -1,5 +1,5 @@
 using System;
-using Cinemachine;
+using Unity.Cinemachine;
 using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -9,6 +9,7 @@ public class PlayerCamera : NetworkBehaviour
     [Header("Configuração da Câmera")]
     [SerializeField] private PlayerControlSO PlayerControlSO;
     [SerializeField] private Transform _cameraTarget;
+    [Range(0.01f, 5f)] public float mouseSensitivity = 0.1f;
 
     private CinemachineVirtualCamera _cam;
     private float _mouseX, _mouseY;
@@ -18,6 +19,12 @@ public class PlayerCamera : NetworkBehaviour
     public Vector2 Clamp = new Vector2(-75, 75);
     public float CurrentCameraYRotation => _mouseX;
 
+    private bool _isCursorLocked = true;
+    private PlayerScript _playerScript;
+    private void Awake()
+    {
+        _playerScript = GetComponent<PlayerScript>();
+    }
 
     private void Start()
     {
@@ -40,16 +47,21 @@ public class PlayerCamera : NetworkBehaviour
             _cam.Follow = _cameraTarget;
             _cam.LookAt = _cameraTarget;
         }
-
-        // Cursor.visible = false;
-        // Cursor.lockState = CursorLockMode.Locked;
         
+        SetCursorState(true);        
         PlayerControlSO.EventOnLook += OnLook;
         PlayerControlSO.EventOnCursor += EventOnCursor;
     }
 
 
-
+    private void OnDestroy()
+    {
+        if (isOwned)
+        {
+            PlayerControlSO.EventOnCursor -= EventOnCursor;
+            PlayerControlSO.EventOnLook -= OnLook;
+        }
+    }
 
     private void LateUpdate()
     {
@@ -60,7 +72,7 @@ public class PlayerCamera : NetworkBehaviour
 
     public void OnLook(Vector2 input)
     {
-        Vector2 mouseDelta = input * 0.1f;
+        Vector2 mouseDelta = input * mouseSensitivity;
         
         _mouseX += mouseDelta.x;
         _mouseY = Mathf.Clamp(_mouseY - mouseDelta.y, Clamp.x, Clamp.y);
@@ -79,12 +91,33 @@ public class PlayerCamera : NetworkBehaviour
     
     private void EventOnCursor(InputAction.CallbackContext obj)
     {
-        Debug.Log("EventOnCursor");
-
-        // Alterna a visibilidade do cursor
-        Cursor.visible = !Cursor.visible;
-
-        // Se o cursor estiver visível, ele deve estar livre; caso contrário, ele deve estar travado
-        Cursor.lockState = Cursor.visible ? CursorLockMode.None : CursorLockMode.Locked;
+        if (!obj.performed) return;
+        
+        Debug.LogError($"EventOnCursor chamado.{_isCursorLocked}");
+        _isCursorLocked = !_isCursorLocked;
+        SetCursorState(_isCursorLocked);
+    }
+    private void SetCursorState(bool locked)
+    {
+        Debug.Log(locked);
+        _isCursorLocked = locked;
+        Cursor.visible = !locked;
+        Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
+        //Depois melhorar isso
+        _playerScript.SetInputEnabled(new string[] { "Move"}, locked);
+        _playerScript.SetInputEnabled(new string[] { "Look"}, locked );
+        _playerScript.SetInputEnabled(new string[] { "Jump"}, locked );
+        _playerScript.SetInputEnabled(new string[] { "Push"}, locked );
+        _playerScript.SetInputEnabled(new string[] { "Shoot"}, locked);
+        Debug.LogError("EventOnCursor" + locked);
+        Debug.Log($"Cursor definido para: Visible={Cursor.visible}, LockState={Cursor.lockState}");
+    }
+    public void SwitchTarget(Transform newTarget)
+    {
+        if (_cam != null)
+        {
+            _cam.Follow = newTarget;
+            _cam.LookAt = newTarget;
+        }
     }
 }
