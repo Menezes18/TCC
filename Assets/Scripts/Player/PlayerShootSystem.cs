@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using Mirror;
 using UnityEngine;
@@ -13,7 +14,7 @@ public class PlayerShootSystem : PlayerScriptBase
     [SerializeField] private PlayerScript _player;
 
     private LineRenderer lineRenderer;
-    private bool segurandoBotao = false;
+    public bool segurandoBotao = false;
     private float ultimoTiroTempo = -999f;
 
     public float alturaExtra = 5f;
