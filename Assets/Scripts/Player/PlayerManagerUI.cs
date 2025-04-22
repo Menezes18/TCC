@@ -8,16 +8,18 @@ public class PlayerManagerUI : NetworkBehaviour
     public PlayerControlSO playerControlSO;
     public GameObject celular;
 
-    private bool _valueCelular = false;
     private PlayerScript _playerScript;
+    private bool _valueCelular = false;
 
     private void Start()
     {
-        if (!isLocalPlayer) return;
-
-        celular.SetActive(false);
         _playerScript = GetComponent<PlayerScript>();
-        playerControlSO.EventOnCelularMenu += EventOnCelularMenu;
+        celular.SetActive(false);
+
+        if (isLocalPlayer)
+        {
+            playerControlSO.EventOnCelularMenu += EventOnCelularMenu;
+        }
     }
 
     private void EventOnCelularMenu(InputAction.CallbackContext ctx)
@@ -29,7 +31,6 @@ public class PlayerManagerUI : NetworkBehaviour
     [Command]
     private void CmdSetCelular(bool activate)
     {
-        _valueCelular = activate;
         RpcSetCelular(activate);
     }
 
