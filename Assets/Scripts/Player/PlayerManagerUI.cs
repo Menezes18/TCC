@@ -6,28 +6,30 @@ public class PlayerManagerUI : NetworkBehaviour
 {
     [Header("Referências")]
     public PlayerControlSO playerControlSO;
-    
-    private GameObject celular;
+
+    [Header("Prefabs")]
+    [SerializeField] private GameObject canvasCelularPrefab;  
+
+    private GameObject celularInstance;
     private MainMenu mainMenu;
     private PlayerScript _playerScript;
     private bool _valueCelular = false;
 
     public override void OnStartLocalPlayer()
     {
-        if (!isLocalPlayer) return;  
+        base.OnStartLocalPlayer();
+        if (!isLocalPlayer) return;
 
-        UIManager.Instance.SpawnLocalUI();
+        celularInstance = Instantiate(canvasCelularPrefab);
 
-        mainMenu = UIManager.Instance.LocalUI
-            .GetComponentInChildren<MainMenu>(true);
+        mainMenu = celularInstance.GetComponentInChildren<MainMenu>(true);
+        var tag = celularInstance.GetComponentInChildren<CelularTag>(true);
+        celularInstance.SetActive(true);
 
-        var tag = UIManager.Instance.LocalUI
-            .GetComponentInChildren<CelularTag>(true);
-        celular = tag.gameObject;
-
-        celular.SetActive(false);
         _playerScript = GetComponent<PlayerScript>();
+
         playerControlSO.EventOnCelularMenu += EventOnCelularMenu;
+        
     }
 
     private void OnDestroy()
@@ -38,12 +40,23 @@ public class PlayerManagerUI : NetworkBehaviour
 
     private void EventOnCelularMenu(InputAction.CallbackContext ctx)
     {
+        // Alterna estado do celular
         _valueCelular = !_valueCelular;
+        // celularInstance.SetActive(_valueCelular);
 
-        celular.SetActive(_valueCelular);
+        // Opcional: animação no player
+        // _playerScript._animator.SetBool("ActiveCelular", _valueCelular);
 
-        //_playerScript._animator.SetBool("ActiveCelular", _valueCelular);
-
+        // Alterna menu principal do celular
         mainMenu.ToggleCelular();
     }
+
+    // Caso queira notificar o servidor, descomente e adapte:
+    /*
+    [Command]
+    private void CmdNotifyCelularState(bool active)
+    {
+        // lógica server-side
+    }
+    */
 }

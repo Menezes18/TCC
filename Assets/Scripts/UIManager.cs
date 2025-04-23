@@ -3,22 +3,22 @@ using Mirror;
 
 public class UIManager : MonoBehaviour
 {
-    public static UIManager Instance { get; private set; }
+    public static UIManager stance { get; private set; }
     [SerializeField] private GameObject uiPrefab;
     public GameObject LocalUI { get; private set; }
 
-    void Awake()
-    {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else Destroy(gameObject);
-
-    }
+    // void Awake()
+    // {
+    //     if (Instance == null)
+    //     {
+    //         Instance = this;
+    //         DontDestroyOnLoad(gameObject);
+    //     }
+    //     else Destroy(gameObject);
+    //
+    // }
     
-    public void SpawnLocalUI()
+    public void SpwnLocalUI()
     {
         if (LocalUI != null) return;
 
