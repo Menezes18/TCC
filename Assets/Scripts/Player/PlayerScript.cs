@@ -11,7 +11,7 @@ public class PlayerScript : PlayerScriptBase
     [SerializeField]  PlayerControlSO _playerSO;
     [SerializeField]  CharacterController _characterController;
     [SerializeField] private GameObject _panel;
-
+    public bool CanMove => !_partyPushSystem.inputDisabled && State != PlayerStates.BeingPushed;
     public PlayerInputScript _playerInputScript;
     public Vector3 rot {
         get {
@@ -36,6 +36,7 @@ public class PlayerScript : PlayerScriptBase
     [SyncVar]
     public string sessionId = "";
     private PlayerShootSystem _playerShootSystem;
+    private PartyPushSystem _partyPushSystem;
     private void Awake()
     {
         _playerInput = GetComponent<PlayerInput>();
@@ -52,6 +53,8 @@ public class PlayerScript : PlayerScriptBase
         _playerSO.EventOnCustomMove += EventOnCustomMove;
         _playerSO.EventOnJump += EventOnJump;
         _characterController = GetComponent<CharacterController>();
+        _playerShootSystem = GetComponent<PlayerShootSystem>();
+        _partyPushSystem = GetComponent<PartyPushSystem>();
     }
 
     private void OnEnable()
@@ -169,6 +172,7 @@ public class PlayerScript : PlayerScriptBase
             _animator.SetBool("Air", value);
     }
     private void BehaviorDefault(){
+        if (!CanMove) return;
         if(State != PlayerStates.Moving) return;
         float vertical = _move.y;
         

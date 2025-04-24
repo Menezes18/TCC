@@ -19,6 +19,8 @@ public class PartyPushSystem : PlayerScriptBase
     [SerializeField] private Color cooldownColor = new Color(0f, 0f, 1f, 0.3f);
     [SerializeField] private int coneSegments = 20;
 
+    public bool inputDisabled; 
+    
     // Cached components
     private PlayerScript _player;
     private CharacterController _characterController;
@@ -111,7 +113,7 @@ public class PartyPushSystem : PlayerScriptBase
 
     private void HandlePushInput(InputAction.CallbackContext context)
     {
-        if (!isLocalPlayer)  return;
+        if (!isLocalPlayer || inputDisabled) return; 
         if (context.performed && CanPush() && _playerShootSystem.segurandoBotao == false)
         {
             CmdTryPush();
