@@ -2,6 +2,7 @@ using Mirror;
 using Steamworks;
 using System.Collections;
 using System.Collections.Generic;
+using kcp2k;
 using UnityEngine;
 using Mirror.FizzySteam;
 
@@ -138,37 +139,38 @@ public class MyNetworkManager : NetworkManager
         //     testMode = false;
         // }
     }
+    public void StartDevHost()
+    {
+        testMode = true;
+
+        var fizzy = GetComponent<FizzySteamworks>();
+        if (fizzy != null) Destroy(fizzy);
+
+        var kcp = GetComponent<KcpTransport>();
+
+        transport = kcp;
+        Transport.active = kcp;
+
+        StartHost();
+        MainMenu.instance.gameObject.SetActive(false);
+    }
+
     public void StartDevClient(string address = "localhost")
     {
         testMode = true;
 
-        TelepathyTransport tele = GetComponent<TelepathyTransport>();
+        var fizzy = GetComponent<FizzySteamworks>();
+        if (fizzy != null) Destroy(fizzy);
+        var kcp = GetComponent<KcpTransport>();
 
-        FizzySteamworks fizzy = GetComponent<FizzySteamworks>();
-        if (fizzy != null) fizzy.enabled = false;
-
-        transport = tele;
-        Transport.active = tele;
+        transport = kcp;
+        Transport.active = kcp;
 
         networkAddress = address;
         StartClient();
         MainMenu.instance.gameObject.SetActive(false);
     }
 
-    public void StartDevHost()
-    {
-        testMode = true;
-
-        TelepathyTransport tele = GetComponent<TelepathyTransport>();
-        FizzySteamworks fizzy = GetComponent<FizzySteamworks>();
-        if (fizzy != null) fizzy.enabled = false;
-
-        transport = tele;
-        Transport.active = tele;
-
-        StartHost();
-        MainMenu.instance.gameObject.SetActive(false);
-    }
     public override void OnStartClient()
     {
         if (isMulitplayer) 
