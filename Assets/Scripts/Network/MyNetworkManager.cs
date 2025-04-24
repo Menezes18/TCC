@@ -145,7 +145,11 @@ public class MyNetworkManager : NetworkManager
 
         var fizzy = GetComponent<FizzySteamworks>();
         if (fizzy != null) Destroy(fizzy);
-
+        var steamLobby = GetComponent<SteamLobby>();
+        if (steamLobby != null) Destroy(steamLobby);
+        var lobbycontroller = GetComponent<LobbyController>();
+        if (lobbycontroller != null) Destroy(lobbycontroller);
+        
         var kcp = GetComponent<KcpTransport>();
 
         transport = kcp;
