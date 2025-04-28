@@ -3,7 +3,7 @@ using UnityEngine;
 using Mirror;
 using UnityEngine.ProBuilder;
 
-public class ChaoSumindo : ChaoMae, IObserver
+public class ChaoSumindo : NetworkBehaviour, IObserver
 {
     [SyncVar(hook = nameof(OnColorChanged))]
     public Color currentColor;
@@ -35,28 +35,26 @@ public class ChaoSumindo : ChaoMae, IObserver
 
     public void Atualizacao(ISubject subject)
     {
-        Instrutor instrutor = subject as Instrutor;
-        if(instrutor != null)
+        var instr = subject as Instrutor;
+        if (instr == null) return;
+
+        if (isServer)  // só o servidor decide
         {
-            if(currentColor == instrutor.imagem.color)
-            {
-                tiraChao();
-            }
+            if (currentColor != instr.currentColor && instr.currentColor != Color.white)
+                RpcTiraChao();
             else
-            {
-                poeChao();
-            }
+                RpcPoeChao();
         }
     }
 
-    [Server]
-    public override void poeChao()
+    [ClientRpc]
+    public void RpcPoeChao()
     {
         gameObject.SetActive(true);
     }
 
-    [Server]
-    public override void tiraChao()
+    [ClientRpc]
+    public void RpcTiraChao()
     {
         gameObject.SetActive(false);
     }
