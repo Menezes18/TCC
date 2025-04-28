@@ -62,10 +62,13 @@ public class MyNetworkManager : NetworkManager
 
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)
     {
+        if (conn.identity != null && allClients.Exists(c => c == conn.identity.GetComponent<MyClient>()))
+        return;
+
         base.OnServerAddPlayer(conn);
 
-        var client = conn.identity.GetComponent<MyClient>();
-        allClients.Add(client);
+        MyClient client = conn.identity.GetComponent<MyClient>();
+        // allClients.Add(client);
         if (testMode)
         {
             var fakeId= nextFakeId++;
@@ -93,7 +96,6 @@ public class MyNetworkManager : NetworkManager
         }
         Debug.Log("Conectados" + allClients.Count);
         if(allClients.Count >= minJogadores) iniciaContador();
-        iniciaContador();
         CharacterSkinHandler.instance.DestroyMesh();
     }
     [Server]
@@ -126,6 +128,18 @@ public class MyNetworkManager : NetworkManager
     }
     public override void OnServerDisconnect(NetworkConnectionToClient conn)
     {
+        var client = conn.identity?.GetComponent<MyClient>();
+        if (client != null)
+        {
+            allClients.Remove(client);
+
+            var sid = client.playerInfo.steamId;
+            if (pointsBoard.ContainsKey(sid))
+            {
+                pointsBoard.Remove(sid);
+                scoreboard.players.RemoveAll(p => p.steamID == sid);
+            }
+        }
         base.OnServerDisconnect(conn);
     }
 
