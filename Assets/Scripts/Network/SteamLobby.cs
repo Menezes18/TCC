@@ -95,6 +95,7 @@ public class SteamLobby : MonoBehaviour
         PopupManager.instance.Popup_Show("Create Party", false, true);
         StartCoroutine(DelayAction(_delaySeconds, () => {
         SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypePublic, ((MyNetworkManager)NetworkManager.singleton).maxConnections);
+        MainMenu.instance.gameObject.SetActive(false);
         }));
     }
 
@@ -195,6 +196,7 @@ public class SteamLobby : MonoBehaviour
                 {
                     JoinLobby(lobby.lobbyID);
                     foundMatch = true;
+                    MainMenu.instance.gameObject.SetActive(false);
                     break;
                 }
             }

@@ -72,6 +72,7 @@ public class PlayerShootSystem : PlayerScriptBase
             lineRenderer.enabled = true;
             _player._animator.SetTrigger("StartHold");
             _player._animator.SetBool("IsHolding", true);
+            CmdNotifyStartHold();
         }
         else if (ctx.canceled)
         {
@@ -79,6 +80,7 @@ public class PlayerShootSystem : PlayerScriptBase
             lineRenderer.enabled = false;
             _player._animator.SetBool("IsHolding", false);
             _player._animator.SetTrigger("Throw");
+            CmdNotifyThrow();
             
             if (PodeTirarAgora())
             {
@@ -88,12 +90,39 @@ public class PlayerShootSystem : PlayerScriptBase
                 CmdAtirar(_player.cameraJogador.transform.forward);
                 StartCoroutine(VoltarParaMovingAposCooldown());
                 StartCoroutine(CooldownCounter());
+                CmdNotifyThrow();
             }
         }
     }
 
 
+    [Command]
+    void CmdNotifyStartHold()
+    {
+        RpcOnStartHold();
+    }
 
+    [Command]
+    void CmdNotifyThrow()
+    {
+        RpcOnThrow();
+    }
+
+    [ClientRpc]
+    void RpcOnStartHold()
+    {
+        if (isLocalPlayer) return;  
+        _player._animator.SetTrigger("StartHold");
+        _player._animator.SetBool("IsHolding", true);
+    }
+
+    [ClientRpc]
+    void RpcOnThrow()
+    {
+        if (isLocalPlayer) return;
+        _player._animator.SetBool("IsHolding", false);
+        _player._animator.SetTrigger("Throw");
+    }
 
     private bool PodeTirarAgora()
     {

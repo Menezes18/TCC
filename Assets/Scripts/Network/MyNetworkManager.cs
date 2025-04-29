@@ -2,8 +2,9 @@ using Mirror;
 using Steamworks;
 using System.Collections;
 using System.Collections.Generic;
+using kcp2k;
 using UnityEngine;
-
+using Mirror.FizzySteam;
 
 
 
@@ -31,7 +32,9 @@ public class MyNetworkManager : NetworkManager
     public PlayerScoreboard scoreboard = new PlayerScoreboard();
     private Dictionary<ulong, PlayerData> pointsBoard = new Dictionary<ulong, PlayerData>();
     public HSteamNetConnection steamConnection = HSteamNetConnection.Invalid;
+    [Header("Para funcionar sem a steam")]
     public bool testMode = false;
+    static ulong nextFakeId = 1;
     private void Awake()
     {
         MyNetworkManager[] managers = FindObjectsOfType<MyNetworkManager>();
@@ -61,12 +64,21 @@ public class MyNetworkManager : NetworkManager
     {
         base.OnServerAddPlayer(conn);
 
-        MyClient client = conn.identity.GetComponent<MyClient>();
-        
-        CSteamID steamId = SteamLobby.LobbyID.m_SteamID == 0 
-            ? SteamUser.GetSteamID() 
-            : SteamMatchmaking.GetLobbyMemberByIndex(SteamLobby.LobbyID, allClients.Count);
-        client.playerInfo = new PlayerInfoData(SteamFriends.GetFriendPersonaName(steamId), steamId.m_SteamID);
+        var client = conn.identity.GetComponent<MyClient>();
+        allClients.Add(client);
+        if (testMode)
+        {
+            var fakeId= nextFakeId++;
+            var fakeName = $"DevPlayer{fakeId:D2}";
+            client.playerInfo = new PlayerInfoData(fakeName, fakeId);
+        }
+        else
+        {
+            CSteamID steamId = SteamLobby.LobbyID.m_SteamID == 0 
+                ? SteamUser.GetSteamID() 
+                : SteamMatchmaking.GetLobbyMemberByIndex(SteamLobby.LobbyID, allClients.Count);
+            client.playerInfo = new PlayerInfoData(SteamFriends.GetFriendPersonaName(steamId), steamId.m_SteamID);
+        }
         if (!pointsBoard.ContainsKey(client.playerInfo.steamId))
         {
             var playerData = new PlayerData 
@@ -119,13 +131,48 @@ public class MyNetworkManager : NetworkManager
 
     public override void OnValidate()
     {
-        if (testMode && allClients.Count > 0)
-        {
-            ulong firstSteamID = allClients[0].playerInfo.steamId;
-            AddPoints(firstSteamID, 10);
-            Debug.Log($"Adicionados 10 pontos para o primeiro jogador: {firstSteamID}");
-            testMode = false;
-        }
+        // if (testMode && allClients.Count > 0)
+        // {
+        //     ulong firstSteamID = allClients[0].playerInfo.steamId;
+        //     AddPoints(firstSteamID, 10);
+        //     Debug.Log($"Adicionados 10 pontos para o primeiro jogador: {firstSteamID}");
+        //     testMode = false;
+        // }
+    }
+    public void StartDevHost()
+    {
+        testMode = true;
+
+        var fizzy = GetComponent<FizzySteamworks>();
+        if (fizzy != null) Destroy(fizzy);
+        var steamLobby = GetComponent<SteamLobby>();
+        if (steamLobby != null) Destroy(steamLobby);
+        var lobbycontroller = GetComponent<LobbyController>();
+        if (lobbycontroller != null) Destroy(lobbycontroller);
+        
+        var kcp = GetComponent<KcpTransport>();
+
+        transport = kcp;
+        Transport.active = kcp;
+
+        StartHost();
+        MainMenu.instance.gameObject.SetActive(false);
+    }
+
+    public void StartDevClient(string address = "localhost")
+    {
+        testMode = true;
+
+        var fizzy = GetComponent<FizzySteamworks>();
+        if (fizzy != null) Destroy(fizzy);
+        var kcp = GetComponent<KcpTransport>();
+
+        transport = kcp;
+        Transport.active = kcp;
+
+        networkAddress = address;
+        StartClient();
+        MainMenu.instance.gameObject.SetActive(false);
     }
 
     public override void OnStartClient()
