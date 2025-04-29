@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 public class PlayerManagerUI : NetworkBehaviour
 {
     [Header("Referências")]
-    public PlayerControlSO playerControlSO;
+    public PlayerInputSO playerInputSo;
 
     [Header("Prefabs")]
     [SerializeField] private GameObject canvasCelularPrefab;  
@@ -28,14 +28,13 @@ public class PlayerManagerUI : NetworkBehaviour
 
         _playerScript = GetComponent<PlayerScript>();
 
-        playerControlSO.EventOnCelularMenu += EventOnCelularMenu;
+       // playerInputSo.EventOnCelularMenu += EventOnCelularMenu;
         
     }
 
     private void OnDestroy()
     {
-        if (isLocalPlayer)
-            playerControlSO.EventOnCelularMenu -= EventOnCelularMenu;
+        //if (isLocalPlayer)playerInputSo.EventOnCelularMenu -= EventOnCelularMenu;
     }
 
     private void EventOnCelularMenu(InputAction.CallbackContext ctx)

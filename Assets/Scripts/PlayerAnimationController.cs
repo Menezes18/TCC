@@ -26,7 +26,7 @@ public class PlayerAnimationController : MonoBehaviour
     [Header("References")]
     [SerializeField] private Animator animator;
     [SerializeField] private PlayerScriptBase playerScript;
-    [SerializeField] private PlayerInputScript playerInput;
+    [SerializeField] private PlayerControls playerInput;
 
     private Dictionary<PlayerStates, AnimationClipData> animationMap;
     private AnimationStateMachine stateMachine;
@@ -36,7 +36,7 @@ public class PlayerAnimationController : MonoBehaviour
     private void Awake()
     {
         if (playerScript == null) playerScript = GetComponent<PlayerScriptBase>();
-        if (playerInput == null) playerInput = GetComponent<PlayerInputScript>();
+        if (playerInput == null) playerInput = GetComponent<PlayerControls>();
         if (animator == null) animator = GetComponent<Animator>();
 
         InitializeAnimationMap();
