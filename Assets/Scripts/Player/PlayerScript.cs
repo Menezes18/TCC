@@ -5,10 +5,16 @@ public enum PlayerState{
     Default,
     Ascend,
     Descend,
+    Push,
+    Stagger,
+    ThrowPrepare,
+    Throw,
+    Death,
 }
 
 public enum PlayerStatus{
-    
+    Default,
+    Blinded
 }
 public class PlayerScript : NetworkBehaviour{
     
