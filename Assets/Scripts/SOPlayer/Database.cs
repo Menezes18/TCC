@@ -1,12 +1,20 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-[CreateAssetMenu(fileName = "ScriptableObject", menuName = "Database")]
+[CreateAssetMenu(fileName = "Database", menuName = "Player/Database")]
 public class Database : ScriptableObject{
-    
-    
 
+    public float inputAccel;
+    public float inputGravity;
+
+    public float gravity;
+    public float gravityGrounded = 1;
+
+    public float playerSpeed = 1;
     
-    
-    
+    public Vector3 orbitalOffset;
+    public float minMouseY, maxMouseX;
+
+
+
 }

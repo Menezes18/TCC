@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using Mirror;
 using UnityEngine.InputSystem;
@@ -5,7 +6,7 @@ using UnityEngine.InputSystem;
 public class PlayerManagerUI : NetworkBehaviour
 {
     [Header("Referências")]
-    public PlayerInputSO playerInputSo;
+    public PlayerControlsSO PlayerControlsSO;
 
     [Header("Prefabs")]
     [SerializeField] private GameObject canvasCelularPrefab;  
@@ -14,6 +15,12 @@ public class PlayerManagerUI : NetworkBehaviour
     private MainMenu mainMenu;
     private PlayerScript _playerScript;
     private bool _valueCelular = false;
+
+    private void Start()
+    {
+        PlayerControlsSO.OnMenu += EventOnCelularMenu;
+        PlayerControlsSO.OnCursor += PlayerControlsSO_OnCursor; 
+    }
 
     public override void OnStartLocalPlayer()
     {
@@ -27,8 +34,7 @@ public class PlayerManagerUI : NetworkBehaviour
         celularInstance.SetActive(true);
 
         _playerScript = GetComponent<PlayerScript>();
-
-       // playerInputSo.EventOnCelularMenu += EventOnCelularMenu;
+        
         
     }
 
@@ -36,8 +42,11 @@ public class PlayerManagerUI : NetworkBehaviour
     {
         //if (isLocalPlayer)playerInputSo.EventOnCelularMenu -= EventOnCelularMenu;
     }
-
-    private void EventOnCelularMenu(InputAction.CallbackContext ctx)
+    private void PlayerControlsSO_OnCursor()
+    {
+        Debug.LogError("Cursor");
+    }
+    private void EventOnCelularMenu()
     {
         // Alterna estado do celular
         _valueCelular = !_valueCelular;

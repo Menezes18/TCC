@@ -5,9 +5,9 @@ using UnityEngine.InputSystem;
 
     public class PlayerControls : MonoBehaviour {
         
-        public PlayerInputSO PlayerInputSO;
-        public PlayerControlsSO PlayerControlsSO;
-        public Database db;
+        [SerializeField] PlayerInputSO PlayerInputSO;
+        [SerializeField] PlayerControlsSO PlayerControlsSO;
+        [SerializeField] Database db;
 
         [SerializeField]
         PlayerInput _playerInput;
@@ -21,21 +21,24 @@ using UnityEngine.InputSystem;
             PlayerInputSO.OnJump += PlayerInputSO_OnJump;
             PlayerInputSO.OnPush += PlayerInputSO_OnPush;
             PlayerInputSO.OnThrow += PlayerInputSO_OnThrow;
+            PlayerInputSO.OnCursor += PlayerInputSO_OnCursor;
+            PlayerInputSO.OnMenuCelular += PlayerInputSO_OnMenuCelular;
         }
+
         private void Update(){
             
           
-            if(_rawX != 0)
-                _x = Mathf.MoveTowards(_x, _rawX, playerInputSoinputAcel * Time.deltaTime);
+            if(_rawX == 0)
+                _x = Mathf.MoveTowards(_x, 0, db.inputGravity * Time.deltaTime);
             else
-                _x = Mathf.MoveTowards(_x, 0, playerInputSo.inputGravity * Time.deltaTime);
+                _x = Mathf.MoveTowards(_x, _rawX, db.inputAccel * Time.deltaTime);
             
-            if(_rawY != 0)
-                _y = Mathf.MoveTowards(_y, _rawY, playerInputSo.inputAcel * Time.deltaTime);
+            if(_rawY == 0)
+                _y = Mathf.MoveTowards(_y, 0, db.inputGravity * Time.deltaTime);
             else
-                _y = Mathf.MoveTowards(_y, 0, playerInputSo.inputGravity * Time.deltaTime);
+                _y = Mathf.MoveTowards(_y, _rawY, db.inputAccel * Time.deltaTime);
             
-            playerInputSo.OnCustomMove(new Vector2(_x, _y));
+            PlayerControlsSO.Move(new Vector2(_x, _y), new Vector2(_rawX, _rawY));
         }
         private void PlayerInputSO_OnMove(CallbackContext obj)
         {
@@ -45,9 +48,7 @@ using UnityEngine.InputSystem;
         }
         private void PlayerInputSO_OnLook(CallbackContext obj)
         {
-            if(obj.performed){
-                PlayerControlsSO.Look(obj.ReadValue<Vector2>());
-            }
+            PlayerControlsSO.Look(obj.ReadValue<Vector2>());
         }
         private void PlayerInputSO_OnJump(CallbackContext obj)
         {
@@ -56,8 +57,7 @@ using UnityEngine.InputSystem;
             }
 
         }
-
-
+        
         private void PlayerInputSO_OnPush(CallbackContext obj)
         {
             if(obj.performed){
@@ -75,8 +75,19 @@ using UnityEngine.InputSystem;
                 PlayerControlsSO.Throw();
             }
         }
+        private void PlayerInputSO_OnCursor(CallbackContext obj)
+        {
+            if(obj.performed){
+                PlayerControlsSO.Cursor();
+            }
+        }
 
-
+        private void PlayerInputSO_OnMenuCelular(CallbackContext obj)
+        {
+            if(obj.performed){
+                PlayerControlsSO.MenuCelular();
+            }
+        }
 
 
 
