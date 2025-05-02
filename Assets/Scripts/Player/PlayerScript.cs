@@ -134,6 +134,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     //
     private void AerialDetection()
     {
+        if(State == PlayerState.Stagger) return;
         
         if (_move.y > 0)
             State = PlayerState.Ascend;
@@ -151,6 +152,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     }
     private void AerialBehaviour()
     {
+        
         if(State != PlayerState.Ascend && State != PlayerState.Descend) return;
 
         float vertical = _move.y;

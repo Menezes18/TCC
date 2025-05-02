@@ -33,9 +33,7 @@ public class PlayerActiveFrame : NetworkBehaviour{
         
         foreach (Collider t in target){
             
-            if(t.transform.root == this) continue;
-            
-            if (t.transform.root == transform.root) 
+            if (t.transform.root == transform) 
                 continue;
             
             if(_affectedPlayer.Contains(t) == true) continue;
