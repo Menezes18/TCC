@@ -15,14 +15,21 @@ public class Instrutor : NetworkBehaviour, ISubject
 {
     public TMP_Text textoCor;
     public TMP_Text textoTimer;
-    public static Instrutor instrutor;
-    public Image imagem;
-    public List<IObserver> _observers = new List<IObserver>();
-    public float tempoEntreAcoes = 4f;
+    public Image   imagem;
+    public float   tempoEntreAcoes = 4f;
     public ColorInfo[] colors;
+    public List<IObserver> _observers = new List<IObserver>();
+
+    public static Instrutor instrutor;
 
     [SyncVar(hook = nameof(OnColorChanged))]
     public Color currentColor;
+
+    [SyncVar(hook = nameof(OnColorNameChanged))]
+    public string currentColorName;
+
+    [SyncVar(hook = nameof(OnTimerTextChanged))]
+    public string currentTimerText;
 
     public override void OnStartServer()
     {
@@ -31,50 +38,68 @@ public class Instrutor : NetworkBehaviour, ISubject
         StartCoroutine(CicloDeCores());
     }
 
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        instrutor = this;
+
+        imagem.color = currentColor;
+        textoCor.text = currentColorName;
+        textoTimer.text = currentTimerText;
+    }
+
     IEnumerator CicloDeCores()
     {
         while (true)
         {
-            currentColor = Color.white;
-            imagem.color = Color.white;
-            textoCor.text = "Irá começar";
-            
-            yield return StartCoroutine(Countdown(tempoEntreAcoes, 1));
+            currentColor     = Color.white;
+            currentColorName = "Irá começar";
+            yield return Countdown(tempoEntreAcoes, 1);
 
             ColorInfo corEscolhida = EscolherCor();
-            currentColor = corEscolhida.color;
-            imagem.color = corEscolhida.color;
-            textoCor.text = corEscolhida.colorName;
-            
-            yield return StartCoroutine(Countdown(tempoEntreAcoes, 2));
-            Notifica();
-            
-            yield return StartCoroutine(Countdown(tempoEntreAcoes, 1));
-            currentColor = Color.white;
-            imagem.color = Color.white;
-            textoCor.text = "Irá começar";
+            currentColor     = corEscolhida.color;
+            currentColorName = corEscolhida.colorName;
+            yield return Countdown(tempoEntreAcoes, 2);
 
+            Notifica();
+
+            yield return Countdown(tempoEntreAcoes, 1);
+            
+            currentColor     = Color.white;
+            currentColorName = "Irá começar";
             Notifica();
         }
     }
     IEnumerator Countdown(float duration, int tipo)
     {
         float timer = duration;
-        while (timer > 0)
+        while (timer > 0f)
         {
-            textoTimer.text = tipo == 1 ? $"Trocando em {Mathf.Ceil(timer)} s" : $"Sumindo em {Mathf.Ceil(timer)} s";
+            currentTimerText = tipo == 1 
+                ? $"Trocando em {Mathf.Ceil(timer)} s" 
+                : $"Sumindo em {Mathf.Ceil(timer)} s";
             timer -= Time.deltaTime;
             yield return null;
         }
-        textoTimer.text = "";
+        currentTimerText = "";
     }
 
-    void OnColorChanged(Color oldColor, Color newColor)
+    void OnColorChanged(Color oldC, Color newC)
     {
         if (imagem != null)
-        {
-            imagem.color = newColor;
-        }
+            imagem.color = newC;
+    }
+
+    void OnColorNameChanged(string oldName, string newName)
+    {
+        if (textoCor != null)
+            textoCor.text = newName;
+    }
+
+    void OnTimerTextChanged(string oldText, string newText)
+    {
+        if (textoTimer != null)
+            textoTimer.text = newText;
     }
 
     ColorInfo EscolherCor()
@@ -95,8 +120,6 @@ public class Instrutor : NetworkBehaviour, ISubject
     public void Notifica()
     {
         foreach (var observer in _observers)
-        {
             observer.Atualizacao(this);
-        }
     }
 }

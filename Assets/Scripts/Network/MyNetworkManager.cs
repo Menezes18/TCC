@@ -21,7 +21,7 @@ public class PlayerScoreboard
     public List<PlayerData> players = new List<PlayerData>();
 }
 [System.Serializable]
-public class MyNetworkManager : NetworkManager 
+public class MyNetworkManager : NetworkManager, ISubjectPontos
 {
     public static bool isMulitplayer;
     public static MyNetworkManager manager { get; internal set; }
@@ -35,6 +35,7 @@ public class MyNetworkManager : NetworkManager
     [Header("Para funcionar sem a steam")]
     public bool testMode = false;
     static ulong nextFakeId = 1;
+    public List<IObserverPontos> _observers = new List<IObserverPontos>();
     private void Awake()
     {
         MyNetworkManager[] managers = FindObjectsOfType<MyNetworkManager>();
@@ -62,10 +63,13 @@ public class MyNetworkManager : NetworkManager
 
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)
     {
+        if (conn.identity != null && allClients.Exists(c => c == conn.identity.GetComponent<MyClient>()))
+        return;
+
         base.OnServerAddPlayer(conn);
 
-        var client = conn.identity.GetComponent<MyClient>();
-        allClients.Add(client);
+        MyClient client = conn.identity.GetComponent<MyClient>();
+        // allClients.Add(client);
         if (testMode)
         {
             var fakeId= nextFakeId++;
@@ -93,8 +97,8 @@ public class MyNetworkManager : NetworkManager
         }
         Debug.Log("Conectados" + allClients.Count);
         if(allClients.Count >= minJogadores) iniciaContador();
-        iniciaContador();
         CharacterSkinHandler.instance.DestroyMesh();
+        Notifica();
     }
     [Server]
     public void AddPoints(ulong steamID, int pointsToAdd)
@@ -118,6 +122,7 @@ public class MyNetworkManager : NetworkManager
         {
             Debug.LogWarning($"Jogador (SteamID: {steamID}) não consta no pointsBoard.");
         }
+        Notifica();
     }
     private void UpdatePointsBoardInspector()
     {
@@ -126,6 +131,18 @@ public class MyNetworkManager : NetworkManager
     }
     public override void OnServerDisconnect(NetworkConnectionToClient conn)
     {
+        var client = conn.identity?.GetComponent<MyClient>();
+        if (client != null)
+        {
+            allClients.Remove(client);
+
+            var sid = client.playerInfo.steamId;
+            if (pointsBoard.ContainsKey(sid))
+            {
+                pointsBoard.Remove(sid);
+                scoreboard.players.RemoveAll(p => p.steamID == sid);
+            }
+        }
         base.OnServerDisconnect(conn);
     }
 
@@ -211,5 +228,32 @@ public class MyNetworkManager : NetworkManager
     public void iniciaContador(){
         ContadorTempo temp = GameObject.Find("Temporizador").GetComponent<ContadorTempo>();
         temp.IniciarContador();
+    }
+
+    public void Adicionar(IObserverPontos observer)
+    {
+        _observers.Add(observer);
+    }
+
+    public void Retira(IObserverPontos observer)
+    {
+        _observers.Remove(observer);
+    }
+
+    public void Notifica()
+    {
+        string[] nomesJogadores = new string[scoreboard.players.Count];
+        int[] pontosJogadores = new int[scoreboard.players.Count];
+        
+        for (int i = 0; i < scoreboard.players.Count; i++)
+        {
+            nomesJogadores[i] = scoreboard.players[i].playerName;
+            pontosJogadores[i] = scoreboard.players[i].points;
+        }
+        
+        foreach (IObserverPontos observer in _observers)
+        {
+            observer.Atualizacao(this, pontosJogadores, nomesJogadores);
+        }
     }
 }
