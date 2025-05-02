@@ -20,6 +20,12 @@ public class Database : ScriptableObject{
 
     public LayerMask PlayerMask;
     public float playerPushRadius;
+    public float playerPushStrength;
+    public float playerPushCooldownTimer;
+    
+    public float playerStaggerHeight;
+    public float playerStaggerAirSpeedModifier = 1;
+    public float playerStaggerStunDuration;
 
 
 }

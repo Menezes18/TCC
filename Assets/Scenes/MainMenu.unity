@@ -1949,7 +1949,7 @@ MonoBehaviour:
   autoCreatePlayer: 1
   playerSpawnMethod: 1
   spawnPrefabs:
-  - {fileID: 1590415177872986601, guid: acdb90624a404aa438447006f1026065, type: 3}
+  - {fileID: 9032602418151776553, guid: 7015853af9281d3418c8c4f35212953c, type: 3}
   - {fileID: 3472063188260564299, guid: d2b18e33b98b06f489aaa75955227efc, type: 3}
   - {fileID: 268687697814956617, guid: 53f9b17a77863de4294a4588ac92219e, type: 3}
   exceptionsDisconnect: 0
@@ -1986,7 +1986,8 @@ Transform:
   m_LocalPosition: {x: 52.369995, y: 194.375, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 900427647}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &95399543
@@ -1996,7 +1997,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 95399539}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e6e55fca1f4e4844593a3dd65a3ecb39, type: 3}
   m_Name: 
@@ -2012,7 +2013,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 95399539}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 74a3fc7eda8dd2747bbcb9546db2aee3, type: 3}
   m_Name: 
@@ -2025,7 +2026,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 95399539}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9ba7df8027f02f94c92f43d9d02d5b7c, type: 3}
   m_Name: 
@@ -2037,7 +2038,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 95399539}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6b0fecffa3f624585964b0d0eb21b18e, type: 3}
   m_Name: 
@@ -18994,6 +18995,12 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 890416556}
   m_PrefabAsset: {fileID: 0}
+--- !u!224 &900427647 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 7379671002819286859, guid: 3aa2756475a30e9469bb5f5d492e949b,
+    type: 3}
+  m_PrefabInstance: {fileID: 1209306129}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &902127849
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -25816,7 +25823,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 0}
+    m_TransformParent: {fileID: 95399542}
     m_Modifications:
     - target: {fileID: 956673589806641902, guid: 3aa2756475a30e9469bb5f5d492e949b,
         type: 3}
@@ -25906,7 +25913,7 @@ PrefabInstance:
     - target: {fileID: 3799542405642113733, guid: 3aa2756475a30e9469bb5f5d492e949b,
         type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4206050718422671209, guid: 3aa2756475a30e9469bb5f5d492e949b,
         type: 3}
@@ -45315,6 +45322,5 @@ SceneRoots:
   - {fileID: 146367792}
   - {fileID: 811328668}
   - {fileID: 302838178}
-  - {fileID: 1209306129}
   - {fileID: 229351288}
   - {fileID: 786286318}

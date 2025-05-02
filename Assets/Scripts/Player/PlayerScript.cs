@@ -1,4 +1,3 @@
-using System;
 using Mirror;
 using UnityEngine;
 
@@ -32,6 +31,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         set{
             if(_state == value){return;}
             OnStateChanged(_state, value);
+            _animator.SetInteger(_STATE, (int)value);
             _state = value;
         }
     }
@@ -83,6 +83,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     
     readonly int _STATE = Animator.StringToHash("state");
     readonly int _STATUS = Animator.StringToHash("status");
+
+    private float _staggerTimer;
+    private float _pushCooldown;
     
     private void Start()
     {
@@ -107,7 +110,17 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     private void Update()
     {
         if(!this.isOwned) return;
+        
+        //
+        if(_pushCooldown > 0 ) _pushCooldown -= Time.deltaTime;
+        
+        if(_staggerTimer > 0) _staggerTimer -= Time.deltaTime;
+        
+        //
+        
+        
         AerialDetection();
+        StaggerBehaviour();
         AerialBehaviour();
         DefaultBehaviour();
         
@@ -149,6 +162,39 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         if (_controller.isGrounded == true){
             State = PlayerState.Default; 
         }
+    }
+    private void StaggerBehaviour()
+    {
+        if (State != PlayerState.Stagger) return;
+
+       
+        
+        float vertical = _move.y;
+        
+        Vector3 input = new Vector3(_input.x, 0, _input.z);
+        input = Quaternion.Euler(rot) * input;
+        
+        //
+        if (_staggerTimer > 0) input = Vector3.zero;
+        
+        float airSpeed = db.playerAirSpeed * db.playerStaggerAirSpeedModifier;
+        
+        input *= airSpeed * Time.deltaTime;
+        
+        _inertia += input;
+        _inertia = Vector3.ClampMagnitude(_inertia, InertiaCap);
+
+        _move = _inertia;
+        _move.y = vertical;
+        
+        if(_staggerTimer > 0) return;
+        
+        // Exit Condition
+        if (_controller.isGrounded == false) return;
+        
+        State = PlayerState.Default;
+        
+        
     }
     private void AerialBehaviour()
     {
@@ -192,7 +238,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         }
         State = PlayerState.Default;
     }
-
     public void SetStatusDefault()
     {
         Status = PlayerStatus.Default;
@@ -225,9 +270,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     }
     private void PlayerControlsSO_OnPush()
     {
-        if (Status != PlayerStatus.Default) return;
+        if(State == PlayerState.Stagger) return;
+        if(Status != PlayerStatus.Default) return;
+        
+        if(_pushCooldown > 0) return;
         
         Status = PlayerStatus.Pushing;
+        _pushCooldown = db.playerPushCooldownTimer;
     }
     
     //
@@ -248,10 +297,16 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     public void RpcReceiveDamage(NetworkConnection coon, DamageType dmgType, Vector3 dir)
     {
         //
-        
-        Debug.LogError("Received Damage");
-        Debug.DrawRay(transform.position, dir * 5, Color.cyan, 5);
+
         State = PlayerState.Stagger;
+        Debug.DrawRay(transform.position, dir * 5, Color.cyan, 5);
         
+        Vector3 horizontal = new Vector3(_move.x, 0, _move.z);
+        Vector3 final = horizontal + dir * db.playerPushStrength;
+        _inertia = final;
+        InertiaCap = final.magnitude;
+        _move.y = db.playerStaggerHeight;
+        _staggerTimer = db.playerStaggerStunDuration;
+
     }
 }
