@@ -1,5 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
+
 using UnityEngine;
 [CreateAssetMenu(fileName = "Database", menuName = "Player/Database")]
 public class Database : ScriptableObject{
@@ -18,6 +17,9 @@ public class Database : ScriptableObject{
     public float playerJumpHeight;
     public float playerAirSpeed;
     public float playerMaxAirSpeed;
+
+    public LayerMask PlayerMask;
+    public float playerPushRadius;
 
 
 }

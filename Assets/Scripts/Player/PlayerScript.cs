@@ -1,3 +1,4 @@
+using System;
 using Mirror;
 using UnityEngine;
 
@@ -5,7 +6,6 @@ public enum PlayerState{
     Default,
     Ascend,
     Descend,
-    Push,
     Stagger,
     ThrowPrepare,
     Throw,
@@ -14,15 +14,18 @@ public enum PlayerState{
 
 public enum PlayerStatus{
     Default,
-    Blinded
+    Blinded,
+    Pushing
 }
-public class PlayerScript : NetworkBehaviour{
-    
-    
-    [SerializeField] PlayerControlsSO PlayerControlsSO;
-    [SerializeField] CharacterController _controller;
+public class PlayerScript : NetworkBehaviour, IDamageable
+{
     [SerializeField] Database db;
-
+    [SerializeField] PlayerControlsSO PlayerControlsSO;
+    
+    [SerializeField] CharacterController _controller;
+    [SerializeField] Animator _animator;
+    [SerializeField] NetworkAnimator _networkAnimator;
+    
     [SerializeField] PlayerState _state;
     PlayerState State{
         get {return _state;}
@@ -30,6 +33,29 @@ public class PlayerScript : NetworkBehaviour{
             if(_state == value){return;}
             OnStateChanged(_state, value);
             _state = value;
+        }
+    }
+    
+    [SerializeField] PlayerStatus _status;
+
+    PlayerStatus Status{
+        get {return _status;}
+        set{
+            if(_status == value) return;
+            
+            Debug.LogError(_status + " -> " + value);
+            _animator.SetInteger(_STATUS, (int)value);
+            _status = value;
+
+            if (value != PlayerStatus.Pushing) return;
+            
+            // NetworkAnimator não replica trigger
+            // Então tem que passar sempre nos 2
+            // animator --> trigger
+            // networkAnimator --> trigger
+            _animator.SetTrigger("push");
+            _networkAnimator.SetTrigger("push");
+            
         }
     }
 
@@ -55,16 +81,32 @@ public class PlayerScript : NetworkBehaviour{
     private float _mouseX, _mouseY;
     private bool _ignoreGroundedNextFrame;
     
+    readonly int _STATE = Animator.StringToHash("state");
+    readonly int _STATUS = Animator.StringToHash("status");
+    
     private void Start()
     {
+        if(!this.isOwned) return;
+        
         PlayerControlsSO.OnMove += PlayerControlsSO_OnMove;
         PlayerControlsSO.OnLook += PlayerControlsSO_OnLook;
         PlayerControlsSO.OnJump += PlayerControlsSO_OnJump;
+        PlayerControlsSO.OnPush += PlayerControlsSO_OnPush;
         
         _cam = Camera.main.transform;
     }
+
+    private void OnDestroy()
+    {
+        PlayerControlsSO.OnMove -= PlayerControlsSO_OnMove;
+        PlayerControlsSO.OnLook -= PlayerControlsSO_OnLook;
+        PlayerControlsSO.OnJump -= PlayerControlsSO_OnJump;
+        PlayerControlsSO.OnPush -= PlayerControlsSO_OnPush;
+    }
+
     private void Update()
     {
+        if(!this.isOwned) return;
         AerialDetection();
         AerialBehaviour();
         DefaultBehaviour();
@@ -83,6 +125,7 @@ public class PlayerScript : NetworkBehaviour{
     }
     private void LateUpdate()
     {
+        if(!this.isOwned) return;
         Vector3 newRot = new Vector3(_mouseY, _mouseX, 0);
         _cam.transform.rotation = Quaternion.Euler(newRot);
         _cam.transform.position = transform.position + _cam.rotation * db.orbitalOffset;
@@ -135,6 +178,24 @@ public class PlayerScript : NetworkBehaviour{
         
         _move += Vector3.up * db.gravity;
     }
+    
+    //
+    public void SetDefaultState()
+    {
+        if (!_controller.isGrounded){
+            if (_move.y > 0)
+                State = PlayerState.Ascend;
+            else
+                State = PlayerState.Descend;
+        }
+        State = PlayerState.Default;
+    }
+
+    public void SetStatusDefault()
+    {
+        Status = PlayerStatus.Default;
+    }
+    
     //
     private void PlayerControlsSO_OnMove(Vector2 input, Vector2 raw)
     {
@@ -160,10 +221,35 @@ public class PlayerScript : NetworkBehaviour{
         _inertia = new Vector3(_move.x, 0, _move.z);
         InertiaCap = _inertia.magnitude;
     }
+    private void PlayerControlsSO_OnPush()
+    {
+        if (Status != PlayerStatus.Default) return;
+        
+        Status = PlayerStatus.Pushing;
+    }
+    
     //
     private void OnStateChanged(PlayerState oldState, PlayerState newState)
     {
         Debug.LogError(oldState + " -> " + newState);
     }
+    
+    //
+    [Server]
+    public void ReceiveDamage(DamageType dmgType, Vector3 dir)
+    {
+        NetworkConnection coon = transform.GetComponent<NetworkIdentity>().connectionToClient;
+        RpcReceiveDamage(coon, dmgType, dir);
+    }
+
+    [TargetRpc]
+    public void RpcReceiveDamage(NetworkConnection coon, DamageType dmgType, Vector3 dir)
+    {
+        //
         
+        Debug.LogError("Received Damage");
+        Debug.DrawRay(transform.position, dir * 5, Color.cyan, 5);
+        State = PlayerState.Stagger;
+        
+    }
 }

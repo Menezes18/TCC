@@ -44,7 +44,10 @@ public class PlayerManagerUI : NetworkBehaviour
     }
     private void PlayerControlsSO_OnCursor()
     {
-        Debug.LogError("Cursor");
+        bool novoEstado = !Cursor.visible;
+
+        Cursor.visible = novoEstado;
+        Cursor.lockState = novoEstado ? CursorLockMode.None : CursorLockMode.Locked;
     }
     private void EventOnCelularMenu()
     {

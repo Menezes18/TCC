@@ -40,7 +40,8 @@ public class MainMenu : MonoBehaviour
 
     private void Start()
     {
-        Invoke("ToggleCelular", 0.5f);
+        if(state == MenuState.Home)
+            Invoke("ToggleCelular", 0.5f);
     }
 
     private void Update()
