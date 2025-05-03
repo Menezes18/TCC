@@ -720,8 +720,8 @@ GameObject:
   - component: {fileID: 4374977253332207120}
   - component: {fileID: 4908738296727809224}
   - component: {fileID: -2753885660519188380}
-  - component: {fileID: 6178418409306749926}
   - component: {fileID: 2734739208021378954}
+  - component: {fileID: 6178418409306749926}
   - component: {fileID: 3506028758495607294}
   m_Layer: 7
   m_Name: Player
@@ -965,6 +965,22 @@ MonoBehaviour:
         m_CallState: 2
     m_ActionId: 0c135853-ee8a-407b-80c1-9de4208d05cf
     m_ActionName: 'Player/Cursor[/Keyboard/alt]'
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 11400000, guid: 9dfba7758fc9c5b4a96c4bc1d3526f10, type: 2}
+        m_TargetAssemblyTypeName: PlayerInputSO, Assembly-CSharp
+        m_MethodName: Roll
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 78e7930e-18b0-456d-a3ff-94127f27e7f9
+    m_ActionName: 'Player/Roll[/Keyboard/ctrl]'
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: Player
@@ -1086,23 +1102,6 @@ MonoBehaviour:
   PlayerControlsSO: {fileID: 11400000, guid: bf39a2f140fa8f446b2def321aa5b148, type: 2}
   canvasCelularPrefab: {fileID: 3799542405642113733, guid: 04e04a1ce31683545a68cd20fdf88c76,
     type: 3}
---- !u!114 &6178418409306749926
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9032602418151776553}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  sceneId: 0
-  _assetId: 2725291608
-  serverOnly: 0
-  visibility: 0
-  hasSpawned: 0
 --- !u!114 &2734739208021378954
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1120,6 +1119,23 @@ MonoBehaviour:
   syncInterval: 0
   db: {fileID: 11400000, guid: d6c25b14977fb5445a4b66c63b66829e, type: 2}
   _affectedPlayer: []
+--- !u!114 &6178418409306749926
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9032602418151776553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sceneId: 0
+  _assetId: 2725291608
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
 --- !u!114 &3506028758495607294
 MonoBehaviour:
   m_ObjectHideFlags: 0

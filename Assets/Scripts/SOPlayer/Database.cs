@@ -11,12 +11,15 @@ public class Database : ScriptableObject{
     
     public Vector3 orbitalOffset;
     public float minMouseY, maxMouseX;
-    
+    public LayerMask cameraColliderMash;
+    public float cameraSphereRadius = 0.2f;
 
     public float playerSpeed = 1;
     public float playerJumpHeight;
     public float playerAirSpeed;
     public float playerMaxAirSpeed;
+    public float playerRollSpeed;
+    public AnimationCurve playerRollCurve;
 
     public LayerMask PlayerMask;
     public float playerPushRadius;
@@ -26,6 +29,9 @@ public class Database : ScriptableObject{
     public float playerStaggerHeight;
     public float playerStaggerAirSpeedModifier = 1;
     public float playerStaggerStunDuration;
+    
+    public float playerRollDuration;
+    public float playerRollCooldownDuration;
 
 
 }

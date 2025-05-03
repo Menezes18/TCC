@@ -28,6 +28,10 @@ public class PlayerInputSO : ScriptableObject{
     
     public event Action<CallbackContext> OnCursor;
     public void Cursor(CallbackContext obj) {this.OnCursor?.Invoke(obj);}
+    
+    // n vou usar, so para aprender
+    public event Action<CallbackContext> OnRoll;
+    public void Roll(CallbackContext obj) {this.OnRoll?.Invoke(obj);}
 
-
+    
 }

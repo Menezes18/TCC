@@ -23,6 +23,7 @@ using UnityEngine.InputSystem;
             PlayerInputSO.OnThrow += PlayerInputSO_OnThrow;
             PlayerInputSO.OnCursor += PlayerInputSO_OnCursor;
             PlayerInputSO.OnMenuCelular += PlayerInputSO_OnMenuCelular;
+            PlayerInputSO.OnRoll += PlayerInputSO_OnRoll;
         }
 
         private void Update(){
@@ -75,6 +76,13 @@ using UnityEngine.InputSystem;
                 PlayerControlsSO.Throw();
             }
         }
+        
+        private void PlayerInputSO_OnRoll(CallbackContext obj)
+        {
+            if(obj.performed)
+                PlayerControlsSO.Roll();
+        }
+        
         private void PlayerInputSO_OnCursor(CallbackContext obj)
         {
             if(obj.performed){

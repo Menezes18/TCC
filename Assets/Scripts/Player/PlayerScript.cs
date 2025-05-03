@@ -6,15 +6,16 @@ public enum PlayerState{
     Ascend,
     Descend,
     Stagger,
-    ThrowPrepare,
-    Throw,
+    Roll,
     Death,
 }
 
 public enum PlayerStatus{
     Default,
     Blinded,
-    Pushing
+    Pushing,
+    ThrowPrepare,
+    Throw,
 }
 public class PlayerScript : NetworkBehaviour, IDamageable
 {
@@ -77,6 +78,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable
             _inertiaCap = Mathf.Clamp(value, db.playerSpeed, db.playerMaxAirSpeed);
         }
     }
+
+    private Vector3 _roll;
     
     private float _mouseX, _mouseY;
     private bool _ignoreGroundedNextFrame;
@@ -86,6 +89,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
     private float _staggerTimer;
     private float _pushCooldown;
+    private float _rollTimer;
+    private float _rollCooldown;
+    
+    public bool IsAirborne => State == PlayerState.Ascend || State == PlayerState.Descend;
     
     private void Start()
     {
@@ -95,6 +102,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         PlayerControlsSO.OnLook += PlayerControlsSO_OnLook;
         PlayerControlsSO.OnJump += PlayerControlsSO_OnJump;
         PlayerControlsSO.OnPush += PlayerControlsSO_OnPush;
+        PlayerControlsSO.OnRoll += PlayerControlsSO_OnRoll;
+        PlayerControlsSO.OnThrow += PlayerControlsSO_OnThrow;
+        PlayerControlsSO.OnThrowCancel += PlayerControlsSO_OnThrowCancel;
+
         
         _cam = Camera.main.transform;
     }
@@ -105,6 +116,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         PlayerControlsSO.OnLook -= PlayerControlsSO_OnLook;
         PlayerControlsSO.OnJump -= PlayerControlsSO_OnJump;
         PlayerControlsSO.OnPush -= PlayerControlsSO_OnPush;
+        PlayerControlsSO.OnRoll -= PlayerControlsSO_OnRoll;
+        PlayerControlsSO.OnThrow -= PlayerControlsSO_OnThrow;
+        PlayerControlsSO.OnThrowCancel -= PlayerControlsSO_OnThrowCancel;
     }
 
     private void Update()
@@ -116,10 +130,31 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         
         if(_staggerTimer > 0) _staggerTimer -= Time.deltaTime;
         
+        if(_rollTimer > 0) _rollTimer -= Time.deltaTime;
+        
+        if(_rollCooldown > 0) _rollCooldown -= Time.deltaTime;
         //
         
-        
         AerialDetection();
+
+        
+       /* if (State == PlayerState.Roll){
+            float vertical = _move.y;
+
+            float weight = CustomMath.Normalized01(_rollTimer, db.playerMaxAirSpeed, 0f);
+            float range = db.playerRollCurve.Evaluate(weight);
+            Debug.LogError(weight + " -> " + range);
+            Vector3 horizontal = _roll;
+            horizontal = Quaternion.Euler(rot) * horizontal;
+            horizontal *= db.playerRollSpeed * range;
+
+            _move = horizontal;
+
+            _move.y = vertical;
+
+            if (_rollTimer <= 0) State = GetDefaultStatus();
+        }*/
+        
         StaggerBehaviour();
         AerialBehaviour();
         DefaultBehaviour();
@@ -139,15 +174,32 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     private void LateUpdate()
     {
         if(!this.isOwned) return;
+        
         Vector3 newRot = new Vector3(_mouseY, _mouseX, 0);
         _cam.transform.rotation = Quaternion.Euler(newRot);
-        _cam.transform.position = transform.position + _cam.rotation * db.orbitalOffset;
 
+        Vector3 desiredPos = transform.position + _cam.transform.rotation * db.orbitalOffset;
+
+        Vector3 dir = desiredPos - transform.position;
+        float maxDist = db.orbitalOffset.magnitude;
+        
+        if (Physics.SphereCast(transform.position, db.cameraSphereRadius, dir.normalized,
+                out RaycastHit hit, maxDist, db.cameraColliderMash,
+                QueryTriggerInteraction.Ignore))
+        {
+            float safeDist = Mathf.Clamp(hit.distance - db.cameraSphereRadius, 0.1f, maxDist);
+            _cam.transform.position = transform.position + dir.normalized * safeDist;
+        }
+        else
+        {
+            _cam.transform.position = desiredPos;
+        }
     }
     //
     private void AerialDetection()
     {
         if(State == PlayerState.Stagger) return;
+        if(State == PlayerState.Roll) return;
         
         if (_move.y > 0)
             State = PlayerState.Ascend;
@@ -242,6 +294,16 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     {
         Status = PlayerStatus.Default;
     }
+
+    public PlayerState GetDefaultStatus()
+    {
+        if(_move.y > 0)
+            return PlayerState.Ascend;
+        if (_move.y < -1)
+            return PlayerState.Descend;
+        
+        return PlayerState.Default;
+    }
     
     //
     private void PlayerControlsSO_OnMove(Vector2 input, Vector2 raw)
@@ -278,11 +340,40 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         Status = PlayerStatus.Pushing;
         _pushCooldown = db.playerPushCooldownTimer;
     }
-    
+    private void PlayerControlsSO_OnRoll()
+    {
+        if(IsAirborne) return;
+        if(State == PlayerState.Stagger) return;
+        if(_rollCooldown > 0) return;
+
+        _roll = new Vector3(_raw.x, 0, _raw.y);
+
+        if (_roll.magnitude == 0)
+            _roll = Vector3.forward;
+
+        State = PlayerState.Roll;
+        _rollTimer = db.playerRollDuration;
+
+    }
+    private void PlayerControlsSO_OnThrow()
+    {
+        if(State == PlayerState.Stagger) return;
+        
+    }
+
+    private void PlayerControlsSO_OnThrowCancel()
+    {
+        if(State == PlayerState.Stagger) return;
+        
+    }
+
     //
     private void OnStateChanged(PlayerState oldState, PlayerState newState)
     {
         Debug.LogError(oldState + " -> " + newState);
+
+        if (oldState == PlayerState.Roll)
+            _rollCooldown = db.playerRollCooldownDuration;
     }
     
     //

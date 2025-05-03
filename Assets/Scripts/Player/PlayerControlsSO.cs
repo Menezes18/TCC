@@ -12,6 +12,7 @@ public class PlayerControlsSO : ScriptableObject{
     public event Action OnJump;
     public event Action OnThrow;
     public event Action OnThrowCancel;
+    public event Action OnRoll;
     
     //
     public event Action OnMenu;
@@ -22,6 +23,7 @@ public class PlayerControlsSO : ScriptableObject{
     public void Jump() { OnJump?.Invoke(); }
     public void Push() { OnPush?.Invoke(); }
     public void Throw() { OnThrow?.Invoke(); }
+    public void Roll() { OnRoll?.Invoke(); }
     public void ThrowCancel() { OnThrowCancel?.Invoke(); }
     public void MenuCelular() { OnMenu?.Invoke(); }
     public void Cursor() { OnCursor?.Invoke(); }
