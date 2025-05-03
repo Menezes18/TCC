@@ -71,7 +71,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     private Vector3 _inertia;
 
     private float _inertiaCap;
-
+    [SerializeField] float sens = 0.1f;
     private float InertiaCap{
         get {return _inertiaCap;}
         set{
@@ -178,6 +178,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         Vector3 newRot = new Vector3(_mouseY, _mouseX, 0);
         _cam.transform.rotation = Quaternion.Euler(newRot);
 
+        //
         Vector3 desiredPos = transform.position + _cam.transform.rotation * db.orbitalOffset;
 
         Vector3 dir = desiredPos - transform.position;
@@ -313,7 +314,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     }    
     private void PlayerControlsSO_OnLook(Vector2 obj)
     {
-        float sens = 0.1f;
         _mouseX += obj.x * sens;
         _mouseY += -obj.y * sens;
 
