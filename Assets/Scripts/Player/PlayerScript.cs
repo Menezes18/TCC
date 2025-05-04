@@ -127,7 +127,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
     public Transform cameraTarget;
     
-    public float sensibilidade  = 0.1f;
+    [SyncVar]
+    private float sensibilidade = 4;
     private void Start()
     {
         if(!this.isOwned) return;
@@ -505,6 +506,21 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         _staggerTimer = db.playerStaggerStunDuration;
 
     }
+
+    #region Sensibilidade
+        [Command]
+        public void CmdChangeSensitivity(float normalized)
+        {
+            sensibilidade = Mathf.Lerp(0f, 25f, normalized);
+            Debug.Log($"[Server] Sensibilidade ajustada para {sensibilidade}");
+        }
+        public void RequestSensitivityChange(float normalized)
+        {
+            if (!isOwned) return;
+            CmdChangeSensitivity(normalized);
+        }
+
+    #endregion
     #region System Network
     [Command]
     public void Die()

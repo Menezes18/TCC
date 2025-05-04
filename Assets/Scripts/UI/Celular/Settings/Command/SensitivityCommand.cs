@@ -1,22 +1,18 @@
 using UnityEngine;
-
+using Mirror;
 
 public class SensitivityCommand : ISettingCommand
 {
     public void Execute(object value)
     {
-        float normalized  = (float)value;
-        
-        float minSensitivity = 5f;
-        float maxSensitivity = 200f;
-        
-        float mappedSensitivity = Mathf.Lerp(minSensitivity, maxSensitivity, normalized);
-        
-        PlayerScript player = GameObject.FindObjectOfType<PlayerScript>();
-        if (player == null) return;
-        
-        player.sensibilidade = mappedSensitivity;
-        
-        Debug.Log($"Nova sensibilidade definida: {mappedSensitivity}");
+        float normalized = (float)value;
+        var localPlayer = NetworkClient.localPlayer;
+        if (localPlayer == null) return;
+
+        var ps = localPlayer.GetComponent<PlayerScript>();
+        if (ps == null) return;
+
+        ps.RequestSensitivityChange(normalized);
     }
+
 }

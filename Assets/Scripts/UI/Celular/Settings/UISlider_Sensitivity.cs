@@ -14,7 +14,6 @@ public class UISlider_Sensitivity : MonoBehaviour
 
     private void OnSliderChanged(float value)
     {
-        Debug.Log($"Sensibilidade alterada para: {value}");
         SettingsManager.Instance.ApplySetting(SettingType.Sensitivity, value);
     }
 }
