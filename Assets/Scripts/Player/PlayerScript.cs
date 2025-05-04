@@ -76,7 +76,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     private Vector3 _move;
     private Vector3 _inertia;
     
-    [SerializeField] float sensibilidade  = 0.1f;
+    
     private float _yaw; 
     private float _pitch;
     [SerializeField] private Transform shootOrigin; 
@@ -111,10 +111,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
     private PlayerInput _playerInput;
     
+    //Public
     public bool IsAirborne => State == PlayerState.Ascend || State == PlayerState.Descend;
 
     public Transform cameraTarget;
     
+    public float sensibilidade  = 0.1f;
     private void Start()
     {
         if(!this.isOwned) return;
