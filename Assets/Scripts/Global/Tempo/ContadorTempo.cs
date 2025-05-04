@@ -10,6 +10,7 @@ public class ContadorTempo : NetworkBehaviour
 
     [SerializeField] private TMP_Text uiTempoInicial;
     [SerializeField] private TMP_Text uiTempoPrincipal;
+    [SerializeField] private string nomeCena = "MiniGame";
 
     [SyncVar(hook = nameof(OnTempoInicialChanged))]
     private float tempoInicialAtual;
@@ -123,7 +124,7 @@ public class ContadorTempo : NetworkBehaviour
 
             if (NetworkServer.active)
             {
-                NetworkManager.singleton.ServerChangeScene("MiniGame");
+                NetworkManager.singleton.ServerChangeScene(nomeCena);
             }
         }
     }

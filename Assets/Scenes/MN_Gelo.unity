@@ -7814,6 +7814,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Temporizador
       objectReference: {fileID: 0}
+    - target: {fileID: 6718869802255063239, guid: f877ddd9dbeaf694b930457dd7710ce8,
+        type: 3}
+      propertyPath: nomeCena
+      value: Vitoria
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -16007,6 +16012,7 @@ GameObject:
   - component: {fileID: 1639294233}
   - component: {fileID: 1639294232}
   - component: {fileID: 1639294237}
+  - component: {fileID: 1639294238}
   m_Layer: 0
   m_Name: Cube
   m_TagString: Untagged
@@ -16030,7 +16036,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   spawnPoint: {fileID: 414114746}
-  kill: 0
+  kill: 1
 --- !u!65 &1639294233
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -16137,6 +16143,21 @@ MonoBehaviour:
   serverOnly: 0
   visibility: 0
   hasSpawned: 0
+--- !u!114 &1639294238
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1639294231}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9839c2adee24bb64fbca386d333f21f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  podio: []
+  pontosBase: 4
+  isKillGame: 1
 --- !u!1001 &1641868070
 PrefabInstance:
   m_ObjectHideFlags: 0
