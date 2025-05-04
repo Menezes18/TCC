@@ -68,12 +68,10 @@ using UnityEngine.InputSystem;
         
         private void PlayerInputSO_OnThrow(CallbackContext obj)
         {
-            if (obj.canceled){
-                PlayerControlsSO.ThrowCancel();
-                return;
-            }
-            if(obj.performed){
+            if (obj.started){
                 PlayerControlsSO.Throw();
+            }else if(obj.canceled){
+                PlayerControlsSO.ThrowCancel();
             }
         }
         

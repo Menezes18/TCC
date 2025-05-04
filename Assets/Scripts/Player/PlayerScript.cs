@@ -69,9 +69,14 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     
     private Vector3 _move;
     private Vector3 _inertia;
+    
+    [SerializeField] float sensibilidade  = 0.1f;
+    private float _yaw; 
+    private float _pitch;
+    [SerializeField] private Transform shootOrigin; 
+    [SerializeField] private float shootOffset = 0.5f;
 
     private float _inertiaCap;
-    [SerializeField] float sens = 0.1f;
     private float InertiaCap{
         get {return _inertiaCap;}
         set{
@@ -89,8 +94,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
     private float _staggerTimer;
     private float _pushCooldown;
+    
     private float _rollTimer;
     private float _rollCooldown;
+    
+    private float _throwCooldown;
     
     public bool IsAirborne => State == PlayerState.Ascend || State == PlayerState.Descend;
     
@@ -109,7 +117,17 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         
         _cam = Camera.main.transform;
     }
+    private void OnEnable()
+    {
+        if (!isOwned) return;
+        PlayerControlsSO.OnLook += PlayerControlsSO_OnLook;
+    }
 
+    private void OnDisable()
+    {
+        if (!isOwned) return;
+        PlayerControlsSO.OnLook -= PlayerControlsSO_OnLook;
+    }
     private void OnDestroy()
     {
         PlayerControlsSO.OnMove -= PlayerControlsSO_OnMove;
@@ -133,7 +151,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         if(_rollTimer > 0) _rollTimer -= Time.deltaTime;
         
         if(_rollCooldown > 0) _rollCooldown -= Time.deltaTime;
-        //
+        
+        if (_throwCooldown > 0) _throwCooldown -= Time.deltaTime;
+        
         
         AerialDetection();
 
@@ -154,6 +174,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
             if (_rollTimer <= 0) State = GetDefaultStatus();
         }*/
+       
+       if (Status == PlayerStatus.Throw){
+           if (_throwCooldown <= 0){
+               
+               Status = PlayerStatus.Default;
+           }
+       }
         
         StaggerBehaviour();
         AerialBehaviour();
@@ -175,10 +202,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     {
         if(!this.isOwned) return;
         
-        Vector3 newRot = new Vector3(_mouseY, _mouseX, 0);
-        _cam.transform.rotation = Quaternion.Euler(newRot);
+        Quaternion camRotation = Quaternion.Euler(_pitch, _yaw, 0f);
 
-        //
+        _cam.rotation = camRotation;
         Vector3 desiredPos = transform.position + _cam.transform.rotation * db.orbitalOffset;
 
         Vector3 dir = desiredPos - transform.position;
@@ -314,11 +340,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     }    
     private void PlayerControlsSO_OnLook(Vector2 obj)
     {
-        _mouseX += obj.x * sens;
-        _mouseY += -obj.y * sens;
-
-        _mouseY = Mathf.Clamp(_mouseY, db.minMouseY, db.maxMouseX);
-        
+        // _mouseX += obj.x * sens;
+        // _mouseY += -obj.y * sens;
+        //
+        // _mouseY = Mathf.Clamp(_mouseY, db.minMouseY, db.maxMouseX);
+        _yaw   += obj.x * sensibilidade * Time.deltaTime;
+        _pitch -= obj.y * sensibilidade * Time.deltaTime;
+        _pitch = Mathf.Clamp(_pitch, db.minMouseY, db.maxMouseX);
 
     }
     private void PlayerControlsSO_OnJump()
@@ -358,14 +386,34 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     private void PlayerControlsSO_OnThrow()
     {
         if(State == PlayerState.Stagger) return;
+        if(Status == PlayerStatus.Throw) return;
+        if (_throwCooldown > 0) return;
+        Debug.LogError("AA");
         
-    }
+        
+        Status = PlayerStatus.ThrowPrepare;
 
+    }
+    
     private void PlayerControlsSO_OnThrowCancel()
     {
-        if(State == PlayerState.Stagger) return;
+        if (State == PlayerState.Stagger) return;
+        if(Status == PlayerStatus.Throw) return;
+        Debug.LogError("BB");
+        Status = PlayerStatus.Throw;
+
         
+        Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
+        Vector3 direction = _cam.forward;
+
+        PrefabInstancer.singleton.CmdSpawnProjectile(
+            origin,
+            direction,
+            this.netIdentity
+        );
+        _throwCooldown = db.playerThrowCooldown;
     }
+
 
     //
     private void OnStateChanged(PlayerState oldState, PlayerState newState)

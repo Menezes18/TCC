@@ -32,6 +32,17 @@ public class Database : ScriptableObject{
     
     public float playerRollDuration;
     public float playerRollCooldownDuration;
+    
+    public Transform projectilePrefab;
+    public LayerMask projectileMask;
+    public float projectileRadius;
+    public float projectileSpeed;
+    [Range(0f, 1f)] public float verticalBias = 0.5f;
+    public float projectileGravityScale = 1;
+    public Vector3 projectileLocalOffset = new Vector3(0f, 1f, 0.5f);
+    
+    public float playerThrowCooldown;
+
 
 
 }
