@@ -36,10 +36,28 @@ MonoBehaviour:
   playerStaggerHeight: 6
   playerStaggerAirSpeedModifier: 1
   playerStaggerStunDuration: 0.2
-  playerBlindDuration: 0
+  playerBlindDuration: 2
   playerBlindCurve:
     serializedVersion: 2
-    m_Curve: []
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: -0.115824826
+      outSlope: -0.115824826
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: -2.6110802
+      outSlope: -2.6110802
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
@@ -75,7 +93,7 @@ MonoBehaviour:
   projectileMask:
     serializedVersion: 2
     m_Bits: 129
-  projectileRadius: 2
+  projectileRadius: 0.7
   projectileSpeed: 28
   verticalBias: 0.26
   projectileGravityScale: 1
