@@ -27,6 +27,15 @@ MonoBehaviour:
   playerJumpHeight: 12.5
   playerAirSpeed: 24
   playerMaxAirSpeed: 99
+  PlayerMask:
+    serializedVersion: 2
+    m_Bits: 128
+  playerPushRadius: 1.3
+  playerPushStrength: 6
+  playerPushCooldownTimer: 1
+  playerStaggerHeight: 6
+  playerStaggerAirSpeedModifier: 1
+  playerStaggerStunDuration: 0.2
   playerRollSpeed: 100
   playerRollCurve:
     serializedVersion: 2
@@ -52,15 +61,6 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  PlayerMask:
-    serializedVersion: 2
-    m_Bits: 128
-  playerPushRadius: 1.3
-  playerPushStrength: 6
-  playerPushCooldownTimer: 1
-  playerStaggerHeight: 6
-  playerStaggerAirSpeedModifier: 1
-  playerStaggerStunDuration: 0.2
   playerRollDuration: 1
   playerRollCooldownDuration: 1
   projectilePrefab: {fileID: 4553422530616815291, guid: d0b3d30845900f6469e75eedd013ae83,
@@ -69,6 +69,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 0
   projectileRadius: 2
-  projectileSpeed: 25
-  launchAngle: 24.8
-  playerThrowDuration: 1
+  projectileSpeed: 14
+  verticalBias: 0.5
+  projectileGravityScale: 1
+  projectileLocalOffset: {x: 0, y: 1, z: 0.5}
+  playerThrowCooldown: 5

@@ -14,25 +14,30 @@ public class Database : ScriptableObject{
     public LayerMask cameraColliderMash;
     public float cameraSphereRadius = 0.2f;
 
+    [Header("Player")]
     public float playerSpeed = 1;
     public float playerJumpHeight;
     public float playerAirSpeed;
     public float playerMaxAirSpeed;
-    public float playerRollSpeed;
-    public AnimationCurve playerRollCurve;
-
     public LayerMask PlayerMask;
+
+    [Header("Player Push")]
     public float playerPushRadius;
     public float playerPushStrength;
     public float playerPushCooldownTimer;
     
+    [Header("Player Stagger")]
     public float playerStaggerHeight;
     public float playerStaggerAirSpeedModifier = 1;
     public float playerStaggerStunDuration;
     
+    [Header("Player Roll")]
+    public float playerRollSpeed;
+    public AnimationCurve playerRollCurve;
     public float playerRollDuration;
     public float playerRollCooldownDuration;
     
+    [Header("Player Projectile")]
     public Transform projectilePrefab;
     public LayerMask projectileMask;
     public float projectileRadius;
@@ -40,8 +45,8 @@ public class Database : ScriptableObject{
     [Range(0f, 1f)] public float verticalBias = 0.5f;
     public float projectileGravityScale = 1;
     public Vector3 projectileLocalOffset = new Vector3(0f, 1f, 0.5f);
-    
     public float playerThrowCooldown;
+    
 
 
 

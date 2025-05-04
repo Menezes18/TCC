@@ -48,6 +48,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable
             _animator.SetInteger(_STATUS, (int)value);
             _status = value;
 
+            if (value == PlayerStatus.Throw){
+                _animator.SetTrigger("throw");
+                _networkAnimator.SetTrigger("throw");
+            }
+            
             if (value != PlayerStatus.Pushing) return;
             
             // NetworkAnimator não replica trigger
@@ -75,6 +80,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     private float _pitch;
     [SerializeField] private Transform shootOrigin; 
     [SerializeField] private float shootOffset = 0.5f;
+    [SerializeField] Transform _staggerIndicator;
 
     private float _inertiaCap;
     private float InertiaCap{
@@ -91,6 +97,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     
     readonly int _STATE = Animator.StringToHash("state");
     readonly int _STATUS = Animator.StringToHash("status");
+    readonly int _MOVEX = Animator.StringToHash("MoveX");
+    readonly int _MOVEY = Animator.StringToHash("MoveY");
 
     private float _staggerTimer;
     private float _pushCooldown;
@@ -185,6 +193,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         StaggerBehaviour();
         AerialBehaviour();
         DefaultBehaviour();
+ 
+        _animator.SetFloat(_MOVEX, _input.x, 0.1f, Time.deltaTime);
+        _animator.SetFloat(_MOVEY, _input.z, 0.1f, Time.deltaTime);
         
         
         _move = _move + Vector3.up * db.gravity * Time.deltaTime;
@@ -270,6 +281,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         
         // Exit Condition
         if (_controller.isGrounded == false) return;
+        
+        _staggerIndicator.gameObject.SetActive(false);
         
         State = PlayerState.Default;
         
@@ -431,7 +444,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         NetworkConnection coon = transform.GetComponent<NetworkIdentity>().connectionToClient;
         RpcReceiveDamage(coon, dmgType, dir);
     }
-
+    
     [TargetRpc]
     public void RpcReceiveDamage(NetworkConnection coon, DamageType dmgType, Vector3 dir)
     {
@@ -439,6 +452,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
         State = PlayerState.Stagger;
         Debug.DrawRay(transform.position, dir * 5, Color.cyan, 5);
+
+        _staggerIndicator.gameObject.SetActive(true);
         
         Vector3 horizontal = new Vector3(_move.x, 0, _move.z);
         Vector3 final = horizontal + dir * db.playerPushStrength;
