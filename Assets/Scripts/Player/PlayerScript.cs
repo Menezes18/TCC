@@ -217,7 +217,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable
                Status = PlayerStatus.Default;
            }
        }
-        
+       if (Status == PlayerStatus.Blinded){
+           if (_throwCooldown <= 0){
+               
+               Status = PlayerStatus.Default;
+           }
+       }
+       
         StaggerBehaviour();
         AerialBehaviour();
         DefaultBehaviour();
@@ -310,7 +316,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         // Exit Condition
         if (_controller.isGrounded == false) return;
         
-        _staggerIndicator.gameObject.SetActive(false);
+        StaggerActive();
         
         State = PlayerState.Default;
         
@@ -407,7 +413,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     private void PlayerControlsSO_OnPush()
     {
         if(State == PlayerState.Stagger) return;
-        if(Status != PlayerStatus.Default) return;
+        if(Status != PlayerStatus.Default || Status == PlayerStatus.Blinded) return;
         
         if(_pushCooldown > 0) return;
         
