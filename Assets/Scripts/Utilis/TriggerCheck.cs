@@ -12,11 +12,11 @@ public class TriggerCheck : NetworkBehaviour
     {
         if (other.CompareTag("Player") && other.TryGetComponent(out NetworkIdentity identity))
         {
-            // if (identity.isLocalPlayer) 
-            // {
-            //     if(!kill)other.GetComponent<PlayerScript>().RespawnAt(spawnPoint.position);
-            //     else other.GetComponent<PlayerScript>().Die();
-            // }
+            if (identity.isLocalPlayer) 
+            {
+                if(!kill)other.GetComponent<PlayerScript>().RespawnAt(spawnPoint.position);
+                else other.GetComponent<PlayerScript>().Die();
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 using Mirror;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public enum PlayerState{
     Default,
@@ -107,8 +108,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     private float _rollCooldown;
     
     private float _throwCooldown;
+
+    private PlayerInput _playerInput;
     
     public bool IsAirborne => State == PlayerState.Ascend || State == PlayerState.Descend;
+
+    public Transform cameraTarget;
     
     private void Start()
     {
@@ -124,6 +129,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
         
         _cam = Camera.main.transform;
+        cameraTarget = transform;
+        
+        // Cache
+        _playerInput = GetComponent<PlayerInput>();
     }
     private void OnEnable()
     {
@@ -216,17 +225,17 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         Quaternion camRotation = Quaternion.Euler(_pitch, _yaw, 0f);
 
         _cam.rotation = camRotation;
-        Vector3 desiredPos = transform.position + _cam.transform.rotation * db.orbitalOffset;
+        Vector3 desiredPos = cameraTarget.position + _cam.transform.rotation * db.orbitalOffset;
 
-        Vector3 dir = desiredPos - transform.position;
+        Vector3 dir = desiredPos - cameraTarget.position;
         float maxDist = db.orbitalOffset.magnitude;
         
-        if (Physics.SphereCast(transform.position, db.cameraSphereRadius, dir.normalized,
+        if (Physics.SphereCast(cameraTarget.position, db.cameraSphereRadius, dir.normalized,
                 out RaycastHit hit, maxDist, db.cameraColliderMash,
                 QueryTriggerInteraction.Ignore))
         {
             float safeDist = Mathf.Clamp(hit.distance - db.cameraSphereRadius, 0.1f, maxDist);
-            _cam.transform.position = transform.position + dir.normalized * safeDist;
+            _cam.transform.position = cameraTarget.position + dir.normalized * safeDist;
         }
         else
         {
@@ -366,6 +375,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     {
         if(State != PlayerState.Default) return;
         
+        if (_move.y > 0)
+            State = PlayerState.Ascend;
+        else if (_move.y < db.gravityGrounded)
+            State = PlayerState.Descend;
+        
         _ignoreGroundedNextFrame = true;
         _move.y = db.playerJumpHeight;
         _inertia = new Vector3(_move.x, 0, _move.z);
@@ -401,7 +415,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         if(State == PlayerState.Stagger) return;
         if(Status == PlayerStatus.Throw) return;
         if (_throwCooldown > 0) return;
-        Debug.LogError("AA");
         
         
         Status = PlayerStatus.ThrowPrepare;
@@ -412,7 +425,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     {
         if (State == PlayerState.Stagger) return;
         if(Status == PlayerStatus.Throw) return;
-        Debug.LogError("BB");
         Status = PlayerStatus.Throw;
 
         
@@ -463,4 +475,67 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         _staggerTimer = db.playerStaggerStunDuration;
 
     }
+    #region System Network
+    [Command]
+    public void Die()
+    {
+        State = PlayerState.Death;
+        _controller.enabled = false; 
+        RpcSpectate();
+    }
+
+    [TargetRpc]
+    private void RpcSpectate()
+    {
+        if (_playerInput == null) return;
+            _playerInput.enabled = false;
+            
+        if (_cam == null) return;
+            Transform newTarget = FindSpectatorTarget();
+            if (newTarget == null) return;
+            SetCameraTarget(newTarget);
+    }
+    public void SetCameraTarget(Transform newTarget)
+    {
+        cameraTarget = newTarget;
+    }
+
+    private Transform FindSpectatorTarget()
+    {
+        PlayerScript[] players = FindObjectsOfType<PlayerScript>();
+        foreach (var player in players)
+        {
+            if (player != this && player.State != PlayerState.Death)
+            {
+                return player.transform;
+            }
+        }
+        return null;
+    }
+    
+    [Command]
+    public void RespawnAt(Vector3 position)
+    {
+        if (!isServer) return;
+
+        RpcRespawn(position);
+    }
+
+    [TargetRpc]
+    private void RpcRespawn(Vector3 position)
+    {
+        if (_controller != null && isLocalPlayer)
+        {
+            _controller.enabled = false; 
+            transform.position = position;
+            _controller.enabled = true; 
+        }
+        else
+        {
+            transform.position = position;
+        }
+
+        Debug.Log($"[CLIENT] Player {netId} respawned at {position}");
+    }
+    #endregion
 }
