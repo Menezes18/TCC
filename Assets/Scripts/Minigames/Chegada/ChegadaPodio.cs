@@ -1,12 +1,22 @@
 using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
+using System.Linq;
 
-public class ChegadaPodio : MonoBehaviour
+public class ChegadaPodio : MonoBehaviour, IObserver
 {
     public List<MyClient> podio = new List<MyClient>();
     public int pontosBase = 4;
     public bool isKillGame = false;
+    
+    private void Awake()
+    {
+        ContadorTempo contador = FindObjectOfType<ContadorTempo>();
+        if (contador != null)
+        {
+            contador.Adicionar(this);
+        }
+    }
     
     [ServerCallback]
     void OnTriggerEnter(Collider other)
@@ -57,6 +67,34 @@ public class ChegadaPodio : MonoBehaviour
             MyNetworkManager.manager.AddPoints(podio[i].playerInfo.steamId, pontuacao);
             
             Debug.Log($"Jogador {podio[i].playerInfo.steamId} na posição {i+1} recebeu {pontuacao} pontos");
+        }
+    }
+    
+    [Server]
+    public void Atualizacao(ISubject subject)
+    {
+        if (isKillGame && subject is ContadorTempo)
+        {
+            Debug.Log("Tempo esgotado! Distribuindo pontos para sobreviventes...");
+            
+            List<MyClient> jogadoresVivos = new List<MyClient>();
+            
+            foreach (MyClient cliente in MyNetworkManager.manager.allClients)
+            {
+                if (!podio.Contains(cliente))
+                {
+                    jogadoresVivos.Add(cliente);
+                }
+            }
+            
+            foreach (MyClient sobrevivente in jogadoresVivos)
+            {
+                MyNetworkManager.manager.AddPoints(sobrevivente.playerInfo.steamId, pontosBase);
+                
+                Debug.Log($"SOBREVIVENTE {sobrevivente.playerInfo.steamId} recebeu {pontosBase} pontos");
+            }
+            
+            NetworkManager.singleton.ServerChangeScene("Vitoria");
         }
     }
 }
