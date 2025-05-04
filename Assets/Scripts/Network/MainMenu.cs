@@ -44,8 +44,15 @@ public class MainMenu : MonoBehaviour
             Invoke("ToggleCelular", 0.5f);
     }
 
+    public bool startCelular = true;
     private void Update()
     {
+        if (startCelular){
+            if (state == MenuState.InParty){
+                ToggleCelular();
+            }
+            startCelular = false;
+        }
         if (toggleCelular != previousToggle)
         {
             previousToggle = toggleCelular;

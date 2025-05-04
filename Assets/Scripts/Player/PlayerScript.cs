@@ -431,6 +431,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     private void PlayerControlsSO_OnThrow()
     {
         if(State == PlayerState.Stagger) return;
+        if(Status != PlayerStatus.Default) return;
         if(Status == PlayerStatus.Throw) return;
         if (_throwCooldown > 0) return;
         
@@ -442,6 +443,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     private void PlayerControlsSO_OnThrowCancel()
     {
         if (State == PlayerState.Stagger) return;
+        if(Status == PlayerStatus.Pushing) return;
         if(Status == PlayerStatus.Throw) return;
         Status = PlayerStatus.Throw;
 
