@@ -82,7 +82,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     private float _pitch;
     [SerializeField] private Transform shootOrigin; 
     [SerializeField] private float shootOffset = 0.5f;
-    [SerializeField] Transform _staggerIndicator;
+    [SerializeField] public Transform _staggerIndicator;
 
     private float _inertiaCap;
     private float InertiaCap{
@@ -507,6 +507,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
     }
 
+    private bool valueStagger = false;
+    public void StaggerActive()
+    {
+        valueStagger = !valueStagger;
+        _staggerIndicator.gameObject.SetActive(valueStagger);
+    }
     #region Sensibilidade
         [Command]
         public void CmdChangeSensitivity(float normalized)
