@@ -22,6 +22,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 {
     [SerializeField] Database db;
     [SerializeField] PlayerControlsSO PlayerControlsSO;
+    [SerializeField] HUDSO HUDSO;
     
     [SerializeField] CharacterController _controller;
     [SerializeField] Animator _animator;
@@ -106,6 +107,16 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     
     private float _rollTimer;
     private float _rollCooldown;
+
+    private float _blindTimer;
+
+    private float BlindTimer{
+        get => _blindTimer;
+        set{
+            if(_blindTimer == value) return;
+            _blindTimer = value;
+        }
+    }
     
     private float _throwCooldown;
 
@@ -173,6 +184,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         
         if (_throwCooldown > 0) _throwCooldown -= Time.deltaTime;
         
+        if(_blindTimer > 0) _blindTimer -= Time.deltaTime;
+
+        float blindWeight = CustomMath.ConvertRange(_blindTimer, db.playerBlindDuration, 0);
+        float blindRange = db.playerBlindCurve.Evaluate(blindWeight);
+        HUDSO.SetBlindAlpha(blindRange);
         
         AerialDetection();
 
@@ -462,6 +478,16 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     [TargetRpc]
     public void RpcReceiveDamage(NetworkConnection coon, DamageType dmgType, Vector3 dir)
     {
+        if (dmgType == DamageType.Poop){
+
+            Status = PlayerStatus.Blinded;
+            _blindTimer = db.playerBlindDuration;
+            
+            return;
+        }
+            
+        
+        
         //
 
         State = PlayerState.Stagger;

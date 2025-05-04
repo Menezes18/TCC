@@ -30,6 +30,10 @@ public class Database : ScriptableObject{
     public float playerStaggerHeight;
     public float playerStaggerAirSpeedModifier = 1;
     public float playerStaggerStunDuration;
+
+    [Header("Player Blind")] 
+    public float playerBlindDuration;
+    public AnimationCurve playerBlindCurve;
     
     [Header("Player Roll")]
     public float playerRollSpeed;

@@ -39,18 +39,19 @@ public class ProjectileScript : NetworkBehaviour
         var hits = Physics.OverlapSphere(transform.position, db.projectileRadius, db.projectileMask);
         if (hits.Length > 0)
         {
-            foreach (var hit in hits)
+            foreach (Collider c in hits)
             {
-                if (hit.transform.root == _owner) continue;
-                var dmg = hit.transform.root.GetComponent<IDamageable>();
+                if (c.transform.root == _owner) continue;
+                Debug.LogError("Player on");
+                var dmg = c.transform.root.GetComponent<IDamageable>();
                 if (dmg != null)
                 {
-                    // dmg.ReceiveDamage(...);
+                    Debug.LogError("Player on Damage");
+                    dmg.ReceiveDamage(DamageType.Poop, transform.forward);
                 }
             }
-
-            NetworkServer.Destroy(gameObject);
-            _launched = false;
+            
+            //_launched = false;
         }
     }
 }
