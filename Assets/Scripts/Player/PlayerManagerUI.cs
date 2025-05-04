@@ -16,58 +16,47 @@ public class PlayerManagerUI : NetworkBehaviour
     private PlayerScript _playerScript;
     private bool _valueCelular = false;
 
-    private void Start()
-    {
-        PlayerControlsSO.OnMenu += EventOnCelularMenu;
-        PlayerControlsSO.OnCursor += PlayerControlsSO_OnCursor; 
-    }
-
     public override void OnStartLocalPlayer()
     {
         base.OnStartLocalPlayer();
-        if (!isLocalPlayer) return;
 
+        // 1) Instancia e configura UI do celular
         celularInstance = Instantiate(canvasCelularPrefab);
-
         mainMenu = celularInstance.GetComponentInChildren<MainMenu>(true);
-        var tag = celularInstance.GetComponentInChildren<CelularTag>(true);
         celularInstance.SetActive(true);
 
         _playerScript = GetComponent<PlayerScript>();
-        
-        
+
+        // 2) Assina eventos SÓ para o local
+        PlayerControlsSO.OnMenu   += EventOnCelularMenu;
+        PlayerControlsSO.OnCursor += PlayerControlsSO_OnCursor;
     }
 
-    private void OnDestroy()
+    [ClientCallback]
+    private void OnDisable()
     {
-        //if (isLocalPlayer)playerInputSo.EventOnCelularMenu -= EventOnCelularMenu;
+        // Remove inscrição apenas se foi local
+        if (!isLocalPlayer) return;
+        PlayerControlsSO.OnMenu   -= EventOnCelularMenu;
+        PlayerControlsSO.OnCursor -= PlayerControlsSO_OnCursor;
     }
+
     private void PlayerControlsSO_OnCursor()
     {
         bool novoEstado = !Cursor.visible;
-
-        Cursor.visible = novoEstado;
-        Cursor.lockState = novoEstado ? CursorLockMode.None : CursorLockMode.Locked;
+        Cursor.visible    = novoEstado;
+        Cursor.lockState  = novoEstado ? CursorLockMode.None : CursorLockMode.Locked;
     }
+
     private void EventOnCelularMenu()
     {
-        // Alterna estado do celular
+        // Segurança extra: não faz nada se mainMenu não existir
+        if (mainMenu == null) return;
+
         _valueCelular = !_valueCelular;
-        // celularInstance.SetActive(_valueCelular);
-
-        // Opcional: animação no player
-        // _playerScript._animator.SetBool("ActiveCelular", _valueCelular);
-
-        // Alterna menu principal do celular
+        //celularInstance.SetActive(_valueCelular);
+        // animação se quiser:
+        // _playerScript.Animator.SetBool("ActiveCelular", _valueCelular);
         mainMenu.ToggleCelular();
     }
-
-    // Caso queira notificar o servidor, descomente e adapte:
-    /*
-    [Command]
-    private void CmdNotifyCelularState(bool active)
-    {
-        // lógica server-side
-    }
-    */
 }
