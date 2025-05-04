@@ -454,6 +454,7 @@ GameObject:
   - component: {fileID: 1592456730}
   - component: {fileID: 1592456729}
   - component: {fileID: 1592456728}
+  - component: {fileID: 1592456734}
   m_Layer: 0
   m_Name: Cube (1)
   m_TagString: Untagged
@@ -584,6 +585,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1592456734
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1592456727}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9839c2adee24bb64fbca386d333f21f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  podio: []
+  pontosBase: 4
+  isKillGame: 1
 --- !u!1 &1618360266
 GameObject:
   m_ObjectHideFlags: 0
@@ -745,6 +761,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Temporizador
+      objectReference: {fileID: 0}
+    - target: {fileID: 6718869802255063239, guid: f877ddd9dbeaf694b930457dd7710ce8,
+        type: 3}
+      propertyPath: nomeCena
+      value: Vitoria
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

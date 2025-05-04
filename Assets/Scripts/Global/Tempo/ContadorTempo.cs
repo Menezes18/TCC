@@ -3,13 +3,16 @@ using UnityEngine;
 using TMPro;
 using Mirror;
 using DG.Tweening;
+using System.Collections.Generic;
 
-public class ContadorTempo : NetworkBehaviour
+public class ContadorTempo : NetworkBehaviour, ISubject
 {
     [SerializeField] private TempoSo data;
 
     [SerializeField] private TMP_Text uiTempoInicial;
     [SerializeField] private TMP_Text uiTempoPrincipal;
+    [SerializeField] private string nomeCena = "MiniGame";
+    public List<IObserver> _observers = new List<IObserver>();
 
     [SyncVar(hook = nameof(OnTempoInicialChanged))]
     private float tempoInicialAtual;
@@ -120,11 +123,30 @@ public class ContadorTempo : NetworkBehaviour
             colorTween?.Kill();
             uiTempoPrincipal.color = corOriginal;
             efeitoFinalAtivado = false;
+            Notifica();
 
             if (NetworkServer.active)
             {
-                NetworkManager.singleton.ServerChangeScene("MiniGame");
+                NetworkManager.singleton.ServerChangeScene(nomeCena);
             }
+        }
+    }
+
+    public void Adicionar(IObserver observer)
+    {
+        _observers.Add(observer);
+    }
+
+    public void Retira(IObserver observer)
+    {
+        _observers.Remove(observer);
+    }
+
+    public void Notifica()
+    {
+        foreach (IObserver observer in _observers)
+        {
+            observer.Atualizacao(this);
         }
     }
 }
