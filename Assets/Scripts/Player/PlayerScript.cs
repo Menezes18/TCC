@@ -1,3 +1,4 @@
+using System.Collections;
 using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -126,6 +127,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     public bool IsAirborne => State == PlayerState.Ascend || State == PlayerState.Descend;
 
     public Transform cameraTarget;
+
+    [SyncVar(hook = nameof(OnStaggerChanged))]
+    private bool isStaggered;
     
     [SyncVar]
     private float sensibilidade = 4;
@@ -290,7 +294,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     private void StaggerBehaviour()
     {
         if (State != PlayerState.Stagger) return;
-        StaggerActive();
+
        
         
         float vertical = _move.y;
@@ -316,7 +320,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         // Exit Condition
         if (_controller.isGrounded == false) return;
         
-        StaggerActive();
+
         
         State = PlayerState.Default;
         
@@ -500,6 +504,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         //
 
         State = PlayerState.Stagger;
+        
+        isStaggered = true;
+        
         Debug.DrawRay(transform.position, dir * 5, Color.cyan, 5);
         
         
@@ -509,14 +516,22 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         InertiaCap = final.magnitude;
         _move.y = db.playerStaggerHeight;
         _staggerTimer = db.playerStaggerStunDuration;
+        
+        StartCoroutine(ClearStagger(db.playerStaggerStunDuration));
 
     }
 
-    private bool valueStagger = false;
-    public void StaggerActive()
+    [Server]
+    private IEnumerator ClearStagger(float delay)
     {
-        valueStagger = !valueStagger;
-        _staggerIndicator.gameObject.SetActive(valueStagger);
+        yield return new WaitForSeconds(delay);
+        
+        isStaggered = false;
+    }
+    
+    public void OnStaggerChanged(bool oldValue, bool newValue)
+    {
+        _staggerIndicator.gameObject.SetActive(newValue);
     }
     #region Sensibilidade
         [Command]
