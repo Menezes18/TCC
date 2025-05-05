@@ -505,7 +505,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
         State = PlayerState.Stagger;
         
-        isStaggered = true;
+        //isStaggered = true;
         
         Debug.DrawRay(transform.position, dir * 5, Color.cyan, 5);
         
@@ -517,7 +517,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         _move.y = db.playerStaggerHeight;
         _staggerTimer = db.playerStaggerStunDuration;
         
-        StartCoroutine(ClearStagger(db.playerStaggerStunDuration));
+        //StartCoroutine(ClearStagger(db.playerStaggerStunDuration));
 
     }
 
