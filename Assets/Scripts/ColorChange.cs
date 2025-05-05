@@ -58,7 +58,7 @@ public class ColorChange : NetworkBehaviour
         }
 
         // Procura o filho do objeto que contém as partes do corpo do personagem ( no caso tem 4 partes :P)
-        Transform meshChild = GameObject.FindWithTag("MacacoAnimacoes").transform;
+        Transform meshChild = GameObject.FindWithTag("Mesh").transform;
         if (meshChild == null)
         {
             Debug.LogWarning("Mesh 'MacacoAnimacoes' não encontrada.");
