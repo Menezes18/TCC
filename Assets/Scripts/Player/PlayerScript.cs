@@ -501,8 +501,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
         State = PlayerState.Stagger;
         Debug.DrawRay(transform.position, dir * 5, Color.cyan, 5);
-
-        _staggerIndicator.gameObject.SetActive(true);
+        
         
         Vector3 horizontal = new Vector3(_move.x, 0, _move.z);
         Vector3 final = horizontal + dir * db.playerPushStrength;
