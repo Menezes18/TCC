@@ -41,6 +41,8 @@ public class MyClient : NetworkBehaviour
     protected Callback<AvatarImageLoaded_t> avatarImageLoaded;
     private void OnAvatarImageLoaded(AvatarImageLoaded_t callback)
     {
+        if (!SteamManager.Initialized || MyNetworkManager.manager.testMode)
+            return;
         Debug.Log("Avatar loaded " + callback.m_steamID);
         if (callback.m_steamID.m_SteamID != playerInfo.steamId) return;
         SetIcon(callback.m_steamID);
@@ -49,6 +51,8 @@ public class MyClient : NetworkBehaviour
 
     void SetIcon(CSteamID steamId)
     {
+        if (!SteamManager.Initialized) 
+            return;
         Texture2D tex = SteamHelper.GetAvatar(steamId);
         if (tex)
             icon = SteamHelper.ConvertTextureToSprite(tex);
@@ -57,7 +61,9 @@ public class MyClient : NetworkBehaviour
 
     private void Start()
     {
-        ((MyNetworkManager)NetworkManager.singleton).allClients.Add(this);
+        if (NetworkManager.singleton != null)
+            ((MyNetworkManager)NetworkManager.singleton).allClients.Add(this);
+        
 
         if(CharacterSkinHandler.instance) CharacterSkinHandler.instance.SpawnCharacterMesh(this);
         avatarImageLoaded = Callback<AvatarImageLoaded_t>.Create(OnAvatarImageLoaded);
@@ -106,7 +112,10 @@ public class MyClient : NetworkBehaviour
         if (characterInstance)
             characterInstance.Initialize(this, IsReady);
 
+        if (SteamManager.Initialized && !MyNetworkManager.manager.testMode)
+        {
             SetIcon(new CSteamID(data.steamId));
+        }
     }
 
     public void IsReadyUpdate(bool _, bool value) 

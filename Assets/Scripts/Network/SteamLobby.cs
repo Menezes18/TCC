@@ -89,16 +89,19 @@ public class SteamLobby : MonoBehaviour
         }*/
     }
 
-
+    private readonly float _delaySeconds = 2.0f;
     public void CreateLobby()
     {
+        PopupManager.instance.Popup_Show("Create Party", false, true);
+        StartCoroutine(DelayAction(_delaySeconds, () => {
         SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypePublic, ((MyNetworkManager)NetworkManager.singleton).maxConnections);
+        MainMenu.instance.gameObject.SetActive(false);
+        }));
     }
 
 
     public void JoinLobby(CSteamID lobby)
     {
-
         SteamMatchmaking.JoinLobby(lobby);
     }
 
@@ -124,8 +127,10 @@ public class SteamLobby : MonoBehaviour
 
     private void OnJoinRequest(GameLobbyJoinRequested_t callback)
     {
-        PopupManager.instance.Popup_Show("Joining Party");
+        PopupManager.instance.Popup_Show("Joining Party", false, true);
+        StartCoroutine(DelayAction(_delaySeconds, () => {
         SteamMatchmaking.JoinLobby(callback.m_steamIDLobby);
+        }));
     }
 
     private void OnLobbyEntered(LobbyEnter_t callback)
@@ -153,7 +158,10 @@ public class SteamLobby : MonoBehaviour
 
     public void Leave()
     {
-        SteamMatchmaking.LeaveLobby(LobbyID);
+        PopupManager.instance.Popup_Show("Leave Party", false, true);
+        StartCoroutine(DelayAction(_delaySeconds, () => {
+            SteamMatchmaking.LeaveLobby(LobbyID);
+        }));
     }
 
 
@@ -169,27 +177,47 @@ public class SteamLobby : MonoBehaviour
         StartCoroutine(FindMatchRoutine());
     }
 
-    IEnumerator FindMatchRoutine() 
+    IEnumerator FindMatchRoutine()
     {
-        PopupManager.instance.Popup_Show("Finding Match..");
+        PopupManager.instance.Popup_Show("Finding Match...", false, true);
         bool foundMatch = false;
+        float elapsedTime = 0f;
+        float maxTime = 3f;
 
-        while (!foundMatch) 
+        while (!foundMatch && elapsedTime < maxTime)
         {
             ReloadLobbyList();
-            yield return new WaitForSeconds(1);
+            yield return new WaitForSeconds(1f);
+            elapsedTime += 1f;
 
             foreach (var lobby in allLobbies)
             {
-                if (SteamMatchmaking.GetNumLobbyMembers(lobby.lobbyID) < NetworkManager.singleton.maxConnections) 
+                if (SteamMatchmaking.GetNumLobbyMembers(lobby.lobbyID) < NetworkManager.singleton.maxConnections)
                 {
                     JoinLobby(lobby.lobbyID);
                     foundMatch = true;
+                    MainMenu.instance.gameObject.SetActive(false);
+                    break;
                 }
             }
         }
-        PopupManager.instance.Popup_Close();
+        
 
+        if (!foundMatch)
+        {
+            PopupManager.instance.Popup_Show("Nenhuma partida encontrada.", false, true);
+        }
+        StartCoroutine(DelayAction(1.7f, () => {
+            PopupManager.instance.Popup_Close();
+            
+        }));
+    }
+
+    
+    private IEnumerator DelayAction(float delay, Action action)
+    {
+        yield return new WaitForSeconds(delay);
+        action?.Invoke();
     }
 }
                    
