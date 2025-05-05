@@ -12,18 +12,90 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 371e27bd0c2bdbf4fa4fa01a372e326c, type: 3}
   m_Name: Database
   m_EditorClassIdentifier: 
-  playerSpeed: 12
-  airSpeed: 4
-  maxAirSpeed: 15
-  gravityGrounded: -10
-  gravity: -35
-  jumpHeight: 15
-  pushForce: 60
-  pushDistance: 7
-  slideDuration: 1
-  pushRadius: 2.4
-  pushCooldown: 5
-  bounceForce: 8
-  pushAngle: 60
-  pushVFX: {fileID: 0}
-  pushAudio: {fileID: 0}
+  inputAccel: 10
+  inputGravity: 10
+  gravity: -26
+  gravityGrounded: -1
+  orbitalOffset: {x: 0.6, y: 1, z: -5}
+  minMouseY: -60
+  maxMouseX: 60
+  cameraColliderMash:
+    serializedVersion: 2
+    m_Bits: 1
+  cameraSphereRadius: 0.2
+  playerSpeed: 9
+  playerJumpHeight: 12.5
+  playerAirSpeed: 24
+  playerMaxAirSpeed: 99
+  PlayerMask:
+    serializedVersion: 2
+    m_Bits: 128
+  playerPushRadius: 1.3
+  playerPushStrength: 6
+  playerPushCooldownTimer: 1
+  playerStaggerHeight: 6
+  playerStaggerAirSpeedModifier: 1
+  playerStaggerStunDuration: 0.2
+  playerBlindDuration: 2
+  playerBlindCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: -0.115824826
+      outSlope: -0.115824826
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: -2.6110802
+      outSlope: -2.6110802
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  playerRollSpeed: 100
+  playerRollCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 1.0343903
+      outSlope: 1.0343903
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0.049689442
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: -1.8165466
+      outSlope: -1.8165466
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.024844706
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  playerRollDuration: 1
+  playerRollCooldownDuration: 1
+  projectilePrefab: {fileID: 4553422530616815291, guid: d0b3d30845900f6469e75eedd013ae83,
+    type: 3}
+  projectileMask:
+    serializedVersion: 2
+    m_Bits: 129
+  projectileRadius: 0.7
+  projectileSpeed: 28
+  verticalBias: 0.26
+  projectileGravityScale: 1
+  projectileLocalOffset: {x: 0, y: 1, z: 0.5}
+  playerThrowCooldown: 1

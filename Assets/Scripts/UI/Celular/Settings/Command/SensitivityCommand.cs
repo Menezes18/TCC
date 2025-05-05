@@ -1,16 +1,18 @@
 using UnityEngine;
-
+using Mirror;
 
 public class SensitivityCommand : ISettingCommand
 {
     public void Execute(object value)
     {
-        float sensitivity = (float)value;
-        PlayerCamera cam = GameObject.FindObjectOfType<PlayerCamera>();
-        if (cam != null)
-        {
-            cam.mouseSensitivity = sensitivity;
-        }
-        Debug.Log($"Nova sensibilidade definida: {sensitivity}");
+        float normalized = (float)value;
+        var localPlayer = NetworkClient.localPlayer;
+        if (localPlayer == null) return;
+
+        var ps = localPlayer.GetComponent<PlayerScript>();
+        if (ps == null) return;
+
+        ps.RequestSensitivityChange(normalized);
     }
+
 }
