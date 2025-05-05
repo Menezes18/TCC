@@ -290,7 +290,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     private void StaggerBehaviour()
     {
         if (State != PlayerState.Stagger) return;
-
+        StaggerActive();
        
         
         float vertical = _move.y;
