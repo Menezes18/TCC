@@ -130,6 +130,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
     [SyncVar(hook = nameof(OnStaggerChanged))]
     private bool isStaggered;
+
+    public bool _menuOpen;
     
     private float sensibilidade = 4;
     private void Start()
@@ -380,6 +382,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     }    
     private void PlayerControlsSO_OnLook(Vector2 obj)
     {
+        if (_menuOpen) return;
         // _mouseX += obj.x * sens;
         // _mouseY += -obj.y * sens;
         //
