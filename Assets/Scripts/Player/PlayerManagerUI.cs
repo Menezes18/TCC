@@ -16,6 +16,15 @@ public class PlayerManagerUI : NetworkBehaviour
     private PlayerScript _playerScript;
     private bool _valueCelular = false;
 
+
+    private void Start()
+    {
+        if(!this.isOwned) return;
+        PlayerControlsSO.OnMenu += EventOnCelularMenu;
+        PlayerControlsSO.OnCursor += PlayerControlsSO_OnCursor;
+        PlayerControlsSO_OnCursor();
+    }
+
     public override void OnStartLocalPlayer()
     {
         base.OnStartLocalPlayer();
@@ -26,17 +35,13 @@ public class PlayerManagerUI : NetworkBehaviour
         celularInstance.SetActive(true);
 
         _playerScript = GetComponent<PlayerScript>();
-
-        // 2) Assina eventos SÓ para o local
-        PlayerControlsSO.OnMenu   += EventOnCelularMenu;
-        PlayerControlsSO.OnCursor += PlayerControlsSO_OnCursor;
+        
     }
 
-    [ClientCallback]
-    private void OnDisable()
+    
+    private void OnDestroy()
     {
-        // Remove inscrição apenas se foi local
-        if (!isLocalPlayer) return;
+        if(!this.isOwned) return;
         PlayerControlsSO.OnMenu   -= EventOnCelularMenu;
         PlayerControlsSO.OnCursor -= PlayerControlsSO_OnCursor;
     }
@@ -44,8 +49,8 @@ public class PlayerManagerUI : NetworkBehaviour
     private void PlayerControlsSO_OnCursor()
     {
         bool novoEstado = !Cursor.visible;
-        Cursor.visible    = novoEstado;
-        Cursor.lockState  = novoEstado ? CursorLockMode.None : CursorLockMode.Locked;
+        Cursor.visible = novoEstado;
+        Cursor.lockState = novoEstado ? CursorLockMode.None : CursorLockMode.Locked;
     }
 
     private void EventOnCelularMenu()

@@ -131,7 +131,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     [SyncVar(hook = nameof(OnStaggerChanged))]
     private bool isStaggered;
     
-    [SyncVar]
     private float sensibilidade = 4;
     private void Start()
     {
@@ -152,17 +151,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         // Cache
         _playerInput = GetComponent<PlayerInput>();
     }
-    private void OnEnable()
-    {
-        if (!isOwned) return;
-        PlayerControlsSO.OnLook += PlayerControlsSO_OnLook;
-    }
 
-    private void OnDisable()
-    {
-        if (!isOwned) return;
-        PlayerControlsSO.OnLook -= PlayerControlsSO_OnLook;
-    }
     private void OnDestroy()
     {
         PlayerControlsSO.OnMove -= PlayerControlsSO_OnMove;
@@ -534,7 +523,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         _staggerIndicator.gameObject.SetActive(newValue);
     }
     #region Sensibilidade
-        [Command]
+        
         public void CmdChangeSensitivity(float normalized)
         {
             sensibilidade = Mathf.Lerp(0f, 25f, normalized);
