@@ -130,12 +130,23 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
     [SyncVar(hook = nameof(OnStaggerChanged))]
     private bool isStaggered;
+
+    public bool _menuOpen;
     
-    [SyncVar]
-    private float sensibilidade = 4;
+    [SerializeField] private float sensibilidade = 1;
+    
+    
+    // UI
+    
+    [Header("Prefabs")]
+    [SerializeField] private GameObject canvasCelularPrefab;  
+    private GameObject celularInstance;
+    public MainMenu mainMenu;
+
     private void Start()
     {
         if(!this.isOwned) return;
+        if (!isLocalPlayer) return;
         
         PlayerControlsSO.OnMove += PlayerControlsSO_OnMove;
         PlayerControlsSO.OnLook += PlayerControlsSO_OnLook;
@@ -144,27 +155,40 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         PlayerControlsSO.OnRoll += PlayerControlsSO_OnRoll;
         PlayerControlsSO.OnThrow += PlayerControlsSO_OnThrow;
         PlayerControlsSO.OnThrowCancel += PlayerControlsSO_OnThrowCancel;
-
+        
+        //
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
         
         _cam = Camera.main.transform;
         cameraTarget = transform;
         
         // Cache
         _playerInput = GetComponent<PlayerInput>();
-    }
-    private void OnEnable()
-    {
-        if (!isOwned) return;
-        PlayerControlsSO.OnLook += PlayerControlsSO_OnLook;
+        
+
     }
 
-    private void OnDisable()
+    public override void OnStartLocalPlayer()
     {
-        if (!isOwned) return;
-        PlayerControlsSO.OnLook -= PlayerControlsSO_OnLook;
+        base.OnStartLocalPlayer();
+        PlayerControlsSO.OnMenu += EventOnCelularMenu;
+        // UI
+        celularInstance = Instantiate(canvasCelularPrefab);
+        mainMenu = celularInstance.GetComponentInChildren<MainMenu>(true);
     }
+    public override void OnStopLocalPlayer()
+    {
+        base.OnStopLocalPlayer();
+        
+        PlayerControlsSO.OnMenu -= EventOnCelularMenu;
+        
+
+    }
+
     private void OnDestroy()
     {
+        if(!this.isOwned) return;
         PlayerControlsSO.OnMove -= PlayerControlsSO_OnMove;
         PlayerControlsSO.OnLook -= PlayerControlsSO_OnLook;
         PlayerControlsSO.OnJump -= PlayerControlsSO_OnJump;
@@ -172,12 +196,17 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         PlayerControlsSO.OnRoll -= PlayerControlsSO_OnRoll;
         PlayerControlsSO.OnThrow -= PlayerControlsSO_OnThrow;
         PlayerControlsSO.OnThrowCancel -= PlayerControlsSO_OnThrowCancel;
+        
+        //UI
+        PlayerControlsSO.OnMenu -= EventOnCelularMenu;
+        // PlayerControlsSO.OnCursor -= PlayerControlsSO_OnCursor;
+        
     }
 
     private void Update()
     {
         if(!this.isOwned) return;
-        
+        if (!isLocalPlayer) return;
         //
         if(_pushCooldown > 0 ) _pushCooldown -= Time.deltaTime;
         
@@ -245,6 +274,19 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         }
         
         transform.rotation = Quaternion.Euler(rot);
+        
+        
+        if ( Keyboard.current.escapeKey.wasPressedThisFrame || Keyboard.current.tabKey.wasPressedThisFrame)
+        {
+            bool show = !Cursor.visible;
+            Cursor.visible   = show;
+            Cursor.lockState = show 
+                ? CursorLockMode.None 
+                : CursorLockMode.Locked;
+
+            Debug.Log($"Cursor {(show? "visible":"hidden")}");
+        }
+
 
     }
     private void LateUpdate()
@@ -391,6 +433,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     }    
     private void PlayerControlsSO_OnLook(Vector2 obj)
     {
+        if(!this.isOwned) return;
         // _mouseX += obj.x * sens;
         // _mouseY += -obj.y * sens;
         //
@@ -398,8 +441,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         _yaw   += obj.x * sensibilidade * Time.deltaTime;
         _pitch -= obj.y * sensibilidade * Time.deltaTime;
         _pitch = Mathf.Clamp(_pitch, db.minMouseY, db.maxMouseX);
+        
+         aimWeigh = CustomMath.ConvertRange(_pitch, db.maxMouseX, db.minMouseY);
+        _animator.SetFloat("animweight", aimWeigh);
 
     }
+
+    public float aimWeigh;
     private void PlayerControlsSO_OnJump()
     {
         if(State != PlayerState.Default) return;
@@ -533,14 +581,36 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     {
         _staggerIndicator.gameObject.SetActive(newValue);
     }
+
+    #region Menu
+    private void EventOnCelularMenu()
+    {
+        _menuOpen = !_menuOpen;
+        mainMenu.ToggleCelular();
+        var look = _playerInput.actions["Look"];
+        var shoot = _playerInput.actions["Shoot"];
+        Debug.Log($"Look.enabled = {look.enabled}");
+        if (_menuOpen){
+            look.Disable();
+            shoot.Disable();
+        }
+        else{
+            look.Enable();
+            shoot.Enable();
+        }
+        Debug.Log($"Look.enabled = {look.enabled}");
+    }
+    
+
+    #endregion
     #region Sensibilidade
-        [Command]
-        public void CmdChangeSensitivity(float normalized)
+        
+    public void CmdChangeSensitivity(float normalized)
         {
             sensibilidade = Mathf.Lerp(0f, 25f, normalized);
             Debug.Log($"[Server] Sensibilidade ajustada para {sensibilidade}");
         }
-        public void RequestSensitivityChange(float normalized)
+    public void RequestSensitivityChange(float normalized)
         {
             if (!isOwned) return;
             CmdChangeSensitivity(normalized);
