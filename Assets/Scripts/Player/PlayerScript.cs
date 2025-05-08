@@ -588,9 +588,16 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         _menuOpen = !_menuOpen;
         mainMenu.ToggleCelular();
         var look = _playerInput.actions["Look"];
+        var shoot = _playerInput.actions["Shoot"];
         Debug.Log($"Look.enabled = {look.enabled}");
-         if (_menuOpen) look.Disable(); 
-         else  look.Enable();
+        if (_menuOpen){
+            look.Disable();
+            shoot.Disable();
+        }
+        else{
+            look.Enable();
+            shoot.Enable();
+        }
         Debug.Log($"Look.enabled = {look.enabled}");
     }
     
