@@ -10,7 +10,13 @@ public class HUDSO : ScriptableObject{
     {
         this.EventOnSetBlindAlpha?.Invoke(alpha);
     }
-    
 
+    public event Action<float> EventOnPrepareTimerUpdated;
+    
+    public void PrepareTimerUpdate(float value) {this.EventOnPrepareTimerUpdated?.Invoke(value);}
+    
+    public event Action<float> EventOnMatchTimerUpdated;
+    
+    public void MatchTimerUpdate(float value) {this.EventOnMatchTimerUpdated?.Invoke(value);}
 }
 

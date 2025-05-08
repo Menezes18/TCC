@@ -9,7 +9,7 @@ using Mirror.FizzySteam;
 
 
 [System.Serializable]
-public class PlayerData
+public class DataPlayer
 {
     public ulong steamID;
     public string playerName;
@@ -18,7 +18,7 @@ public class PlayerData
 [System.Serializable]
 public class PlayerScoreboard
 {
-    public List<PlayerData> players = new List<PlayerData>();
+    public List<DataPlayer> players = new List<DataPlayer>();
 }
 [System.Serializable]
 public class MyNetworkManager : NetworkManager, ISubjectPontos
@@ -30,7 +30,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public int minJogadores = 1;
     [SerializeField]
     public PlayerScoreboard scoreboard = new PlayerScoreboard();
-    private Dictionary<ulong, PlayerData> pointsBoard = new Dictionary<ulong, PlayerData>();
+    private Dictionary<ulong, DataPlayer> pointsBoard = new Dictionary<ulong, DataPlayer>();
     public HSteamNetConnection steamConnection = HSteamNetConnection.Invalid;
     [Header("Para funcionar sem a steam")]
     public bool testMode = false;
@@ -85,7 +85,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         }
         if (!pointsBoard.ContainsKey(client.playerInfo.steamId))
         {
-            var playerData = new PlayerData 
+            var playerData = new DataPlayer 
             { 
                 steamID = client.playerInfo.steamId,
                 playerName = client.playerInfo.username,
@@ -105,7 +105,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     {
         if (pointsBoard.ContainsKey(steamID))
         {
-            PlayerData data = pointsBoard[steamID];
+            DataPlayer data = pointsBoard[steamID];
             data.points += pointsToAdd;
             
             // Atualiza tanto o dicionário quanto a lista visível

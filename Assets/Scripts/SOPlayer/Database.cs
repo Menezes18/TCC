@@ -1,4 +1,5 @@
 
+using System.Collections.Generic;
 using UnityEngine;
 [CreateAssetMenu(fileName = "Database", menuName = "Player/Database")]
 public class Database : ScriptableObject{
@@ -50,8 +51,13 @@ public class Database : ScriptableObject{
     public float projectileGravityScale = 1;
     public Vector3 projectileLocalOffset = new Vector3(0f, 1f, 0.5f);
     public float playerThrowCooldown;
+
+
+
+    [Header("Server Side")] 
+    public List<Color> playerColors;
     
-
-
+    public float serverPrepareDuration;
+    public float serverMatchDuration;
 
 }
