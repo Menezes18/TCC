@@ -28,11 +28,7 @@ public class MyClient : NetworkBehaviour
     public bool IsReady;
     [SyncVar]
     public bool isPartyOwner = false;
-   // [Header("Controller")]
-   //  [SerializeField] private GameObject controllerObj;
-   //  [SerializeField] private GameObject meshObj;
-   //  [SerializeField] private GameObject camHolder;
-   //  [SerializeField] private Behaviour[] controllerComponents;
+
 
     public Sprite icon { get; private set; }
     public CharacterSkinElement characterInstance { get; set; }

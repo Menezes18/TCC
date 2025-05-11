@@ -20,21 +20,17 @@ public class MathManager : NetworkBehaviour{
     [SyncVar] float _matchTimer;
     
     
-    public SyncList<int> ColorsAvailable = new SyncList<int>();
+
 
     private void Start()
     {
-        ColorsAvailable.Callback += ColorsAvailable_Callback;
+
         
         if(base.isServer == false) return;
 
         _matchTimer = -1;
         _prepareTimer = -1;
         
-        for(int i = 0; i < db.playerColors.Count; i++){
-            ColorsAvailable.Add(i);
-            
-        }
     }
 
     private void Update()
@@ -84,10 +80,6 @@ public class MathManager : NetworkBehaviour{
     void InternalEndMatch(){
         
     }
-    //
-    void ColorsAvailable_Callback(SyncList<int>.Operation op, int itemindex, int olditem, int newitem)
-    {
-       
-    }
+    
     
 }
