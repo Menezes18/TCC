@@ -18,9 +18,9 @@ public class PlayerList : NetworkBehaviour{
 
     [SerializeField] Database db;
     
-    public SyncList<PlayerData> players;
+    public readonly SyncList<PlayerData> players = new SyncList<PlayerData>();
     
-    public SyncList<int> ColorsAvailable = new SyncList<int>();
+    public readonly SyncList<int> ColorsAvailable = new SyncList<int>();
 
     private void Start()
     {
@@ -29,6 +29,11 @@ public class PlayerList : NetworkBehaviour{
         for(int i = 0; i < db.playerColors.Count; i++){
             ColorsAvailable.Add(i);
         }
+    }
+
+    private void OnDestroy()
+    {
+        ColorsAvailable.Callback -= ColorsAvailable_Callback;
     }
 
     [Server]
@@ -40,13 +45,14 @@ public class PlayerList : NetworkBehaviour{
         
         players.Add(data);
     }
-
+    [Server]
     public void RemoveFromList(PlayerData data)
     {
         if(data == null) return;
         
         if(players.Contains(data) == false) return;
         
+        ColorsAvailable.Add(data.color);
         players.Remove(data);
     }
 

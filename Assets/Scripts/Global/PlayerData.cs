@@ -1,28 +1,38 @@
-using System;
+
 using Mirror;
 using UnityEngine;
 using Steamworks;
+using UnityEngine.Events;
 using Random = UnityEngine.Random;
 
-
+[System.Serializable]
 public class PlayerData : NetworkBehaviour{
    private PlayerList playerList => PlayerList.singleton;
    
-   [SyncVar] public string alias; // name steam
-   [SyncVar] public int color;
+   [SyncVar (hook = nameof(HookOnAliasUpdated))] public string alias; // name steam
+   [SyncVar (hook = nameof(HookOnColorUpdated))] public int color = -1;
    [SyncVar] public int score;
+
+   public UnityEvent<string> OnAliasUpdated;
+   public UnityEvent<int> OnColorUpdated;
 
    private void Start()
    {
       //
       if (base.isServer == true)
+      {
          PlayerList.singleton.AddToList(this);
+         
+      }
       
       //
       if(base.isOwned == false) return;
  
-      
       CmdNetworkAlias();
+      
+      //
+      int lastColor = PlayerPrefs.GetInt("lastcolor", 2);
+      CmdRequestColor(lastColor);
    }
 
 
@@ -51,7 +61,7 @@ public class PlayerData : NetworkBehaviour{
    }
 
    [Command]
-   void CmdSetAlias(string value)
+   void CmdRequestAlias(string value)
    {
       bool duplicateAlias = playerList.CheckDuplicateAlias(value);
 
@@ -62,10 +72,21 @@ public class PlayerData : NetworkBehaviour{
    }
 
    [Command]
-   void CmdRequestColor(int color)
+   void CmdRequestColor(int value)
    {
-      
+      Debug.LogError(value + " is not a valid color");
+      color = playerList.ServerRequestColor(value);
+   }
+   
+   //
+   void HookOnAliasUpdated(string oldVal, string newVal)
+   {
+      this.OnAliasUpdated?.Invoke(newVal);
    }
 
+   void HookOnColorUpdated(int oldVal, int newVal)
+   {
+      this.OnColorUpdated?.Invoke(newVal);
+   }
   
 }
