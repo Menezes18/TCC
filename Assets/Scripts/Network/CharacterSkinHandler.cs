@@ -33,11 +33,11 @@ public class CharacterSkinHandler : MonoBehaviour
 
     private IEnumerator SpawnExistingClientsWhenReady()
     {
-        Debug.Log("[CharacterSkinHandler] aguardando SteamManager.Initialized...");
+       // Debug.Log("[CharacterSkinHandler] aguardando SteamManager.Initialized...");
         while (!SteamManager.Initialized)
             yield return null;
 
-        Debug.Log("[CharacterSkinHandler] Steam pronto, aguardando Mirror NetworkClient.isConnected...");
+        //Debug.Log("[CharacterSkinHandler] Steam pronto, aguardando Mirror NetworkClient.isConnected...");
         while (!NetworkClient.isConnected)
             yield return null;
         
@@ -58,13 +58,13 @@ public class CharacterSkinHandler : MonoBehaviour
         }
 
         int index = GetNextPlatformIndex(client);
-        Debug.Log($"[SpawnCharacterMesh] Cliente '{client.name}' vai usar slot #{index}");
+     //   Debug.Log($"[SpawnCharacterMesh] Cliente '{client.name}' vai usar slot #{index}");
 
         if (client.isLocalPlayer)
         {
             if (clientsCharacters[0] == null)
             {
-                Debug.LogError("[SpawnCharacterMesh] Slot 0 vazio para local player!");
+//                Debug.LogError("[SpawnCharacterMesh] Slot 0 vazio para local player!");
                 return;
             }
             clientsCharacters[0].Initialize(client, client.IsReady);
@@ -78,7 +78,7 @@ public class CharacterSkinHandler : MonoBehaviour
         }
         if (index >= spawnPositions.Length || spawnPositions[index] == null)
         {
-            Debug.LogError($"[SpawnCharacterMesh] spawnPositions[{index}] inválido ou null!");
+          // Debug.LogError($"[SpawnCharacterMesh] spawnPositions[{index}] inválido ou null!");
             return;
         }
 

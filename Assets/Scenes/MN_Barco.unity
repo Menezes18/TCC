@@ -725,6 +725,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 414114746}
+  - component: {fileID: 414114747}
   m_Layer: 0
   m_Name: SpawnPlayer
   m_TagString: Untagged
@@ -747,6 +748,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &414114747
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 414114745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41f84591ce72545258ea98cb7518d8b9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &439284099
 GameObject:
   m_ObjectHideFlags: 0
@@ -1670,8 +1683,8 @@ GameObject:
   - component: {fileID: 1105038397}
   - component: {fileID: 1105038396}
   m_Layer: 0
-  m_Name: Camera
-  m_TagString: Untagged
+  m_Name: Main Camera
+  m_TagString: MainCamera
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -7522,6 +7535,7 @@ GameObject:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
+  - {fileID: 1105038399}
   - {fileID: 1610889547}
   - {fileID: 2063641824}
   - {fileID: 664559550}
@@ -7529,7 +7543,6 @@ SceneRoots:
   - {fileID: 1582783314}
   - {fileID: 414114746}
   - {fileID: 1639294236}
-  - {fileID: 1105038399}
   - {fileID: 761951537}
   - {fileID: 2040278878}
   - {fileID: 1362513269}

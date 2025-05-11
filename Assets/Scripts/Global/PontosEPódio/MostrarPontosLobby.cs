@@ -1,18 +1,15 @@
 using TMPro;
 using UnityEngine;
+using System;
 
 public class MostrarPontosLobby : MonoBehaviour, IObserverPontos
 {
     public TMP_Text[] jogadores;
     public TMP_Text[] jogadoresPontos;
+    
     void Awake()
     {
         MyNetworkManager.manager.Adicionar(this);
-    }
-
-    void Start()
-    {
-        
     }
 
     public void Atualizacao(ISubjectPontos subject, int[] pontos, string[] jogadoresNomes)
@@ -26,13 +23,21 @@ public class MostrarPontosLobby : MonoBehaviour, IObserverPontos
                 jogadoresPontos[i].text = "";
         }
         
-        for (int i = 0; i < jogadoresNomes.Length && i < jogadores.Length; i++)
+        var jogadoresPontuacao = new Tuple<string, int>[jogadoresNomes.Length];
+        for (int i = 0; i < jogadoresNomes.Length && i < pontos.Length; i++)
+        {
+            jogadoresPontuacao[i] = new Tuple<string, int>(jogadoresNomes[i], pontos[i]);
+        }
+        
+        Array.Sort(jogadoresPontuacao, (a, b) => b.Item2.CompareTo(a.Item2));
+        
+        for (int i = 0; i < jogadoresPontuacao.Length && i < jogadores.Length; i++)
         {
             if (jogadores[i] != null)
-                jogadores[i].text = jogadoresNomes[i];
+                jogadores[i].text = jogadoresPontuacao[i].Item1;
             
-            if (jogadoresPontos[i] != null && i < pontos.Length)
-                jogadoresPontos[i].text = pontos[i].ToString();
+            if (jogadoresPontos[i] != null)
+                jogadoresPontos[i].text = jogadoresPontuacao[i].Item2.ToString();
         }
     }
 }

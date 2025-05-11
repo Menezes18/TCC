@@ -61,7 +61,9 @@ public class MyClient : NetworkBehaviour
 
     private void Start()
     {
-        ((MyNetworkManager)NetworkManager.singleton).allClients.Add(this);
+        if (NetworkManager.singleton != null)
+            ((MyNetworkManager)NetworkManager.singleton).allClients.Add(this);
+        
 
         if(CharacterSkinHandler.instance) CharacterSkinHandler.instance.SpawnCharacterMesh(this);
         avatarImageLoaded = Callback<AvatarImageLoaded_t>.Create(OnAvatarImageLoaded);
