@@ -31,7 +31,7 @@ public class ColorChangePanel : MonoBehaviour{
         playerList.players.Callback -= PlayersOnCallback;
     }
 
-    void Refresh()
+    public void Refresh()
     {
         for (int i = 0; i < buttons.Count; i++)
         {

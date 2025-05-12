@@ -9,6 +9,8 @@ using Random = UnityEngine.Random;
 public class PlayerData : NetworkBehaviour{
    private PlayerList playerList => PlayerList.singleton;
    
+   [SerializeField] PlayerDataSO PlayerDataSO;
+   
    [SyncVar (hook = nameof(HookOnAliasUpdated))] public string alias; // name steam
    [SyncVar (hook = nameof(HookOnColorUpdated))] public int color = -1;
    [SyncVar] public int score;
@@ -18,6 +20,8 @@ public class PlayerData : NetworkBehaviour{
 
    private void Start()
    {
+      PlayerDataSO.EventOnColorRequest += PlayerDataSOOnEventOnColorRequest;
+      
       //
       if (base.isServer == true)
       {
@@ -31,12 +35,19 @@ public class PlayerData : NetworkBehaviour{
       CmdNetworkAlias();
       
       //
-      int lastColor = PlayerPrefs.GetInt("lastcolor", 2);
+      int lastColor = PlayerPrefs.GetInt("lastcolor", 0);
       CmdRequestColor(lastColor);
+   }
+   private void OnDestroy()
+   {
+      if (base.isServer == true)
+         PlayerList.singleton.RemoveFromList(this);
+      
+      PlayerDataSO.EventOnColorRequest -= PlayerDataSOOnEventOnColorRequest;
+
    }
 
 
-   
    [Command]
    void CmdNetworkAlias()
    {
@@ -54,11 +65,6 @@ public class PlayerData : NetworkBehaviour{
       alias = chosenName;
    }
    
-   private void OnDestroy()
-   {
-      if (base.isServer == true)
-         PlayerList.singleton.RemoveFromList(this);
-   }
 
    [Command]
    void CmdRequestAlias(string value)
@@ -87,6 +93,14 @@ public class PlayerData : NetworkBehaviour{
    void HookOnColorUpdated(int oldVal, int newVal)
    {
       this.OnColorUpdated?.Invoke(newVal);
+   }
+   
+   
+   void PlayerDataSOOnEventOnColorRequest(int obj)
+   {
+      if(!isOwned) return;
+      Debug.LogError(this.gameObject.name + ": PlayerDataSOOnEventOnColorRequest");
+      CmdRequestColor(obj);
    }
   
 }

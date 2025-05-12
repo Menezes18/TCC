@@ -123,6 +123,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
     private PlayerInput _playerInput;
     
+    
     //Public
     public bool IsAirborne => State == PlayerState.Ascend || State == PlayerState.Descend;
 
@@ -132,6 +133,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     private bool isStaggered;
 
     public bool _menuOpen;
+    public bool panel = false;
     
     [SerializeField] private float sensibilidade = 1;
     
@@ -264,6 +266,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         _animator.SetFloat(_MOVEX, _input.x, 0.1f, Time.deltaTime);
         _animator.SetFloat(_MOVEY, _input.z, 0.1f, Time.deltaTime);
         
+        aimWeigh = CustomMath.ConvertRange(_pitch, db.maxMouseX, db.minMouseY);
+        _animator.SetFloat("animweight", aimWeigh);
         
         _move = _move + Vector3.up * db.gravity * Time.deltaTime;
         
@@ -433,6 +437,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     }    
     private void PlayerControlsSO_OnLook(Vector2 obj)
     {
+        if(panel) return;
         if(!this.isOwned) return;
         // _mouseX += obj.x * sens;
         // _mouseY += -obj.y * sens;
@@ -442,14 +447,14 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         _pitch -= obj.y * sensibilidade * Time.deltaTime;
         _pitch = Mathf.Clamp(_pitch, db.minMouseY, db.maxMouseX);
         
-         aimWeigh = CustomMath.ConvertRange(_pitch, db.maxMouseX, db.minMouseY);
-        _animator.SetFloat("animweight", aimWeigh);
+
 
     }
 
     public float aimWeigh;
     private void PlayerControlsSO_OnJump()
     {
+        if(panel) return;
         if(State != PlayerState.Default) return;
         
         if (_move.y > 0)
@@ -464,6 +469,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     }
     private void PlayerControlsSO_OnPush()
     {
+        if(panel) return;
         if(State == PlayerState.Stagger) return;
         if(Status != PlayerStatus.Default || Status == PlayerStatus.Blinded) return;
         
@@ -474,6 +480,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     }
     private void PlayerControlsSO_OnRoll()
     {
+        if(panel) return;
         if(IsAirborne) return;
         if(State == PlayerState.Stagger) return;
         if(_rollCooldown > 0) return;
@@ -489,6 +496,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     }
     private void PlayerControlsSO_OnThrow()
     {
+        if(panel) return;
         if(State == PlayerState.Stagger) return;
         if(Status != PlayerStatus.Default) return;
         if(Status == PlayerStatus.Throw) return;
@@ -501,6 +509,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     
     private void PlayerControlsSO_OnThrowCancel()
     {
+        if(panel) return;
         if (State == PlayerState.Stagger) return;
         if(Status == PlayerStatus.Pushing) return;
         if(Status == PlayerStatus.Throw) return;
@@ -587,18 +596,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     {
         _menuOpen = !_menuOpen;
         mainMenu.ToggleCelular();
-        var look = _playerInput.actions["Look"];
-        var shoot = _playerInput.actions["Shoot"];
-        Debug.Log($"Look.enabled = {look.enabled}");
-        if (_menuOpen){
-            look.Disable();
-            shoot.Disable();
-        }
-        else{
-            look.Enable();
-            shoot.Enable();
-        }
-        Debug.Log($"Look.enabled = {look.enabled}");
     }
     
 

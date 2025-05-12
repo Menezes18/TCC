@@ -8,6 +8,7 @@ using UnityEngine.InputSystem;
         [SerializeField] PlayerInputSO PlayerInputSO;
         [SerializeField] PlayerControlsSO PlayerControlsSO;
         [SerializeField] Database db;
+        [SerializeField] PlayerScript playerScript;
 
         [SerializeField]
         PlayerInput _playerInput;
@@ -23,6 +24,8 @@ using UnityEngine.InputSystem;
             PlayerInputSO.OnThrow += PlayerInputSO_OnThrow;
             PlayerInputSO.OnMenuCelular += PlayerInputSO_OnMenuCelular;
             PlayerInputSO.OnRoll += PlayerInputSO_OnRoll;
+
+            playerScript = GetComponent<PlayerScript>();
         }
 
         private void Update(){
@@ -42,6 +45,11 @@ using UnityEngine.InputSystem;
         }
         private void PlayerInputSO_OnMove(CallbackContext obj)
         {
+            if (playerScript.panel){
+                _rawX = 0;
+                _rawY = 0;
+                return;
+            }
             _rawX = obj.ReadValue<Vector2>().x;
             _rawY = obj.ReadValue<Vector2>().y;
             
