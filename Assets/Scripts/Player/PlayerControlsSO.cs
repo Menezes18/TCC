@@ -26,6 +26,18 @@ public class PlayerControlsSO : ScriptableObject{
     public void Roll() { OnRoll?.Invoke(); }
     public void ThrowCancel() { OnThrowCancel?.Invoke(); }
     public void MenuCelular() { OnMenu?.Invoke(); }
-    public void Cursor() { OnCursor?.Invoke(); }
+   // public void Cursor() { OnCursor?.Invoke(); }
+
+   public void EnableCursor()
+   { 
+       Cursor.visible = true;
+       Cursor.lockState = CursorLockMode.Confined;
+   }
+
+   public void DisableCursor()
+   {
+       Cursor.visible = false;
+       Cursor.lockState = CursorLockMode.Locked;  
+   }
 
 }

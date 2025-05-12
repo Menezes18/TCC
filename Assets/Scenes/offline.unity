@@ -256,6 +256,12 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &466128755 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3799542405642113733, guid: 3aa2756475a30e9469bb5f5d492e949b,
+    type: 3}
+  m_PrefabInstance: {fileID: 525655206}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &525655206
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -660,7 +666,11 @@ PrefabInstance:
     - {fileID: 1428959858712415787, guid: 3aa2756475a30e9469bb5f5d492e949b, type: 3}
     - {fileID: 6211509399089095632, guid: 3aa2756475a30e9469bb5f5d492e949b, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3799542405642113733, guid: 3aa2756475a30e9469bb5f5d492e949b,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 525655212}
   m_SourcePrefab: {fileID: 100100000, guid: 3aa2756475a30e9469bb5f5d492e949b, type: 3}
 --- !u!224 &525655207 stripped
 RectTransform:
@@ -668,6 +678,36 @@ RectTransform:
     type: 3}
   m_PrefabInstance: {fileID: 525655206}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &525655212
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 466128755}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ba594b2309a5d44fa51b0d038a6153b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  EventOnEnable:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 11400000, guid: bf39a2f140fa8f446b2def321aa5b148, type: 2}
+        m_TargetAssemblyTypeName: PlayerControlsSO, Assembly-CSharp
+        m_MethodName: EnableCursor
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  EventOnDisable:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &674903015
 GameObject:
   m_ObjectHideFlags: 0
