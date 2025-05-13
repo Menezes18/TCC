@@ -176,7 +176,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     public override void OnStartLocalPlayer()
     {
         base.OnStartLocalPlayer();
+        
         PlayerControlsSO.OnMenu += EventOnCelularMenu;
+        
         // UI
         celularInstance = Instantiate(canvasCelularPrefab);
         mainMenu = celularInstance.GetComponentInChildren<MainMenu>(true);
@@ -580,10 +582,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     {
         _staggerIndicator.gameObject.SetActive(newValue);
     }
-
     #region Menu
     private void EventOnCelularMenu()
     {
+        if (panel){
+            HUDSO.HideColorChangePanel();
+            return;
+        }
         _menuOpen = !_menuOpen;
         mainMenu.ToggleCelular();
     }
