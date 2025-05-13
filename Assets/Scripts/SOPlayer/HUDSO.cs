@@ -3,7 +3,16 @@ using UnityEngine;
 
 [CreateAssetMenu(fileName = "Database", menuName = "Player/HUDSO")]
 public class HUDSO : ScriptableObject{
+
+    public event Action EventOnShowColorChangePanel; 
     
+    public void ShowColorChangePanel(){ this.EventOnShowColorChangePanel?.Invoke();}
+    
+    public event Action EventOnHideColorChangePanel;
+    
+    public void HideColorChangePanel(){ this.EventOnHideColorChangePanel?.Invoke();}
+    
+    //
     public event Action<float> EventOnSetBlindAlpha;
 
     public void SetBlindAlpha(float alpha)

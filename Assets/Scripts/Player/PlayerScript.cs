@@ -168,7 +168,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         // Cache
         _playerInput = GetComponent<PlayerInput>();
         
-
+        if (PlayerPrefs.HasKey("MouseSensitivity")) {
+            sensibilidade = PlayerPrefs.GetFloat("MouseSensitivity");
+        }
     }
 
     public override void OnStartLocalPlayer()
@@ -279,8 +281,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         
         transform.rotation = Quaternion.Euler(rot);
         
-
-
     }
     private void LateUpdate()
     {
@@ -430,12 +430,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         if(panel) return;
         if (Cursor.visible == true) return;
         if(!this.isOwned) return;
-        // _mouseX += obj.x * sens;
-        // _mouseY += -obj.y * sens;
-        //
-        // _mouseY = Mathf.Clamp(_mouseY, db.minMouseY, db.maxMouseX);
-        _yaw   += obj.x * sensibilidade * Time.deltaTime;
-        _pitch -= obj.y * sensibilidade * Time.deltaTime;
+        float sensitivityFactor = sensibilidade;
+        
+        _yaw   += obj.x * sensitivityFactor * 0.01f;
+        _pitch -= obj.y * sensitivityFactor * 0.01f;
+        
         _pitch = Mathf.Clamp(_pitch, db.minMouseY, db.maxMouseX);
         
 

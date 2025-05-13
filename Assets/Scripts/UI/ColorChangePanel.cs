@@ -1,34 +1,46 @@
-using System;
 using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class ColorChangePanel : MonoBehaviour{
     private PlayerList playerList => PlayerList.singleton;
     
     [SerializeField] Database db;
-    
-    [SerializeField] List<CustomButton> buttons;
+    [SerializeField] HUDSO HUDSO;
+    [SerializeField] GameObject _mainContainer;
+    [SerializeField] Transform _gridRoot;
+
+    [SerializeField] Transform _customButtonPrefab;
+    private List<CustomButton> buttons = new List<CustomButton>();
 
     private void Start()
     {
         //
-        for (int i = 0; i < buttons.Count; i++)
+        playerList.players.Callback += PlayersOnCallback;
+        
+        HUDSO.EventOnShowColorChangePanel += HUDSOOnEventOnShowColorChangePanel;
+        HUDSO.EventOnHideColorChangePanel += HUDSOOnEventOnHideColorChangePanel;
+        
+        //
+        for (int i = 0; i < db.playerColors.Count; i++)
         {
+            Transform instance = Instantiate(_customButtonPrefab, _gridRoot);
+            CustomButton cb = instance.GetComponent<CustomButton>();
             
-            if(i >= db.playerColors.Count) continue;
-            
-            buttons[i].Sprite.color = db.playerColors[i];
+            cb.Sprite.color = db.playerColors[i].color;
         }
         
         //
         playerList.players.Callback += PlayersOnCallback;
     }
 
+
     private void OnDestroy()
     {
         playerList.players.Callback -= PlayersOnCallback;
+        
+        HUDSO.EventOnShowColorChangePanel -= HUDSOOnEventOnShowColorChangePanel;
+        HUDSO.EventOnHideColorChangePanel -= HUDSOOnEventOnHideColorChangePanel;
     }
 
     public void Refresh()
@@ -46,4 +58,16 @@ public class ColorChangePanel : MonoBehaviour{
     {
         Refresh();
     }
+    
+    private void HUDSOOnEventOnShowColorChangePanel()
+    {
+        _mainContainer.SetActive(true);
+    }
+    
+    private void HUDSOOnEventOnHideColorChangePanel()
+    {
+        _mainContainer.SetActive(false);
+    }
+
+
 }

@@ -1,6 +1,18 @@
 
 using System.Collections.Generic;
 using UnityEngine;
+
+[System.Serializable]
+public struct PlayerColor
+{
+    public Color color;
+    public Material material;
+    
+    // Aqui um hat
+    //public MeshRenderer meshRenderer;
+}
+
+
 [CreateAssetMenu(fileName = "Database", menuName = "Player/Database")]
 public class Database : ScriptableObject{
 
@@ -55,7 +67,7 @@ public class Database : ScriptableObject{
 
 
     [Header("Server Side")] 
-    public List<Color> playerColors;
+    public List<PlayerColor> playerColors;
     
     public float serverPrepareDuration;
     public float serverMatchDuration;

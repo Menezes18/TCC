@@ -16,7 +16,7 @@ public class PlayerNameplate : MonoBehaviour
 
     public void SetColor(int color)
     {
-        _sprite.color = db.playerColors[color];
+        _sprite.color = db.playerColors[color].color;
     }
 
 }

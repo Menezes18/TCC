@@ -17,6 +17,11 @@ using UnityEngine.InputSystem;
 
         private float _mouse;
         private void Start(){
+            
+            playerScript = GetComponent<PlayerScript>();
+            
+            if (!playerScript.isLocalPlayer) return;
+            
             PlayerInputSO.OnMove += PlayerInputSO_OnMove;
             PlayerInputSO.OnLook += PlayerInputSO_OnLook;
             PlayerInputSO.OnJump += PlayerInputSO_OnJump;
@@ -25,22 +30,35 @@ using UnityEngine.InputSystem;
             PlayerInputSO.OnMenuCelular += PlayerInputSO_OnMenuCelular;
             PlayerInputSO.OnRoll += PlayerInputSO_OnRoll;
 
-            playerScript = GetComponent<PlayerScript>();
-        }
 
+        }
+        
+        private void OnDestroy(){
+            if (playerScript != null && playerScript.isLocalPlayer) {
+                PlayerInputSO.OnMove  -= PlayerInputSO_OnMove;
+                PlayerInputSO.OnLook  -= PlayerInputSO_OnLook;
+                PlayerInputSO.OnJump  -= PlayerInputSO_OnJump;
+                PlayerInputSO.OnPush  -= PlayerInputSO_OnPush;
+                PlayerInputSO.OnThrow -= PlayerInputSO_OnThrow;
+                PlayerInputSO.OnRoll  -= PlayerInputSO_OnRoll;
+                PlayerInputSO.OnMenuCelular -= PlayerInputSO_OnMenuCelular;
+            }
+        }
+        
+        
         private void Update(){
 
-        if (playerScript.panel)
-        {
-            _rawX = 0;
-            _rawY = 0;
-            _x = 0;
-            _y = 0;
-            PlayerControlsSO.Move(new Vector2(_x, _y), new Vector2(_rawX, _rawY));
-            return;
-        }
+            if (playerScript.panel)
+            {
+                _rawX = 0;
+                _rawY = 0;
+                _x = 0;
+                _y = 0;
+                PlayerControlsSO.Move(new Vector2(_x, _y), new Vector2(_rawX, _rawY));
+                return;
+            }
 
-        if (_rawX == 0)
+            if (_rawX == 0)
                 _x = Mathf.MoveTowards(_x, 0, db.inputGravity * Time.deltaTime);
             else
                 _x = Mathf.MoveTowards(_x, _rawX, db.inputAccel * Time.deltaTime);
@@ -66,6 +84,7 @@ using UnityEngine.InputSystem;
         }
         private void PlayerInputSO_OnLook(CallbackContext obj)
         {
+            if (!playerScript.isLocalPlayer) return;
             PlayerControlsSO.Look(obj.ReadValue<Vector2>());
         }
         private void PlayerInputSO_OnJump(CallbackContext obj)
@@ -103,12 +122,6 @@ using UnityEngine.InputSystem;
             if(obj.performed){
                 PlayerControlsSO.MenuCelular();
             }
-        }
-
-
-
-        private void OnDestroy(){
-            //PlayerInputSO.EventMove -= EventMove;
         }
        
         private void EventMove(Vector2 obj){

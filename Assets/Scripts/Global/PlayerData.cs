@@ -35,7 +35,7 @@ public class PlayerData : NetworkBehaviour{
       CmdNetworkAlias();
       
       //
-      int lastColor = PlayerPrefs.GetInt("lastcolor", 0);
+      int lastColor = PlayerPrefs.GetInt("lastcolor", 1);
       CmdRequestColor(lastColor);
    }
    private void OnDestroy()
@@ -81,7 +81,7 @@ public class PlayerData : NetworkBehaviour{
    void CmdRequestColor(int value)
    {
       Debug.LogError(value + " is not a valid color");
-      color = playerList.ServerRequestColor(value);
+      color = playerList.ServerRequestColor(color, value);
    }
    
    //

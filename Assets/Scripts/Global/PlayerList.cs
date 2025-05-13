@@ -56,6 +56,13 @@ public class PlayerList : NetworkBehaviour{
         players.Remove(data);
     }
 
+    [Server]
+    public void ReturnColor(int color)
+    {
+        if(ColorsAvailable.Contains(color)) return;
+        
+        ColorsAvailable.Add(color);
+    }
     public bool CheckDuplicateAlias(string target)
     {
         foreach (PlayerData data in players ){
@@ -66,14 +73,18 @@ public class PlayerList : NetworkBehaviour{
     }
 
     [Server]
-    public int ServerRequestColor(int color)
+    public int ServerRequestColor(int oldColor, int newColor )
     {
-        bool avaiable = ColorsAvailable.Contains(color);
 
+        ReturnColor(oldColor);
+        
+        bool avaiable = ColorsAvailable.Contains(newColor);
+        
+        
         if (avaiable == true){
             
-            ColorsAvailable.Remove(color);
-            return color;
+            ColorsAvailable.Remove(newColor);
+            return newColor;
         }
         
         int randomIndex = Random.Range(0, ColorsAvailable.Count);
