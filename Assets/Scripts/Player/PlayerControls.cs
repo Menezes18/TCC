@@ -29,9 +29,18 @@ using UnityEngine.InputSystem;
         }
 
         private void Update(){
-            
-          
-            if(_rawX == 0)
+
+        if (playerScript.panel)
+        {
+            _rawX = 0;
+            _rawY = 0;
+            _x = 0;
+            _y = 0;
+            PlayerControlsSO.Move(new Vector2(_x, _y), new Vector2(_rawX, _rawY));
+            return;
+        }
+
+        if (_rawX == 0)
                 _x = Mathf.MoveTowards(_x, 0, db.inputGravity * Time.deltaTime);
             else
                 _x = Mathf.MoveTowards(_x, _rawX, db.inputAccel * Time.deltaTime);
@@ -45,7 +54,8 @@ using UnityEngine.InputSystem;
         }
         private void PlayerInputSO_OnMove(CallbackContext obj)
         {
-            if (playerScript.panel){
+            if (playerScript.panel)
+            {
                 _rawX = 0;
                 _rawY = 0;
                 return;

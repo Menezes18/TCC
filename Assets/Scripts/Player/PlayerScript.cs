@@ -279,17 +279,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         
         transform.rotation = Quaternion.Euler(rot);
         
-        
-        if ( Keyboard.current.escapeKey.wasPressedThisFrame || Keyboard.current.tabKey.wasPressedThisFrame)
-        {
-            bool show = !Cursor.visible;
-            Cursor.visible   = show;
-            Cursor.lockState = show 
-                ? CursorLockMode.None 
-                : CursorLockMode.Locked;
-
-            Debug.Log($"Cursor {(show? "visible":"hidden")}");
-        }
 
 
     }
@@ -437,7 +426,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     }    
     private void PlayerControlsSO_OnLook(Vector2 obj)
     {
+
         if(panel) return;
+        if (Cursor.visible == true) return;
         if(!this.isOwned) return;
         // _mouseX += obj.x * sens;
         // _mouseY += -obj.y * sens;

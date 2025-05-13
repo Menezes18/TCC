@@ -2520,7 +2520,9 @@ MonoBehaviour:
   notReadyColor: {r: 1, g: 0.019607844, b: 0, a: 1}
   celularUI: {fileID: 3731482432674952323}
   celularCanvasGroup: {fileID: 1791429540907885233}
+  celularGameObject: {fileID: 0}
   toggleCelular: 0
+  startCelular: 1
 --- !u!1 &3802455358714513813
 GameObject:
   m_ObjectHideFlags: 0
@@ -5659,6 +5661,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3731482432674952323}
   - component: {fileID: 1791429540907885233}
+  - component: {fileID: 352454865071514280}
   m_Layer: 5
   m_Name: Menu - Celular
   m_TagString: Untagged
@@ -5705,6 +5708,48 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &352454865071514280
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7421215184005279720}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ba594b2309a5d44fa51b0d038a6153b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  EventOnEnable:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 11400000, guid: bf39a2f140fa8f446b2def321aa5b148, type: 2}
+        m_TargetAssemblyTypeName: PlayerControlsSO, Assembly-CSharp
+        m_MethodName: EnableCursor
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  EventOnDisable:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 11400000, guid: bf39a2f140fa8f446b2def321aa5b148, type: 2}
+        m_TargetAssemblyTypeName: PlayerControlsSO, Assembly-CSharp
+        m_MethodName: DisableCursor
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &7449306894876250695
 GameObject:
   m_ObjectHideFlags: 0
