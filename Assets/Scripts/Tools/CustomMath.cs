@@ -25,4 +25,23 @@ public static class CustomMath
             return 0f;
         return Mathf.Clamp01((value - from) / (to - from));
     }
+    
+    public static string FormatTimer(float seconds)
+    {
+        string result = "";
+
+        int min = (int)seconds / 60;
+        int sec = (int)seconds % 60;
+
+        string m = min.ToString();
+        string s = sec.ToString();
+
+        if (s.Length == 1)
+            s = "0" + s;
+
+        result = m + ":" + s;
+
+        return result;
+    }
+
 }

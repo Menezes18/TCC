@@ -1,7 +1,10 @@
+using System;
 using System.Collections;
 using Mirror;
 using Smooth;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
 public enum PlayerState{
@@ -107,11 +110,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
     private float _staggerTimer;
     private float _pushCooldown;
-    
     private float _rollTimer;
     private float _rollCooldown;
-
     private float _blindTimer;
+    private float _throwCooldown;
 
     private float BlindTimer{
         get => _blindTimer;
@@ -121,7 +123,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         }
     }
     
-    private float _throwCooldown;
 
     private PlayerInput _playerInput;
     
@@ -147,6 +148,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     [SerializeField] private GameObject canvasCelularPrefab;  
     private GameObject celularInstance;
     public MainMenu mainMenu;
+    
+    // Event
+    public UnityEvent EventOnDeath;
+    public UnityEvent EventOnDeathServerSide;
+    public UnityEvent EventOnRespawn;
 
     private void Start()
     {
@@ -278,8 +284,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         _animator.SetFloat("animweight", aimWeigh);
         
         _move = _move + Vector3.up * db.gravity * Time.deltaTime;
-        
-        _controller.Move(_move * Time.deltaTime);
+
+        if (State != PlayerState.Death){
+            _controller.Move(_move * Time.deltaTime);
+        }
 
         if (_controller.isGrounded){
             _move.y = db.gravityGrounded;
@@ -312,9 +320,18 @@ public class PlayerScript : NetworkBehaviour, IDamageable
             _cam.transform.position = desiredPos;
         }
     }
+
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        if (hit.gameObject.CompareTag("KillPlane"))
+            InternalDeath();
+    }
+
+
     //
     private void AerialDetection()
     {
+        if(State == PlayerState.Death) return;
         if(State == PlayerState.Stagger) return;
         if(State == PlayerState.Roll) return;
         
@@ -625,13 +642,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
     #endregion
     #region System Network
-    [Command]
-    public void Die()
-    {
-        State = PlayerState.Death;
-        _controller.enabled = false; 
-        RpcSpectate();
-    }
+    
+    // mudar isso 
 
     [TargetRpc]
     private void RpcSpectate()
@@ -644,6 +656,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
             if (newTarget == null) return;
             SetCameraTarget(newTarget);
     }
+    
     public void SetCameraTarget(Transform newTarget)
     {
         cameraTarget = newTarget;
@@ -662,13 +675,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         return null;
     }
     
-    [Command]
-    public void RespawnAt(Vector3 position)
-    {
-        if (!isServer) return;
-
-        RpcRespawn(position);
-    }
 
     [TargetRpc]
     private void RpcRespawn(Vector3 position)
@@ -686,15 +692,74 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
         Debug.Log($"[CLIENT] Player {netId} respawned at {position}");
     }
+    
+    // isso
 
     [TargetRpc]
     public void TargetRpcTeleport(NetworkConnection conn, Vector3 pos, Quaternion rot)
+    {
+        InternalTeleport(pos, rot);
+    }
+    void InternalTeleport(Vector3 pos, Quaternion rot)
     {
         _controller.enabled = false;
         transform.position = pos;
         transform.rotation = rot;
         _smoothSyncMirror.teleportOwnedObjectFromOwner();
         _controller.enabled = true;
+        
+        InternalResetProperties();
     }
+
+    void InternalDeath()
+    {
+        _controller.enabled = false;
+
+        InternalResetProperties();
+        CmdDeath();
+
+        State = PlayerState.Death;
+    }
+
+    void InternalResetProperties()
+    {
+        _move = Vector3.zero;
+        _inertia = Vector3.zero;
+        
+        _staggerTimer = 0;
+        _pushCooldown = 0;
+        _rollTimer = 0;
+        _rollCooldown = 0;
+        _blindTimer = 0;
+        _throwCooldown = 0;
+    }
+    [Command]
+    void CmdDeath()
+    {
+        Debug.LogError("CmdDeath");
+        this.EventOnDeathServerSide?.Invoke();
+        RpcOnDeath();
+    }
+    
+    [ClientRpc]
+    public void RpcOnDeath()
+    {
+        Debug.LogError("RpcOnOnDeath called");
+        this.EventOnDeath?.Invoke();
+        
+    }
+    
+    [ClientRpc]
+    public void RpcOnRespawn()
+    {
+        Debug.LogError("RpcOnRespawn");
+        this.EventOnRespawn?.Invoke();
+                
+        if(base.isOwned == false) return;
+        
+        
+        
+    }
+    
     #endregion
 }

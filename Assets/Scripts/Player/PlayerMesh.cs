@@ -10,4 +10,10 @@ public class PlayerMesh : MonoBehaviour
     {
         _smr.material = db.playerColors[id].material;
     }
+    
+    
+    public void SetVisibility(bool logic)
+    {
+        _smr.enabled = logic;
+    }
 }

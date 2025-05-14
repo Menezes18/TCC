@@ -20,6 +20,9 @@ public class HUDSO : ScriptableObject{
         this.EventOnSetBlindAlpha?.Invoke(alpha);
     }
 
+    public event Action<float> EventOnFreezeTimerUpdated;
+    
+    public void FreezeTimerUpdated(float value) {this.EventOnFreezeTimerUpdated?.Invoke(value);}
     public event Action<float> EventOnPrepareTimerUpdated;
     
     public void PrepareTimerUpdate(float value) {this.EventOnPrepareTimerUpdated?.Invoke(value);}
@@ -27,5 +30,8 @@ public class HUDSO : ScriptableObject{
     public event Action<float> EventOnMatchTimerUpdated;
     
     public void MatchTimerUpdate(float value) {this.EventOnMatchTimerUpdated?.Invoke(value);}
+    
+    public event Action<float> EventOnRespawnTimerUpdated;
+    public void RespawnTimerUpdate(float value) {this.EventOnRespawnTimerUpdated?.Invoke(value);}
 }
 

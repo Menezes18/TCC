@@ -34,9 +34,9 @@ public class MatchManager : NetworkBehaviour
     [SerializeField] HUDSO HUDSO;
     private MatchStatus _status;
 
-    [SyncVar] float _prepareTimer;
-    [SyncVar] float _freezeTimer;
-    [SyncVar] float _matchTimer;
+    [SyncVar (hook = nameof(HookOnPrepareTimerUpdated))] float _prepareTimer;
+    [SyncVar (hook = nameof(HookOnFreezeTimerUpdated))] float _freezeTimer;
+    [SyncVar (hook = nameof(HookOnMatchTimerUpdated))] float _matchTimer;
     
     [SerializeField] List<Transform> _spawns;
     List<Transform> _excludedSpawns = new List<Transform>();
@@ -121,7 +121,7 @@ public class MatchManager : NetworkBehaviour
     void InternalStartMatch() 
     {
         _freezeTimer = db.serverFreezeDuration;
-        _prepareTimer = db.serverMatchDuration;
+        _matchTimer = db.serverMatchDuration;
         _matchHasStarted = true;
         
         foreach (PlayerData pd in PlayerList.singleton.players)
@@ -158,6 +158,21 @@ public class MatchManager : NetworkBehaviour
         }
         
         return random;
+    }
+
+    void HookOnPrepareTimerUpdated(float oldValue, float newValue)
+    {
+        HUDSO.PrepareTimerUpdate(newValue);
+    }  
+    
+    void HookOnFreezeTimerUpdated(float oldValue, float newValue)
+    {
+        HUDSO.FreezeTimerUpdated(newValue);
+    }  
+    
+    void HookOnMatchTimerUpdated(float oldValue, float newValue)
+    {
+        HUDSO.MatchTimerUpdate(newValue);
     }
     
 }

@@ -33,6 +33,7 @@ public class Database : ScriptableObject{
     public float playerAirSpeed;
     public float playerMaxAirSpeed;
     public LayerMask PlayerMask;
+    public float playerRespawnDuration;
 
     [Header("Player Push")]
     public float playerPushRadius;

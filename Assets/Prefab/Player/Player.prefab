@@ -911,6 +911,7 @@ GameObject:
   - component: {fileID: 5906918553485138008}
   - component: {fileID: 3554455238331668981}
   - component: {fileID: 1026117874726228845}
+  - component: {fileID: 2423500217306113757}
   - component: {fileID: 6178418409306749926}
   - component: {fileID: 3506028758495607294}
   m_Layer: 7
@@ -1305,6 +1306,51 @@ MonoBehaviour:
     type: 3}
   mainMenu: {fileID: 1858511555788565542, guid: 04e04a1ce31683545a68cd20fdf88c76,
     type: 3}
+  EventOnDeath:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1026117874726228845}
+        m_TargetAssemblyTypeName: PlayerMesh, Assembly-CSharp
+        m_MethodName: SetVisibility
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  EventOnDeathServerSide:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 2423500217306113757}
+        m_TargetAssemblyTypeName: PlayerRespawn, Assembly-CSharp
+        m_MethodName: ServerSetRespawnTimer
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  EventOnRespawn:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1026117874726228845}
+        m_TargetAssemblyTypeName: PlayerMesh, Assembly-CSharp
+        m_MethodName: SetVisibility
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
   aimWeigh: 0
 --- !u!114 &2734739208021378954
 MonoBehaviour:
@@ -1413,6 +1459,39 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   db: {fileID: 11400000, guid: d6c25b14977fb5445a4b66c63b66829e, type: 2}
   _smr: {fileID: 7416674552252758390}
+--- !u!114 &2423500217306113757
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9032602418151776553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5e9a1a6ac7aa674f916dfcaafa70e0f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  db: {fileID: 11400000, guid: d6c25b14977fb5445a4b66c63b66829e, type: 2}
+  hudso: {fileID: 11400000, guid: 159da097a9cb83941a79e616fe586e23, type: 2}
+  timer: 0
+  EventOnTimerExpired:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 4908738296727809224}
+        m_TargetAssemblyTypeName: PlayerScript, Assembly-CSharp
+        m_MethodName: RpcOnRespawn
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
 --- !u!114 &6178418409306749926
 MonoBehaviour:
   m_ObjectHideFlags: 0
