@@ -49,7 +49,7 @@ public class ColorChangePanel : MonoBehaviour{
         {
             bool occupied = buttons[i].interactable = playerList.ColorsAvailable.Contains(i) == true;
             buttons[i].interactable = occupied;
-            
+
             
         }
     }

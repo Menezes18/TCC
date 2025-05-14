@@ -700,6 +700,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     {
         InternalTeleport(pos, rot);
     }
+
+   
     void InternalTeleport(Vector3 pos, Quaternion rot)
     {
         _controller.enabled = false;
@@ -723,6 +725,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
     void InternalResetProperties()
     {
+        Status = PlayerStatus.Default;
+
         _move = Vector3.zero;
         _inertia = Vector3.zero;
         
@@ -756,8 +760,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         this.EventOnRespawn?.Invoke();
                 
         if(base.isOwned == false) return;
-        
-        
+
+        InternalResetProperties();
+        State = PlayerState.Default;
         
     }
     

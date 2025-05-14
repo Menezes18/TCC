@@ -4,16 +4,20 @@ public class PlayerMesh : MonoBehaviour
 {
     
     [SerializeField] Database db;
-    [SerializeField] SkinnedMeshRenderer _smr;
+    [SerializeField] SkinnedMeshRenderer[] _smr;
 
     public void SetMaterialColor(int id)
     {
-        _smr.material = db.playerColors[id].material;
+        _smr[0].material = db.playerColors[id].material;
     }
     
     
     public void SetVisibility(bool logic)
     {
-        _smr.enabled = logic;
+        foreach (var skinmesh in _smr)
+        {
+            skinmesh.enabled = logic;
+        
+        }
     }
 }

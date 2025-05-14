@@ -31,6 +31,13 @@ public class PlayerRespawn : NetworkBehaviour
         {
             this.EventOnTimerExpired?.Invoke();
             timer = -1;
+
+            PlayerScript ps = transform.GetComponent<PlayerScript>();
+            NetworkConnection conn = transform.GetComponent<NetworkIdentity>().connectionToClient;
+
+            Transform random = MatchManager.singleton.GetRandomSpawnPoint();
+
+            ps.TargetRpcTeleport(conn, random.position, random.rotation);
         }
         
     }

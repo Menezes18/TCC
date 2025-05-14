@@ -84,6 +84,7 @@ public class PlayerList : NetworkBehaviour{
         if (avaiable == true){
             
             ColorsAvailable.Remove(newColor);
+
             return newColor;
         }
         

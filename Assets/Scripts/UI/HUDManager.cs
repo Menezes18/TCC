@@ -33,12 +33,12 @@ public class HUDManager : MonoBehaviour
         int s = Mathf.FloorToInt(obj);
         string time = s.ToString();
 
-        if (s == 0){
+        if (s == -1){
             _respawnTimer.text = "";
             return;
         }
         
-        _respawnTimer.text = "Respawning in" + time + "seconds";
+        _respawnTimer.text = "Respawning in " + time + " seconds";
     }
 
 

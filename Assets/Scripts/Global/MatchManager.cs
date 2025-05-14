@@ -144,7 +144,14 @@ public class MatchManager : NetworkBehaviour
     {
         
     }
-    public Transform InternalGetRandomSpawnPoint()
+
+    [Server]
+    public Transform GetRandomSpawnPoint()
+    {
+        return InternalGetRandomSpawnPoint();
+    }
+
+    Transform InternalGetRandomSpawnPoint()
     {
         int randomIndex = Random.Range(0, _spawns.Count);
         Transform random = _spawns[randomIndex];
