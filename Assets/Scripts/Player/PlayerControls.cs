@@ -29,10 +29,13 @@ using UnityEngine.InputSystem;
             PlayerInputSO.OnThrow += PlayerInputSO_OnThrow;
             PlayerInputSO.OnMenuCelular += PlayerInputSO_OnMenuCelular;
             PlayerInputSO.OnRoll += PlayerInputSO_OnRoll;
+            PlayerInputSO.OnDebug += PlayerInputSOOnOnDebug;
 
 
         }
-        
+
+
+
         private void OnDestroy(){
             if (playerScript != null && playerScript.isLocalPlayer) {
                 PlayerInputSO.OnMove  -= PlayerInputSO_OnMove;
@@ -72,7 +75,7 @@ using UnityEngine.InputSystem;
         }
         private void PlayerInputSO_OnMove(CallbackContext obj)
         {
-            if (playerScript.panel)
+            if (playerScript.panel || MatchManager.singleton.Freeze)
             {
                 _rawX = 0;
                 _rawY = 0;
@@ -124,6 +127,13 @@ using UnityEngine.InputSystem;
             }
         }
        
+        private void PlayerInputSOOnOnDebug(CallbackContext obj)
+        {
+            if (obj.performed == true){
+                PlayerControlsSO.Debug();
+            }
+        }
+        
         private void EventMove(Vector2 obj){
             obj = obj.normalized;
             

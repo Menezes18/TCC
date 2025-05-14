@@ -17,6 +17,7 @@ public class PlayerControlsSO : ScriptableObject {
     //
     public event Action OnMenu;
     public event Action OnCursor;
+    public event Action OnDebug; 
 
 
 
@@ -29,6 +30,8 @@ public class PlayerControlsSO : ScriptableObject {
     public void ThrowCancel() { OnThrowCancel?.Invoke(); }
     public void MenuCelular() { OnMenu?.Invoke(); }
     // public void Cursor() { OnCursor?.Invoke(); }
+    
+    public void Debug() { OnDebug?.Invoke(); }
 
     public void EnableCursor()
     {

@@ -1,5 +1,6 @@
 using System.Collections;
 using Mirror;
+using Smooth;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -24,6 +25,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     [SerializeField] Database db;
     [SerializeField] PlayerControlsSO PlayerControlsSO;
     [SerializeField] HUDSO HUDSO;
+    [SerializeField] SmoothSyncMirror _smoothSyncMirror;
     
     [SerializeField] CharacterController _controller;
     [SerializeField] Animator _animator;
@@ -126,6 +128,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     
     //Public
     public bool IsAirborne => State == PlayerState.Ascend || State == PlayerState.Descend;
+    public bool isFrozen => MatchManager.singleton.Freeze;
 
     public Transform cameraTarget;
 
@@ -157,6 +160,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         PlayerControlsSO.OnRoll += PlayerControlsSO_OnRoll;
         PlayerControlsSO.OnThrow += PlayerControlsSO_OnThrow;
         PlayerControlsSO.OnThrowCancel += PlayerControlsSO_OnThrowCancel;
+        PlayerControlsSO.OnDebug += PlayerControlsSOOnOnDebug;
         
         //
         Cursor.visible = false;
@@ -447,6 +451,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     private void PlayerControlsSO_OnJump()
     {
         if(panel) return;
+        if(isFrozen) return;
         if(State != PlayerState.Default) return;
         
         if (_move.y > 0)
@@ -462,6 +467,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     private void PlayerControlsSO_OnPush()
     {
         if(panel) return;
+        if(isFrozen) return;
         if(State == PlayerState.Stagger) return;
         if(Status != PlayerStatus.Default || Status == PlayerStatus.Blinded) return;
         
@@ -472,6 +478,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     }
     private void PlayerControlsSO_OnRoll()
     {
+        if(isFrozen) return;
         if(panel) return;
         if(IsAirborne) return;
         if(State == PlayerState.Stagger) return;
@@ -488,7 +495,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     }
     private void PlayerControlsSO_OnThrow()
     {
-        if(panel) return;
+        if(isFrozen) return;
+        if(panel ) return;
         if(State == PlayerState.Stagger) return;
         if(Status != PlayerStatus.Default) return;
         if(Status == PlayerStatus.Throw) return;
@@ -501,6 +509,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     
     private void PlayerControlsSO_OnThrowCancel()
     {
+        if(isFrozen) return;
         if(panel) return;
         if (State == PlayerState.Stagger) return;
         if(Status == PlayerStatus.Pushing) return;
@@ -518,8 +527,14 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         );
         _throwCooldown = db.playerThrowCooldown;
     }
-
-
+    
+    // MUDAR ISSO AQUI DEPOIS
+    private void PlayerControlsSOOnOnDebug()
+    {
+        if(!base.isServer) return;
+        Debug.LogError("DEBUG: PlayerControlsSOOnOnDebug");
+        MatchManager.singleton.CmdPrepareMath();
+    }
     //
     private void OnStateChanged(PlayerState oldState, PlayerState newState)
     {
@@ -534,11 +549,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     public void ReceiveDamage(DamageType dmgType, Vector3 dir)
     {
         NetworkConnection coon = transform.GetComponent<NetworkIdentity>().connectionToClient;
-        RpcReceiveDamage(coon, dmgType, dir);
+        TargetRpcReceiveDamage(coon, dmgType, dir);
     }
     
     [TargetRpc]
-    public void RpcReceiveDamage(NetworkConnection coon, DamageType dmgType, Vector3 dir)
+    public void TargetRpcReceiveDamage(NetworkConnection coon, DamageType dmgType, Vector3 dir)
     {
         if (dmgType == DamageType.Poop){
 
@@ -670,6 +685,16 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         }
 
         Debug.Log($"[CLIENT] Player {netId} respawned at {position}");
+    }
+
+    [TargetRpc]
+    public void TargetRpcTeleport(NetworkConnection conn, Vector3 pos, Quaternion rot)
+    {
+        _controller.enabled = false;
+        transform.position = pos;
+        transform.rotation = rot;
+        _smoothSyncMirror.teleportOwnedObjectFromOwner();
+        _controller.enabled = true;
     }
     #endregion
 }

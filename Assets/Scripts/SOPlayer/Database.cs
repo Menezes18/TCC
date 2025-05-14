@@ -70,6 +70,7 @@ public class Database : ScriptableObject{
     public List<PlayerColor> playerColors;
     
     public float serverPrepareDuration;
+    public float serverFreezeDuration;
     public float serverMatchDuration;
 
 }

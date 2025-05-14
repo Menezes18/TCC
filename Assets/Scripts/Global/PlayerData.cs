@@ -30,9 +30,9 @@ public class PlayerData : NetworkBehaviour{
       }
       
       //
+      CmdNetworkAlias();
       if(base.isOwned == false) return;
  
-      CmdNetworkAlias();
       
       //
       int lastColor = PlayerPrefs.GetInt("lastcolor", 1);
