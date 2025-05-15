@@ -50,6 +50,8 @@ public class PlayerRespawn : NetworkBehaviour
 
     void HookOnTimerUpdate(float oldVal, float newVal)
     {
+        if (!isLocalPlayer) return;
+        
         if(timer == -1) return;
         hudso.RespawnTimerUpdate(newVal);
     }

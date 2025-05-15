@@ -46,6 +46,7 @@ public class PlayerData : NetworkBehaviour{
       PlayerDataSO.EventOnColorRequest += PlayerDataSOOnEventOnColorRequest;
       
       SteamInitialization();
+      CmdNetworkAlias();
 
       //
       if (base.isServer == true)
@@ -56,7 +57,6 @@ public class PlayerData : NetworkBehaviour{
       
       //
       if(base.isOwned == false) return;
-      CmdNetworkAlias();
  
       
       //
