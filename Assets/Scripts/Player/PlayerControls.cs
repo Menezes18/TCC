@@ -51,7 +51,7 @@ using UnityEngine.InputSystem;
         
         private void Update(){
 
-            if (playerScript.panel)
+            if (playerScript.panel || playerScript.isFrozen)
             {
                 _rawX = 0;
                 _rawY = 0;

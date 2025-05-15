@@ -15,8 +15,8 @@ public class VehicleLane : MonoBehaviour
     float laneWidth = 5f;
     float gizmoVerticalOffset = 0.1f;
     
-    [SerializeField] private float speed = 1f;
-    [SerializeField] private float offset = 0f;
+    public float speed = 1f;
+    public float offset = 0f;
 
     
     float Speed => speed * 0.01f;

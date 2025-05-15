@@ -30,8 +30,8 @@ public class PlayerData : NetworkBehaviour{
       }
       
       //
-      CmdNetworkAlias();
       if(base.isOwned == false) return;
+      CmdNetworkAlias();
  
       
       //
@@ -59,7 +59,7 @@ public class PlayerData : NetworkBehaviour{
       }
       else
       {
-         chosenName = "Menezes";
+         chosenName = "Mamaco";
       }
 
       alias = chosenName;

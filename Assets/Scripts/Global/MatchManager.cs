@@ -41,6 +41,10 @@ public class MatchManager : NetworkBehaviour
     [SerializeField] List<Transform> _spawns;
     List<Transform> _excludedSpawns = new List<Transform>();
 
+    List<PlayerData> _activePlayers = new List<PlayerData>();
+    List<PlayerData> _winnerPlayers = new List<PlayerData>();
+    
+    
     private bool _matchHasStarted;
 
     public bool Freeze => _freezeTimer > 0; 
@@ -113,7 +117,9 @@ public class MatchManager : NetworkBehaviour
     [Server]
     void InternalPrepareMath() 
     {
-
+        _activePlayers.Clear();
+        _winnerPlayers.Clear();
+        
         _prepareTimer = db.serverPrepareDuration;
 
     }
@@ -134,6 +140,8 @@ public class MatchManager : NetworkBehaviour
             Debug.DrawRay(randomSpawn.position,Vector3.up * 100, Color.green, 10);
             
             ps.TargetRpcTeleport(conn, randomSpawn.position, randomSpawn.rotation);
+            
+            _activePlayers.Add(pd);
 
         }
         
