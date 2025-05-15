@@ -1,4 +1,3 @@
-
 using Mirror;
 using UnityEngine;
 using Steamworks;
@@ -6,22 +5,48 @@ using UnityEngine.Events;
 using Random = UnityEngine.Random;
 
 [System.Serializable]
+public struct PlayerInfoData 
+{
+   public string username;
+   public ulong steamId;
+
+   public PlayerInfoData(string username, ulong steamId)
+   {
+      this.username = username;
+      this.steamId = steamId;
+   }
+}
+
+[System.Serializable]
 public class PlayerData : NetworkBehaviour{
    private PlayerList playerList => PlayerList.singleton;
    
    [SerializeField] PlayerDataSO PlayerDataSO;
    
+   
+   [SyncVar(hook = nameof(PlayerInfoUpdate))] public PlayerInfoData playerInfo;
    [SyncVar (hook = nameof(HookOnAliasUpdated))] public string alias; // name steam
    [SyncVar (hook = nameof(HookOnColorUpdated))] public int color = -1;
    [SyncVar] public int score;
-
+   
    public UnityEvent<string> OnAliasUpdated;
    public UnityEvent<int> OnColorUpdated;
 
+   // Steam e lobby
+   [SyncVar(hook = nameof(IsReadyUpdate))]
+   public bool IsReady;
+   [SyncVar]
+   public bool isPartyOwner = false;
+   public CharacterSkinElement characterInstance { get; set; }
+   protected Callback<AvatarImageLoaded_t> avatarImageLoaded;
+   public Sprite icon { get; private set; }
+   
    private void Start()
    {
       PlayerDataSO.EventOnColorRequest += PlayerDataSOOnEventOnColorRequest;
       
+      SteamInitialization();
+
       //
       if (base.isServer == true)
       {
@@ -38,8 +63,22 @@ public class PlayerData : NetworkBehaviour{
       int lastColor = PlayerPrefs.GetInt("lastcolor", 1);
       CmdRequestColor(lastColor);
    }
+
+   private void SteamInitialization()
+   {
+      if (NetworkManager.singleton != null)
+         ((MyNetworkManager)NetworkManager.singleton).allClients.Add(this);
+        
+
+      if(CharacterSkinHandler.instance) CharacterSkinHandler.instance.SpawnCharacterMesh(this);
+      avatarImageLoaded = Callback<AvatarImageLoaded_t>.Create(OnAvatarImageLoaded);
+   }
+
    private void OnDestroy()
    {
+      if (this && ((MyNetworkManager)NetworkManager.singleton))
+         ((MyNetworkManager)NetworkManager.singleton).allClients.Remove(this);
+      
       if (base.isServer == true)
          PlayerList.singleton.RemoveFromList(this);
       
@@ -99,8 +138,53 @@ public class PlayerData : NetworkBehaviour{
    void PlayerDataSOOnEventOnColorRequest(int obj)
    {
       if(!isOwned) return;
-      Debug.LogError(this.gameObject.name + ": PlayerDataSOOnEventOnColorRequest");
+      
       CmdRequestColor(obj);
    }
-  
+
+   #region Steam e Lobby
+
+   
+   private void PlayerInfoUpdate(PlayerInfoData _, PlayerInfoData data)
+   {
+
+      if (SteamManager.Initialized && !MyNetworkManager.manager.testMode)
+      {
+         SetIcon(new CSteamID(data.steamId));
+      }
+   }
+   public void IsReadyUpdate(bool _, bool value) 
+   {
+      if (isLocalPlayer) 
+      {
+         MainMenu.instance.UpdateReadyButton(value);
+      }
+   }
+   private void OnAvatarImageLoaded(AvatarImageLoaded_t callback)
+   {
+      if (!SteamManager.Initialized || MyNetworkManager.manager.testMode)
+         return;
+      Debug.Log("Avatar loaded " + callback.m_steamID);
+      if (callback.m_steamID.m_SteamID != playerInfo.steamId) return;
+      SetIcon(callback.m_steamID);
+        
+   }
+   void SetIcon(CSteamID steamId)
+   {
+      if (!SteamManager.Initialized) 
+         return;
+      Texture2D tex = SteamHelper.GetAvatar(steamId);
+      if (tex)
+         icon = SteamHelper.ConvertTextureToSprite(tex);
+   }
+   
+   public void ToggleReady() => Cmd_ToggleReady();
+
+   [Command]
+   private void Cmd_ToggleReady() 
+   {
+      IsReady = !IsReady;
+   }
+   #endregion
+   
 }

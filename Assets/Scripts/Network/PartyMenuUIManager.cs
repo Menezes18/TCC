@@ -5,33 +5,20 @@ using UnityEngine.UI;
 
 public class PartyMenuUIManager : MonoBehaviour{
     public static PartyMenuUIManager Manager; 
-    // Referência ao painel do menu que será ativado/desativado na cena.
     public GameObject[] partyMenuPanel;
 
-    // Referência para o LobbyPlayer local que será definido no OnStartLocalPlayer.
-    public MyClient localLobbyPlayer;
+    public PlayerData localLobbyPlayer;
 
     private void Awake()
     {
         Manager = this;
     }
-
-    void Start()
-    {
-        // if (partyMenuPanel != null)
-        // {
-        //     foreach (var menu in partyMenuPanel){
-        //         menu.SetActive(false);
-        //     }
-        // }
-    }
+    
 
     void Update()
     {
-        // Apenas o jogador dono pode abrir o menu, verifique a flag isPartyOwner.
         if (localLobbyPlayer != null && localLobbyPlayer.isPartyOwner)
         {
-            // Exemplo: se pressionar "M", alterna a visibilidade do menu.
             if (Keyboard.current.mKey.wasReleasedThisFrame)
             {
                 TogglePartyMenu();
@@ -43,7 +30,7 @@ public class PartyMenuUIManager : MonoBehaviour{
         }
     }
 
-    public void SetLobbyPlayer(MyClient player)
+    public void SetLobbyPlayer(PlayerData player)
     {
         localLobbyPlayer = player;
     }
@@ -82,5 +69,4 @@ public class PartyMenuUIManager : MonoBehaviour{
         }
     }
 
-    // Você pode adicionar funções similares para "Convidar Jogadores" se sua lógica de convite estiver implementada.
 }

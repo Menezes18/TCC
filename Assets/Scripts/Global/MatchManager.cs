@@ -7,13 +7,6 @@ using System.Linq;
 using Smooth;
 using Random = UnityEngine.Random;
 
-public enum MatchStatus{
-    
-    Awaiting,
-    Lobby,
-    Ongoing,
-    
-}
 
 public class MatchManager : NetworkBehaviour
 {
@@ -32,7 +25,6 @@ public class MatchManager : NetworkBehaviour
     PlayerList playerList => PlayerList.singleton;
     [SerializeField] Database db;
     [SerializeField] HUDSO HUDSO;
-    private MatchStatus _status;
 
     [SyncVar (hook = nameof(HookOnPrepareTimerUpdated))] float _prepareTimer;
     [SyncVar (hook = nameof(HookOnFreezeTimerUpdated))] float _freezeTimer;
@@ -151,8 +143,50 @@ public class MatchManager : NetworkBehaviour
     void InternalEndMatch()
     {
         
+        
+        
+        LeanTween.delayedCall(2.0f, () =>
+        {
+            foreach (PlayerData pd in _activePlayers)
+            {
+                PlayerScript ps = pd.transform.GetComponent<PlayerScript>();
+                ps = pd.transform.GetComponent<PlayerScript>();
+                NetworkConnection conn = pd.transform.GetComponent<NetworkIdentity>().connectionToClient;
+                Transform spawn = NetworkManager.startPositions[0];
+                
+                Debug.DrawRay(spawn.position,Vector3.up * 100, Color.green, 10);
+            
+                ps.TargetRpcTeleport(conn, spawn.position, spawn.rotation);
+                
+
+            }
+        });
+        
+        _matchHasStarted = false;
+        _matchTimer = -1;
+        _freezeTimer = -1;
+        _prepareTimer = -1;
     }
 
+    [Server]
+    public void AddWinnerPlayer(PlayerData pd)
+    {
+        if(_winnerPlayers.Contains(pd)) return;
+        
+        _winnerPlayers.Add(pd);
+        
+        ServerCheckResults();
+    }
+
+    [Server]
+    void ServerCheckResults()
+    {
+        if(_activePlayers.Count == _winnerPlayers.Count) 
+        {
+            InternalEndMatch();
+        }
+            
+    }
     [Server]
     public Transform GetRandomSpawnPoint()
     {

@@ -26,12 +26,14 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public static bool isMulitplayer;
     public static MyNetworkManager manager { get; internal set; }
 
-    public List<MyClient> allClients = new List<MyClient>();
+    public List<PlayerData> allClients = new List<PlayerData>();
     public int minJogadores = 1;
+    
     [SerializeField]
     public PlayerScoreboard scoreboard = new PlayerScoreboard();
     private Dictionary<ulong, DataPlayer> pointsBoard = new Dictionary<ulong, DataPlayer>();
     public HSteamNetConnection steamConnection = HSteamNetConnection.Invalid;
+    
     [Header("Para funcionar sem a steam")]
     public bool testMode = false;
     static ulong nextFakeId = 1;
@@ -68,7 +70,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
         base.OnServerAddPlayer(conn);
 
-        MyClient client = conn.identity.GetComponent<MyClient>();
+        PlayerData client = conn.identity.GetComponent<PlayerData>();
         // allClients.Add(client);
         if (testMode)
         {
@@ -95,8 +97,6 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             pointsBoard[client.playerInfo.steamId] = playerData;
             scoreboard.players.Add(playerData);
         }
-        Debug.Log("Conectados" + allClients.Count);
-        if(allClients.Count >= minJogadores) iniciaContador();
         CharacterSkinHandler.instance.DestroyMesh();
         Notifica();
     }
@@ -131,7 +131,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     }
     public override void OnServerDisconnect(NetworkConnectionToClient conn)
     {
-        var client = conn.identity?.GetComponent<MyClient>();
+        var client = conn.identity?.GetComponent<PlayerData>();
         if (client != null)
         {
             allClients.Remove(client);
@@ -224,11 +224,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         
             NetworkServer.dontListen = true;
     }
-
-    public void iniciaContador(){
-        ContadorTempo temp = GameObject.Find("Temporizador").GetComponent<ContadorTempo>();
-        temp.IniciarContador();
-    }
+    
 
     public void Adicionar(IObserverPontos observer)
     {

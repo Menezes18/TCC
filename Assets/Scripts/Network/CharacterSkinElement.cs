@@ -11,7 +11,7 @@ public class CharacterSkinElement : MonoBehaviour
     [Header("Posição da nametag (setar no Inspector)")]
     public Transform nametagPos;
 
-    public MyClient client { get; private set; }
+    public PlayerData client { get; private set; }
     public CSteamID steamId { get; private set; }
     public NametagMarker nametagMarker { get; set; }
 
@@ -66,7 +66,7 @@ public class CharacterSkinElement : MonoBehaviour
     }
 
     private string _name;
-    public void Initialize(MyClient client, bool _isReady)
+    public void Initialize(PlayerData client, bool _isReady)
     {
         Debug.Log($"[Initialize] chamado com client={(client==null?"null":client.name)}, _isReady={_isReady}");
 

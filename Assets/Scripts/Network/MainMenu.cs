@@ -120,7 +120,7 @@ public class MainMenu : MonoBehaviour
     public void ToggleReady()
     {
         if (!NetworkClient.active) return;
-        NetworkClient.localPlayer.GetComponent<MyClient>().ToggleReady();
+        NetworkClient.localPlayer.GetComponent<PlayerData>().ToggleReady();
     }
 
     public void UpdateReadyButton(bool value)

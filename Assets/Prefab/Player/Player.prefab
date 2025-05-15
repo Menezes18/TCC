@@ -904,7 +904,6 @@ GameObject:
   - component: {fileID: 8150701183189303020}
   - component: {fileID: 7585418669638449002}
   - component: {fileID: 955949767500222104}
-  - component: {fileID: -8974048300039733634}
   - component: {fileID: 4374977253332207120}
   - component: {fileID: 4908738296727809224}
   - component: {fileID: 2734739208021378954}
@@ -1233,26 +1232,6 @@ MonoBehaviour:
   syncInterval: 0
   clientAuthority: 1
   animator: {fileID: 7585418669638449002}
---- !u!114 &-8974048300039733634
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9032602418151776553}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4c4b5dc7895a402408126e4e9a847dd6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
-  playerInfo:
-    username: 
-    steamId: 0
-  IsReady: 0
-  isPartyOwner: 0
 --- !u!114 &4374977253332207120
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1409,6 +1388,9 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   PlayerDataSO: {fileID: 11400000, guid: 3bc1b6b0368f96e42be976d93657b6c0, type: 2}
+  playerInfo:
+    username: 
+    steamId: 0
   alias: 
   color: 0
   score: 0
@@ -1454,6 +1436,8 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  IsReady: 0
+  isPartyOwner: 0
 --- !u!114 &3554455238331668981
 MonoBehaviour:
   m_ObjectHideFlags: 0

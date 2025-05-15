@@ -66,7 +66,7 @@ public class HUDManager : MonoBehaviour
     private void HUDSOOnEventOnMatchTimerUpdated(float obj)
     {
         if (Mathf.RoundToInt(obj) == -1){
-            _freezeTimer.text = "";
+            _matchTimer.text = "";
             return;
         }
         _matchTimer.text = CustomMath.FormatTimer(obj);

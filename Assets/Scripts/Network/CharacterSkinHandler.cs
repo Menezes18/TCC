@@ -49,7 +49,7 @@ public class CharacterSkinHandler : MonoBehaviour
         //     SpawnCharacterMesh(null);
         // }
     }
-    public void SpawnCharacterMesh(MyClient client)
+    public void SpawnCharacterMesh(PlayerData client)
     {
         if (client == null)
         {
@@ -82,10 +82,7 @@ public class CharacterSkinHandler : MonoBehaviour
             return;
         }
 
-        // Instancia e inicializa
-        GameObject go = Instantiate(characterSkinPrefab, spawnPositions[index]);
-        spawnGameObjects[index]   = go;
-        clientsCharacters[index]  = go.GetComponent<CharacterSkinElement>();
+        
 
         if (clientsCharacters[index] == null)
         {
@@ -94,13 +91,12 @@ public class CharacterSkinHandler : MonoBehaviour
         }
 
         clientsCharacters[index].Initialize(client, client.IsReady);
-        client.characterInstance = clientsCharacters[index];
     }
 
     /// <summary>
     /// Retorna o próximo slot livre (0 reservado pro localPlayer).
     /// </summary>
-    public int GetNextPlatformIndex(MyClient client)
+    public int GetNextPlatformIndex(PlayerData client)
     {
         if (client.isLocalPlayer)
             return 0;

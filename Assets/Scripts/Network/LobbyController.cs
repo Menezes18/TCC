@@ -45,7 +45,7 @@ public class LobbyController : MonoBehaviour
 
     private bool AllPlayersReady() 
     {
-        foreach (MyClient client in ((MyNetworkManager)NetworkManager.singleton).allClients)
+        foreach (PlayerData client in ((MyNetworkManager)NetworkManager.singleton).allClients)
             if (!client.IsReady)
                 return false;
         return true;
