@@ -23,7 +23,7 @@ public enum PlayerStatus{
     ThrowPrepare,
     Throw,
 }
-public class PlayerScript : NetworkBehaviour, IDamageable
+public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 {
     [SerializeField] Database db;
     [SerializeField] PlayerControlsSO PlayerControlsSO;
@@ -614,6 +614,14 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     {
         _staggerIndicator.gameObject.SetActive(newValue);
     }
+
+    public void OnHitKill()
+    {
+        if(base.isOwned == false) return;
+        
+        InternalDeath();
+    }
+    
     #region Menu
     private void EventOnCelularMenu()
     {
