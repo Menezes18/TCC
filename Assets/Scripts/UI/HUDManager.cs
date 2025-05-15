@@ -30,10 +30,10 @@ public class HUDManager : MonoBehaviour
 
     private void HUDSOOnEventOnRespawnTimerUpdated(float obj)
     {
-        int s = Mathf.FloorToInt(obj);
+        int s = Mathf.RoundToInt(obj);
         string time = s.ToString();
 
-        if (s == -1){
+        if (s == 0){
             _respawnTimer.text = "";
             return;
         }
