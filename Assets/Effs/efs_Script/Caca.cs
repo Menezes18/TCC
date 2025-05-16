@@ -22,7 +22,7 @@ public class Caca : MonoBehaviour
             shapekeyObject.SetBlendShapeWeight(0,t);
             yield return new WaitForSeconds(shapekeyRefreshRate);
         }
-        yield return new WaitForSeconds(5f);
+        //yield return new WaitForSeconds(5f);
         while (t < 100)
         {
             t += shapekeyRate;
@@ -30,8 +30,7 @@ public class Caca : MonoBehaviour
             yield return new WaitForSeconds(shapekeyRefreshRate);
         }
         Debug.Log("shapekeyObject");
-        transform.position = Vector3.zero;
-        gameObject.SetActive(false);
+        
     }
     
 }
