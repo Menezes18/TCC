@@ -11,7 +11,7 @@ public class ColorChangePanel : MonoBehaviour{
     [SerializeField] Transform _gridRoot;
 
     [SerializeField] Transform _customButtonPrefab;
-    private List<CustomButton> buttons = new List<CustomButton>();
+    [SerializeField] private List<CustomButton> buttons = new List<CustomButton>();
 
     private void Start()
     {
@@ -28,6 +28,7 @@ public class ColorChangePanel : MonoBehaviour{
             CustomButton cb = instance.GetComponent<CustomButton>();
             
             cb.Sprite.color = db.playerColors[i].color;
+            buttons.Add(cb);
         }
         
         //
@@ -49,6 +50,7 @@ public class ColorChangePanel : MonoBehaviour{
         {
             bool occupied = buttons[i].interactable = playerList.ColorsAvailable.Contains(i) == true;
             buttons[i].interactable = occupied;
+
 
             
         }

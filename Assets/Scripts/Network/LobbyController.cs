@@ -3,22 +3,51 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
-public class LobbyController : MonoBehaviour
+public class LobbyController : NetworkBehaviour
 {
-    public static LobbyController instance;
+    #region Singleton Setup
+
+    public static LobbyController singleton;
 
     private void Awake()
     {
-        instance = this;
+        singleton = this;
     }
 
+    #endregion
+
+    [SyncVar(hook = nameof(HookOnPrepareTimerUpdated))] float _prepareTimer;
+    [SerializeField] Database db;
+    [SerializeField] HUDSO HUDSO;
+
+    
+    List<Scene> scenes = new List<Scene>();
+
+    private void Start()
+    {
+        _prepareTimer = -1;
+    }
+
+    private void Update()
+    {
+
+        if (_prepareTimer > 0)
+            _prepareTimer -= Time.deltaTime;
+
+        if (_prepareTimer <= 0 && _prepareTimer != -1)
+        {
+            //InternalStartMatch();
+            _prepareTimer = -1;
+        }
+    }
 
     public void StartGameWithParty() 
     {
         if (AllPlayersReady()) 
         {
-            StartGame();
+            
         }
     }
 
@@ -35,13 +64,13 @@ public class LobbyController : MonoBehaviour
             yield return new WaitForEndOfFrame();
 
         ((MyNetworkManager)NetworkManager.singleton).SetMultiplayer(false);
-        StartGame();
     }
 
-    private void StartGame()
+    void HookOnPrepareTimerUpdated(float oldValue, float newValue)
     {
-        NetworkManager.singleton.ServerChangeScene("MiniGame");
+        HUDSO.PrepareTimerUpdate(newValue);
     }
+
 
     private bool AllPlayersReady() 
     {

@@ -26,7 +26,7 @@ public class MatchManager : NetworkBehaviour
     [SerializeField] Database db;
     [SerializeField] HUDSO HUDSO;
 
-    [SyncVar (hook = nameof(HookOnPrepareTimerUpdated))] float _prepareTimer;
+
     [SyncVar (hook = nameof(HookOnFreezeTimerUpdated))] float _freezeTimer;
     [SyncVar (hook = nameof(HookOnMatchTimerUpdated))] float _matchTimer;
     
@@ -49,25 +49,23 @@ public class MatchManager : NetworkBehaviour
 
         _matchTimer = -1;
         _freezeTimer = -1;
-        _prepareTimer = -1;
-        
+
+        LeanTween.delayedCall(2.0f, () =>
+        { 
+        InternalStartMatch();
+
+        });
+
     }
 
     private void Update()
     {
         if(base.isServer == false) return;
         
-        if (_prepareTimer > 0)
-            _prepareTimer -= Time.deltaTime;
-
-        if (_prepareTimer <= 0 && _prepareTimer != -1){
-            InternalStartMatch();
-            _prepareTimer = -1;
-        }
+        
         
         if(_matchHasStarted == false) return;
         
-        if(_prepareTimer >= 0) return;
         
         if(_freezeTimer > 0)
             _freezeTimer -= Time.deltaTime;
@@ -99,7 +97,6 @@ public class MatchManager : NetworkBehaviour
     [Command(requiresAuthority = false)]
     public void CmdPrepareMath() {
         
-        if(_prepareTimer > 0) return;
         if(_matchTimer > 0) return;
         
         
@@ -112,7 +109,6 @@ public class MatchManager : NetworkBehaviour
         _activePlayers.Clear();
         _winnerPlayers.Clear();
         
-        _prepareTimer = db.serverPrepareDuration;
 
     }
     [Server]
@@ -124,6 +120,8 @@ public class MatchManager : NetworkBehaviour
         
         foreach (PlayerData pd in PlayerList.singleton.players)
         {
+            if (_activePlayers.Contains(pd)) return;
+
             PlayerScript ps = pd.transform.GetComponent<PlayerScript>();
             ps = pd.transform.GetComponent<PlayerScript>();
             NetworkConnection conn = pd.transform.GetComponent<NetworkIdentity>().connectionToClient;
@@ -132,7 +130,8 @@ public class MatchManager : NetworkBehaviour
             Debug.DrawRay(randomSpawn.position,Vector3.up * 100, Color.green, 10);
             
             ps.TargetRpcTeleport(conn, randomSpawn.position, randomSpawn.rotation);
-            
+
+
             _activePlayers.Add(pd);
 
         }
@@ -165,7 +164,6 @@ public class MatchManager : NetworkBehaviour
         _matchHasStarted = false;
         _matchTimer = -1;
         _freezeTimer = -1;
-        _prepareTimer = -1;
     }
 
     [Server]
@@ -209,11 +207,6 @@ public class MatchManager : NetworkBehaviour
         return random;
     }
 
-    void HookOnPrepareTimerUpdated(float oldValue, float newValue)
-    {
-        HUDSO.PrepareTimerUpdate(newValue);
-    }  
-    
     void HookOnFreezeTimerUpdated(float oldValue, float newValue)
     {
         HUDSO.FreezeTimerUpdated(newValue);

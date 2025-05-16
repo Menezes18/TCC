@@ -80,7 +80,7 @@ public class MainMenu : MonoBehaviour
 
     public void StartSinglePlayer()
     {
-        LobbyController.instance.StartGameSolo();
+        LobbyController.singleton.StartGameSolo();
     }
 
     public void LeaveParty()
@@ -102,7 +102,7 @@ public class MainMenu : MonoBehaviour
 
     public void StartGame()
     {
-        LobbyController.instance.StartGameWithParty();
+        LobbyController.singleton.StartGameWithParty();
     }
 
     public void StartLocalClient()
