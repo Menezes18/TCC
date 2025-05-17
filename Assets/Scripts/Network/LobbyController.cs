@@ -23,11 +23,14 @@ public class LobbyController : NetworkBehaviour
     [SerializeField] HUDSO HUDSO;
 
     
-    List<Scene> scenes = new List<Scene>();
+    [SerializeField]
+    private List<string> minigameSceneNames = new List<string>();
+
 
     private void Start()
     {
         _prepareTimer = -1;
+        
     }
 
     private void Update()
@@ -36,9 +39,10 @@ public class LobbyController : NetworkBehaviour
         if (_prepareTimer > 0)
             _prepareTimer -= Time.deltaTime;
 
-        if (_prepareTimer <= 0 && _prepareTimer != -1)
-        {
-            //InternalStartMatch();
+        if (_prepareTimer <= 0 && _prepareTimer != -1){
+            
+            ChangeToRandomMinigame();
+            
             _prepareTimer = -1;
         }
     }
@@ -51,7 +55,20 @@ public class LobbyController : NetworkBehaviour
         }
     }
 
+    [Command(requiresAuthority = false)]
+    public void CmdPrepareMath() {
+        
+        if(_prepareTimer > 0) return;
+        
+        
+        InternalPrepareMath();
+    }
+    [Server]
+    void InternalPrepareMath() 
+    {
+        _prepareTimer = db.serverPrepareDuration;
 
+    }
     public void StartGameSolo()
     {
         StartCoroutine(StartSinglePlayer());
@@ -71,7 +88,15 @@ public class LobbyController : NetworkBehaviour
         HUDSO.PrepareTimerUpdate(newValue);
     }
 
-
+    void ChangeToRandomMinigame()
+    {
+        if (minigameSceneNames.Count == 0) return;
+        int idx = UnityEngine.Random.Range(0, minigameSceneNames.Count);
+        string sceneToLoad = minigameSceneNames[idx];
+        NetworkManager.singleton.ServerChangeScene(sceneToLoad);
+        //MyNetworkManager.manager.ChangeScenePlayer(PlayerList.singleton.players[0],sceneToLoad);
+    }
+    
     private bool AllPlayersReady() 
     {
         foreach (PlayerData client in ((MyNetworkManager)NetworkManager.singleton).allClients)

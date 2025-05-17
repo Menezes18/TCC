@@ -904,10 +904,10 @@ GameObject:
   - component: {fileID: 8150701183189303020}
   - component: {fileID: 7585418669638449002}
   - component: {fileID: 955949767500222104}
+  - component: {fileID: 5906918553485138008}
   - component: {fileID: 4374977253332207120}
   - component: {fileID: 4908738296727809224}
   - component: {fileID: 2734739208021378954}
-  - component: {fileID: 5906918553485138008}
   - component: {fileID: 3554455238331668981}
   - component: {fileID: 1026117874726228845}
   - component: {fileID: 2423500217306113757}
@@ -1232,6 +1232,72 @@ MonoBehaviour:
   syncInterval: 0
   clientAuthority: 1
   animator: {fileID: 7585418669638449002}
+--- !u!114 &5906918553485138008
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9032602418151776553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c025915f001975a4d9c8ff8e4ddc94e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  PlayerDataSO: {fileID: 11400000, guid: 3bc1b6b0368f96e42be976d93657b6c0, type: 2}
+  playerInfo:
+    username: 
+    steamId: 0
+  alias: 
+  color: -1
+  score: 0
+  OnAliasUpdated:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 3554455238331668981}
+        m_TargetAssemblyTypeName: PlayerNameplate, Assembly-CSharp
+        m_MethodName: SetNameplate
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  OnColorUpdated:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 3554455238331668981}
+        m_TargetAssemblyTypeName: PlayerNameplate, Assembly-CSharp
+        m_MethodName: SetColor
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 1026117874726228845}
+        m_TargetAssemblyTypeName: PlayerMesh, Assembly-CSharp
+        m_MethodName: SetMaterialColor
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  IsReady: 0
+  isPartyOwner: 0
 --- !u!114 &4374977253332207120
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1372,72 +1438,6 @@ MonoBehaviour:
   syncInterval: 0
   db: {fileID: 11400000, guid: d6c25b14977fb5445a4b66c63b66829e, type: 2}
   _affectedPlayer: []
---- !u!114 &5906918553485138008
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9032602418151776553}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c025915f001975a4d9c8ff8e4ddc94e8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
-  PlayerDataSO: {fileID: 11400000, guid: 3bc1b6b0368f96e42be976d93657b6c0, type: 2}
-  playerInfo:
-    username: 
-    steamId: 0
-  alias: 
-  color: 0
-  score: 0
-  OnAliasUpdated:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 3554455238331668981}
-        m_TargetAssemblyTypeName: PlayerNameplate, Assembly-CSharp
-        m_MethodName: SetNameplate
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  OnColorUpdated:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 3554455238331668981}
-        m_TargetAssemblyTypeName: PlayerNameplate, Assembly-CSharp
-        m_MethodName: SetColor
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 1026117874726228845}
-        m_TargetAssemblyTypeName: PlayerMesh, Assembly-CSharp
-        m_MethodName: SetMaterialColor
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  IsReady: 0
-  isPartyOwner: 0
 --- !u!114 &3554455238331668981
 MonoBehaviour:
   m_ObjectHideFlags: 0

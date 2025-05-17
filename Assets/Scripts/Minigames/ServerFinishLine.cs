@@ -1,3 +1,4 @@
+using System;
 using Mirror;
 using UnityEngine;
 
@@ -5,9 +6,15 @@ public class ServerFinishLine : NetworkBehaviour
 {
     MatchManager MatchManager => MatchManager.singleton;
 
-    // Unity Message | 0 references
+
+    private void Start()
+    {
+        Debug.LogError(this.gameObject.name);
+    }
+
     void OnTriggerEnter(Collider other)
     {
+        
         if (base.isServer == false) return;
 
         if(!other.transform.root.CompareTag("Player")) return;

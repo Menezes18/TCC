@@ -550,7 +550,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if(!base.isServer) return;
         Debug.LogError("DEBUG: PlayerControlsSOOnOnDebug");
-        MatchManager.singleton.CmdPrepareMath();
+        //LobbyController.singleton.
+        LobbyController.singleton.CmdPrepareMath();
     }
     //
     private void OnStateChanged(PlayerState oldState, PlayerState newState)

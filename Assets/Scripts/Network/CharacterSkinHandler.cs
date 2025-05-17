@@ -121,7 +121,7 @@ public class CharacterSkinHandler : MonoBehaviour
     }
 
     [Server]
-    public void DestroyCharacterMesh(MyClient client)
+    public void DestroyCharacterMesh(PlayerData client)
     {
         for (int i = 0; i < clientsCharacters.Length; i++)
         {

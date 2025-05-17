@@ -22,6 +22,7 @@ public class PlayerData : NetworkBehaviour{
    private PlayerList playerList => PlayerList.singleton;
    
    [SerializeField] PlayerDataSO PlayerDataSO;
+   [SerializeField] Database db;
    
    
    [SyncVar(hook = nameof(PlayerInfoUpdate))] public PlayerInfoData playerInfo;
@@ -46,24 +47,25 @@ public class PlayerData : NetworkBehaviour{
       PlayerDataSO.EventOnColorRequest += PlayerDataSOOnEventOnColorRequest;
       
       SteamInitialization();
-      CmdNetworkAlias();
 
       //
       if (base.isServer == true)
       {
          PlayerList.singleton.AddToList(this);
-         
       }
       
       //
       if(base.isOwned == false) return;
  
+      var managerColor = MyNetworkManager.manager.pointsBoard[playerInfo.steamId].color;
       
-      //
-      int lastColor = PlayerPrefs.GetInt("lastcolor", 1);
-      CmdRequestColor(lastColor);
+      
+      // 
    }
-
+   
+   
+   
+   
    private void SteamInitialization()
    {
       if (NetworkManager.singleton != null)
@@ -91,7 +93,7 @@ public class PlayerData : NetworkBehaviour{
    void CmdNetworkAlias()
    {
       string chosenName;
-      if (SteamManager.Initialized && SteamUser.BLoggedOn())
+      if (SteamManager.Initialized)
       {
          CSteamID myId = SteamUser.GetSteamID();
          chosenName = SteamFriends.GetFriendPersonaName(myId);
@@ -121,6 +123,10 @@ public class PlayerData : NetworkBehaviour{
    {
       Debug.LogError(value + " is not a valid color");
       color = playerList.ServerRequestColor(color, value);
+
+     
+      var playerData = GetComponent<PlayerData>();
+      MyNetworkManager.manager.pointsBoard[playerData.playerInfo.steamId].color = value;
    }
    
    //
@@ -132,9 +138,20 @@ public class PlayerData : NetworkBehaviour{
    void HookOnColorUpdated(int oldVal, int newVal)
    {
       this.OnColorUpdated?.Invoke(newVal);
+      if (isServer)
+      {
+         var steamId = playerInfo.steamId;
+         if (MyNetworkManager.manager.pointsBoard.TryGetValue(steamId, out var dp))
+         {
+            dp.color = newVal;
+            MyNetworkManager.manager.pointsBoard[steamId] = dp;
+            // e no scoreboard sincronizado também
+            var plr = MyNetworkManager.manager.scoreboard.players
+               .Find(p => p.steamID == steamId);
+            if (plr != null) plr.color = newVal;
+         }
+      }
    }
-   
-   
    void PlayerDataSOOnEventOnColorRequest(int obj)
    {
       if(!isOwned) return;

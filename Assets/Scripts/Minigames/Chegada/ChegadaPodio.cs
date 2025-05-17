@@ -41,7 +41,7 @@ public class ChegadaPodio : MonoBehaviour, IObserver
         if (podio.Count >= jogadoresEsperados)
         {
             DistribuirPontos();
-            NetworkManager.singleton.ServerChangeScene("Vitoria");
+            //NetworkManager.singleton.ServerChangeScene("Vitoria");
         }
     }
 

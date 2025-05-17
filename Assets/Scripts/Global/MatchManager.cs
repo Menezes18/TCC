@@ -6,6 +6,12 @@ using System.Collections.Generic;
 using System.Linq;
 using Smooth;
 using Random = UnityEngine.Random;
+public struct PlayerScoreEntry
+{
+    public ulong steamId;
+    public string displayName;
+    public int score;
+}
 
 
 public class MatchManager : NetworkBehaviour
@@ -25,8 +31,11 @@ public class MatchManager : NetworkBehaviour
     PlayerList playerList => PlayerList.singleton;
     [SerializeField] Database db;
     [SerializeField] HUDSO HUDSO;
+    private List<PlayerScoreEntry> _temporaryRanking = new List<PlayerScoreEntry>();
+    
+    private IScoreRule scoreRule;
 
-
+    
     [SyncVar (hook = nameof(HookOnFreezeTimerUpdated))] float _freezeTimer;
     [SyncVar (hook = nameof(HookOnMatchTimerUpdated))] float _matchTimer;
     
@@ -52,7 +61,8 @@ public class MatchManager : NetworkBehaviour
 
         LeanTween.delayedCall(2.0f, () =>
         { 
-        InternalStartMatch();
+            scoreRule = FindObjectOfType<MinigameController>() as IScoreRule;
+            InternalStartMatch();
 
         });
 
@@ -65,7 +75,8 @@ public class MatchManager : NetworkBehaviour
         
         
         if(_matchHasStarted == false) return;
-        
+        scoreRule.UpdateScores();
+        UpdateTemporaryRanking();
         
         if(_freezeTimer > 0)
             _freezeTimer -= Time.deltaTime;
@@ -117,6 +128,7 @@ public class MatchManager : NetworkBehaviour
         _freezeTimer = db.serverFreezeDuration;
         _matchTimer = db.serverMatchDuration;
         _matchHasStarted = true;
+        (scoreRule as MinigameController)?.StartMatch();
         
         foreach (PlayerData pd in PlayerList.singleton.players)
         {
@@ -135,35 +147,33 @@ public class MatchManager : NetworkBehaviour
             _activePlayers.Add(pd);
 
         }
-        
-        
     }
+    
     [Server]
     void InternalEndMatch()
     {
-        
-        
-        
-        LeanTween.delayedCall(2.0f, () =>
-        {
-            foreach (PlayerData pd in _activePlayers)
-            {
-                PlayerScript ps = pd.transform.GetComponent<PlayerScript>();
-                ps = pd.transform.GetComponent<PlayerScript>();
-                NetworkConnection conn = pd.transform.GetComponent<NetworkIdentity>().connectionToClient;
-                Transform spawn = NetworkManager.startPositions[0];
-                
-                Debug.DrawRay(spawn.position,Vector3.up * 100, Color.green, 10);
-            
-                ps.TargetRpcTeleport(conn, spawn.position, spawn.rotation);
-                
-
-            }
-        });
-        
+        Debug.LogError("Acabou o endMatch");
         _matchHasStarted = false;
         _matchTimer = -1;
         _freezeTimer = -1;
+
+        scoreRule.AssignFinalPoints();
+
+        UpdateTemporaryRanking();
+
+        foreach (var entry in _temporaryRanking)
+        {
+            MyNetworkManager.manager.AddPoints(entry.steamId, entry.score);
+        }
+        
+        LeanTween.delayedCall(2.0f, () =>
+        {
+            foreach (var pd in _activePlayers){
+                NetworkManager.singleton.ServerChangeScene("MainMenu");
+            }
+            _activePlayers.Clear();
+            _winnerPlayers .Clear();
+        });
     }
 
     [Server]
@@ -207,6 +217,23 @@ public class MatchManager : NetworkBehaviour
         return random;
     }
 
+    private void UpdateTemporaryRanking()
+    {
+        var results = scoreRule.GetResults();
+        _temporaryRanking = playerList.players
+            .Select(pd =>
+            {
+                var sid = pd.playerInfo.steamId;
+                return new PlayerScoreEntry {
+                    steamId = sid,
+                    displayName = pd.playerInfo.username,
+                    score = results.TryGetValue(sid, out var s) ? s : 0
+                };
+            })
+            .OrderByDescending(e => e.score)
+            .ToList();
+    }
+    
     void HookOnFreezeTimerUpdated(float oldValue, float newValue)
     {
         HUDSO.FreezeTimerUpdated(newValue);
