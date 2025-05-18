@@ -8,7 +8,7 @@ public class ProjectileScript : NetworkBehaviour
     private Vector3 _velocity;
     private bool _launched;
     private Transform _owner;
-    public GameObject _vfx;
+    public GameObject _vfx;//Phelipe
     public Transform Owner
     {
         get => _owner;
@@ -48,14 +48,15 @@ public class ProjectileScript : NetworkBehaviour
                 {
                     Debug.LogError("Player on Damage");
                     dmg.ReceiveDamage(DamageType.Poop, transform.forward);
+                    VFXActivator(); //Phelipe
                 }
             }
-            VFXActivator();
+            
             //_launched = false;
         }
     }
     private void VFXActivator()
     {
-        _vfx.SetActive(!_vfx.activeInHierarchy);
+        _vfx.SetActive(!_vfx.activeInHierarchy);//Phelipe
     }
 }

@@ -40,9 +40,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         }
     }
     
-    [SerializeField] PlayerStatus _status;
+    [SerializeField]public PlayerStatus _status;
 
-    PlayerStatus Status{
+    public PlayerStatus Status{
         get {return _status;}
         set{
             if(_status == value) return;
