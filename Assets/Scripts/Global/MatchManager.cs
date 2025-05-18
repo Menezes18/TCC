@@ -123,7 +123,8 @@ public class MatchManager : NetworkBehaviour
     {
         _activePlayers.Clear();
         _winnerPlayers.Clear();
-        
+        InternalStartMatch();
+
 
     }
     [Server]

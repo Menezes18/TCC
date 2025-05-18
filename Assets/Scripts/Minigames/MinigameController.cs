@@ -5,8 +5,6 @@ using UnityEngine;
 
 public abstract class MinigameController : NetworkBehaviour, IScoreRule
 {
-    [SerializeField] private BriefingScreenSO briefingData;
-    public BriefingScreenSO GetBriefingData() => briefingData;
     public event Action OnMatchStarted;
     public event Action OnMatchEnded;
 
@@ -14,7 +12,8 @@ public abstract class MinigameController : NetworkBehaviour, IScoreRule
     public void StartMatch()
     {
         OnMatchStarted?.Invoke();
-        BriefingManager.singleton.ShowBriefing(briefingData);
+        BriefingManager.singleton.TriggerBriefing();
+
     }
 
     [Server]

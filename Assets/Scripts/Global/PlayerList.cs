@@ -22,10 +22,11 @@ public class PlayerList : NetworkBehaviour{
     
     public readonly SyncList<int> ColorsAvailable = new SyncList<int>();
 
+    
+    
     private void Start()
     {
         ColorsAvailable.Callback += ColorsAvailable_Callback;
-        
         for(int i = 0; i < db.playerColors.Count; i++){
             ColorsAvailable.Add(i);
         }

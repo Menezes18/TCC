@@ -21,39 +21,43 @@ public class BriefingManager : NetworkBehaviour
     [SerializeField] Image imageUI;
     [SerializeField] TextMeshProUGUI titleText;
     [SerializeField] TextMeshProUGUI tipText;
-
-    
-    [SerializeField] float briefingDuration = 5f;
-
-    public UnityEvent onBriefingStarted;   // para ligar SFX, VFX, animações…
-    public UnityEvent onBriefingEnded;     // para soltar texto na tela, iniciar countdown etc
-
-    private Action _onCompleteCallback;
-
     [SerializeField] GameObject cameraBriefing;
-    private BriefingScreenSO briefingData;
-
+    [SerializeField] float briefingDuration = 5f;
+    [SerializeField] private BriefingScreenSO data;
+    public UnityEvent onBriefingStarted;
+    public UnityEvent onBriefingEnded;
+    
+    [SyncVar(hook = nameof(OnBriefingToggleChanged))]
+    private bool briefingToggle;
+    
+    [SyncVar] Sprite syncSprite;
+    [SyncVar] string syncTitle;
+    [SyncVar] string syncTip;
+    [SyncVar] int tipIndex;
+    
     private void Start()
     {
         canvasGroup.alpha = 0;
     }
-
-    public void SetupBriefing()
+    
+    [Server]
+    public void TriggerBriefing()
     {
-        cameraBriefing.SetActive(true);
-        CmdAtivarPlayersNoServer(true);
-        
+        tipIndex = UnityEngine.Random.Range(0, data.tips.Length);
+        briefingToggle = !briefingToggle;
     }
     
-    public void ShowBriefing(BriefingScreenSO data)
+    private void OnBriefingToggleChanged(bool oldVal, bool newVal)
     {
-        briefingData = data;
-        Debug.LogError("briefing foi ");
         CmdAtivarPlayersNoServer(true);
-        imageUI.sprite = briefingData.image;
-        titleText.text = briefingData.title;
-        tipText.text = briefingData.tips[UnityEngine.Random.Range(0, briefingData.tips.Length)];
-
+        ShowLocalBriefing();
+    }
+    
+    private void ShowLocalBriefing()
+    {
+        imageUI.sprite = data.image;
+        titleText.text = data.title;
+        tipText.text = data.tips[tipIndex];
         canvasGroup.alpha = 1;
         canvasGroup.interactable = true;
 
@@ -74,10 +78,7 @@ public class BriefingManager : NetworkBehaviour
 
         canvasGroup.alpha = 0;
         canvasGroup.interactable = false;
-        SetupBriefing();
+        cameraBriefing.SetActive(true);
         onBriefingEnded?.Invoke();
-        _onCompleteCallback?.Invoke();
-        
     }
-    
 }
