@@ -42,7 +42,7 @@ public class ProjectileScript : NetworkBehaviour
             foreach (Collider c in hits)
             {
                 if (c.transform.root == _owner) continue;
-                Debug.LogError("Player on");
+//                Debug.LogError("Player on");
                 var dmg = c.transform.root.GetComponent<IDamageable>();
                 if (dmg != null)
                 {

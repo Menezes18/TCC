@@ -58,8 +58,8 @@ public class PlayerData : NetworkBehaviour{
       if(base.isOwned == false) return;
  
       var managerColor = MyNetworkManager.manager.pointsBoard[playerInfo.steamId].color;
-      
-      
+
+      CmdNetworkAlias();
       // 
    }
    

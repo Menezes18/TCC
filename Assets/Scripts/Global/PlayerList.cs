@@ -95,6 +95,17 @@ public class PlayerList : NetworkBehaviour{
         return randomColor;
     }
     
+    [Server]
+    public void AtivarPlayer(bool ativar)
+    {
+        Debug.Log($"[Server] PlayerList.AtivarPlayer({ativar})");
+        foreach (PlayerData data in players)
+        {
+            var ps = data.GetComponent<PlayerScript>();
+            ps.isFrozen = ativar;    
+            Debug.Log($"[Server] ({ativar})");
+        }
+    }
     //
     void ColorsAvailable_Callback(SyncList<int>.Operation op, int itemindex, int olditem, int newitem)
     {

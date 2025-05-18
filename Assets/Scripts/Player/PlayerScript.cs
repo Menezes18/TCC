@@ -126,10 +126,16 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     private PlayerInput _playerInput;
     
-    
-    //Public
     public bool IsAirborne => State == PlayerState.Ascend || State == PlayerState.Descend;
-    public bool isFrozen => MatchManager.singleton.Freeze;
+    [SyncVar(hook = nameof(OnExtraFreezeChanged))]
+    public bool _extraFreeze;
+    public bool isFrozen
+    {
+        get => MatchManager.singleton.Freeze || _extraFreeze;
+        [Server]
+        set => _extraFreeze = value;
+    }
+    
 
     public Transform cameraTarget;
 
@@ -622,7 +628,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         
         InternalDeath();
     }
-    
+    private void OnExtraFreezeChanged(bool oldVal, bool newVal)
+    {
+        
+        Debug.LogError(newVal + "FOI");
+    }
     #region Menu
     private void EventOnCelularMenu()
     {

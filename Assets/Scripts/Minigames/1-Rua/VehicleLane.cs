@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-
+using Mirror;
 
 public class VehicleLane : MonoBehaviour
 {
@@ -51,7 +51,8 @@ public class VehicleLane : MonoBehaviour
             vehicles[i].position = new Vector3(flatPos.x, originalY, flatPos.z);
         }
     }
-
+    
+    
     private void OnDrawGizmos()
     {
         if (startPoint == null || endPoint == null) return;

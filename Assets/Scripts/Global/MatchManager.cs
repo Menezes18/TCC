@@ -32,6 +32,7 @@ public class MatchManager : NetworkBehaviour
     [SerializeField] Database db;
     [SerializeField] HUDSO HUDSO;
     private List<PlayerScoreEntry> _temporaryRanking = new List<PlayerScoreEntry>();
+    private HashSet<NetworkConnectionToClient> _readyConnections = new();
     
     private IScoreRule scoreRule;
 
@@ -50,24 +51,27 @@ public class MatchManager : NetworkBehaviour
 
     public bool Freeze => _freezeTimer > 0; 
     
+    
     private void Start()
     {
 
-        
         if(base.isServer == false) return;
 
         _matchTimer = -1;
         _freezeTimer = -1;
-
+        
         LeanTween.delayedCall(2.0f, () =>
         { 
+            TeleportPlayer();
             scoreRule = FindObjectOfType<MinigameController>() as IScoreRule;
-            InternalStartMatch();
+            
 
         });
+        scoreRule = FindObjectOfType<MinigameController>() as IScoreRule;
+        (scoreRule as MinigameController)?.StartMatch();
+        //InternalStartMatch();
 
     }
-
     private void Update()
     {
         if(base.isServer == false) return;
@@ -123,13 +127,15 @@ public class MatchManager : NetworkBehaviour
 
     }
     [Server]
-    void InternalStartMatch() 
+    public void InternalStartMatch() 
     {
         _freezeTimer = db.serverFreezeDuration;
         _matchTimer = db.serverMatchDuration;
         _matchHasStarted = true;
-        (scoreRule as MinigameController)?.StartMatch();
-        
+    }
+
+    private void TeleportPlayer()
+    {
         foreach (PlayerData pd in PlayerList.singleton.players)
         {
             if (_activePlayers.Contains(pd)) return;
@@ -141,14 +147,13 @@ public class MatchManager : NetworkBehaviour
 
             Debug.DrawRay(randomSpawn.position,Vector3.up * 100, Color.green, 10);
             
-            ps.TargetRpcTeleport(conn, randomSpawn.position, randomSpawn.rotation);
-
+            ps.TargetRpcTeleport(conn, randomSpawn.position, this.transform.rotation);
 
             _activePlayers.Add(pd);
 
         }
     }
-    
+
     [Server]
     void InternalEndMatch()
     {
@@ -168,9 +173,10 @@ public class MatchManager : NetworkBehaviour
         
         LeanTween.delayedCall(2.0f, () =>
         {
-            foreach (var pd in _activePlayers){
-                NetworkManager.singleton.ServerChangeScene("MainMenu");
-            }
+            
+            NetworkManager.singleton.ServerChangeScene("MainMenu");
+            
+            
             _activePlayers.Clear();
             _winnerPlayers .Clear();
         });
