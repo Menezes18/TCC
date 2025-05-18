@@ -37,9 +37,15 @@ public class BriefingManager : NetworkBehaviour
     
     private void Start()
     {
-        canvasGroup.alpha = 0;
+        
     }
-    
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        PlayerList.singleton.AtivarPlayer(true);
+        canvasGroup.alpha = 1;
+        
+    }
     [Server]
     public void TriggerBriefing()
     {
