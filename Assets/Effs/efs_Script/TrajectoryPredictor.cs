@@ -80,7 +80,7 @@ public class TrajectoryPredictor  : MonoBehaviour
     {
         // Verificar se o PlayerScript está disponível
         if (playerScript == null) return;
-        
+
         // Verificar o estado do jogador para mostrar/esconder a trajetória
         if (playerScript.Status == PlayerStatus.ThrowPrepare && !isTrajectoryVisible)
         {
@@ -91,6 +91,7 @@ public class TrajectoryPredictor  : MonoBehaviour
         {
             HideTrajectory();
             isTrajectoryVisible = false;
+            hitObj.SetActive(false);
         }
 
         // Atualizar a trajetória enquanto estiver visível
@@ -135,7 +136,6 @@ public class TrajectoryPredictor  : MonoBehaviour
                 {
                     // Termina a linha no ponto de impacto
                     lineRenderer.SetPosition(i, hit.point);
-
                     // Desativa os pontos restantes colocando-os na mesma posição
                     for (int j = i + 1; j < lineRenderer.positionCount; j++)
                     {
@@ -153,6 +153,7 @@ public class TrajectoryPredictor  : MonoBehaviour
             }
             Vector3 lastPosition = lineRenderer.GetPosition(i - 1);
 
+            
             //if (Physics.Raycast(lastPosition,
             //    (point - lastPosition).normalized,
             //    out RaycastHit hit2,
@@ -165,7 +166,12 @@ public class TrajectoryPredictor  : MonoBehaviour
             //}
 
         }
-        
+        //if (!hitObj.activeInHierarchy)
+        //{
+        //    hitObj.transform.position = lineRenderer.GetPosition(i-1);
+        //    hitObj.SetActive(true);
+        //}
+            
     }
 
     private void ShowTrajectory()
