@@ -30,7 +30,7 @@ public class LobbyController : NetworkBehaviour
     private void Start()
     {
         _prepareTimer = -1;
-        
+
     }
 
     private void Update()
@@ -90,10 +90,8 @@ public class LobbyController : NetworkBehaviour
 
     void ChangeToRandomMinigame()
     {
-        if (minigameSceneNames.Count == 0) return;
-        int idx = UnityEngine.Random.Range(0, minigameSceneNames.Count);
-        string sceneToLoad = minigameSceneNames[idx];
-        NetworkManager.singleton.ServerChangeScene(sceneToLoad);
+        NetworkManager.singleton.ServerChangeScene(MyNetworkManager.manager.minigames[MyNetworkManager.manager.indexScene]);
+        MyNetworkManager.manager.indexScene++;
         //MyNetworkManager.manager.ChangeScenePlayer(PlayerList.singleton.players[0],sceneToLoad);
     }
     

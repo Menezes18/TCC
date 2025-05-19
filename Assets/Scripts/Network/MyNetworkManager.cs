@@ -29,13 +29,15 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public static MyNetworkManager manager { get; internal set; }
 
     public List<PlayerData> allClients = new List<PlayerData>();
+    public List<string> minigames;
+    public int indexScene = 0;
     public int minJogadores = 1;
     
     [SerializeField]
     public PlayerScoreboard scoreboard = new PlayerScoreboard();
     public Dictionary<ulong, DataPlayer> pointsBoard = new Dictionary<ulong, DataPlayer>();
     public HSteamNetConnection steamConnection = HSteamNetConnection.Invalid;
-    
+
     [Header("Para funcionar sem a steam")]
     public bool testMode = false;
     static ulong nextFakeId = 1;
@@ -60,8 +62,11 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             manager = this;
             DontDestroyOnLoad(gameObject);
         }
+
+        listaAleatoria();
+
             //     if (UIManager.Instance != null)
-            // UIManager.Instance.SpawnLocalUI();
+        // UIManager.Instance.SpawnLocalUI();
         base.Awake();
     }
 
@@ -263,6 +268,20 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         {
             observer.Atualizacao(this, pontosJogadores, nomesJogadores);
         }
+    }
+    public void listaAleatoria()
+    {
+        int count = minigames.Count;
+        for (int i = 0; i < count - 1; i++)
+        {
+            int rnd = Random.Range(i, count);
+            // troca elementos
+            string temp = minigames[i];
+            minigames[i] = minigames[rnd];
+            minigames[rnd] = temp;
+        }
+
+        minigames.Add("Vitoria");
     }
     
 }
