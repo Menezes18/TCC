@@ -32,7 +32,7 @@ public class TrajectoryPredictor  : MonoBehaviour
         if (lineRenderer == null)
         {
             lineRenderer = gameObject.AddComponent<LineRenderer>();
-            SetupLineRenderer();
+            //SetupLineRenderer();
         }
 
         // Pega o componente PlayerScript se não for atribuído
@@ -59,22 +59,15 @@ public class TrajectoryPredictor  : MonoBehaviour
     
     void Start()
     {
+        HideTrajectory();
+        isTrajectoryVisible = false;
+        hitObj.SetActive(false);
         if (cameraTransform == null && Camera.main != null)
         {
             cameraTransform = Camera.main.transform;
         }
     }
 
-    private void SetupLineRenderer()
-    {
-        lineRenderer.material = lineMaterial ?? new Material(Shader.Find("Sprites/Default"));
-        lineRenderer.startWidth = lineWidth;
-        lineRenderer.endWidth = lineWidth * 0.6f;
-        lineRenderer.startColor = startColor;
-        lineRenderer.endColor = endColor;
-        lineRenderer.useWorldSpace = true;
-        lineRenderer.enabled = false;
-    }
 
     private void Update()
     {
