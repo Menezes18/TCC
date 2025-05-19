@@ -1,5 +1,18 @@
 
+using System.Collections.Generic;
 using UnityEngine;
+
+[System.Serializable]
+public struct PlayerColor
+{
+    public Color color;
+    public Material material;
+    
+    // Aqui um hat
+    //public MeshRenderer meshRenderer;
+}
+
+
 [CreateAssetMenu(fileName = "Database", menuName = "Player/Database")]
 public class Database : ScriptableObject{
 
@@ -20,6 +33,7 @@ public class Database : ScriptableObject{
     public float playerAirSpeed;
     public float playerMaxAirSpeed;
     public LayerMask PlayerMask;
+    public float playerRespawnDuration;
 
     [Header("Player Push")]
     public float playerPushRadius;
@@ -50,8 +64,14 @@ public class Database : ScriptableObject{
     public float projectileGravityScale = 1;
     public Vector3 projectileLocalOffset = new Vector3(0f, 1f, 0.5f);
     public float playerThrowCooldown;
+
+
+
+    [Header("Server Side")] 
+    public List<PlayerColor> playerColors;
     
-
-
+    public float serverPrepareDuration;
+    public float serverFreezeDuration;
+    public float serverMatchDuration;
 
 }

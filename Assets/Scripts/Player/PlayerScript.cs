@@ -1,6 +1,10 @@
+using System;
 using System.Collections;
 using Mirror;
+using Smooth;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
 public enum PlayerState{
@@ -19,11 +23,12 @@ public enum PlayerStatus{
     ThrowPrepare,
     Throw,
 }
-public class PlayerScript : NetworkBehaviour, IDamageable
+public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 {
     [SerializeField] Database db;
     [SerializeField] PlayerControlsSO PlayerControlsSO;
     [SerializeField] HUDSO HUDSO;
+    [SerializeField] SmoothSyncMirror _smoothSyncMirror;
     
     [SerializeField] CharacterController _controller;
     [SerializeField] Animator _animator;
@@ -105,11 +110,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
     private float _staggerTimer;
     private float _pushCooldown;
-    
     private float _rollTimer;
     private float _rollCooldown;
-
     private float _blindTimer;
+    private float _throwCooldown;
 
     private float BlindTimer{
         get => _blindTimer;
@@ -119,12 +123,19 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         }
     }
     
-    private float _throwCooldown;
 
     private PlayerInput _playerInput;
     
-    //Public
     public bool IsAirborne => State == PlayerState.Ascend || State == PlayerState.Descend;
+    [SyncVar(hook = nameof(OnExtraFreezeChanged))]
+    public bool _extraFreeze;
+    public bool isFrozen
+    {
+        get => MatchManager.singleton.Freeze || _extraFreeze;
+        [Server]
+        set => _extraFreeze = value;
+    }
+    
 
     public Transform cameraTarget;
 
@@ -132,6 +143,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     private bool isStaggered;
 
     public bool _menuOpen;
+    public bool panel = false;
     
     [SerializeField] private float sensibilidade = 1;
     
@@ -142,6 +154,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     [SerializeField] private GameObject canvasCelularPrefab;  
     private GameObject celularInstance;
     public MainMenu mainMenu;
+    
+    // Event
+    public UnityEvent EventOnDeath;
+    public UnityEvent EventOnDeathServerSide;
+    public UnityEvent EventOnRespawn;
 
     private void Start()
     {
@@ -155,6 +172,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         PlayerControlsSO.OnRoll += PlayerControlsSO_OnRoll;
         PlayerControlsSO.OnThrow += PlayerControlsSO_OnThrow;
         PlayerControlsSO.OnThrowCancel += PlayerControlsSO_OnThrowCancel;
+        PlayerControlsSO.OnDebug += PlayerControlsSOOnOnDebug;
         
         //
         Cursor.visible = false;
@@ -166,13 +184,17 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         // Cache
         _playerInput = GetComponent<PlayerInput>();
         
-
+        if (PlayerPrefs.HasKey("MouseSensitivity")) {
+            sensibilidade = PlayerPrefs.GetFloat("MouseSensitivity");
+        }
     }
 
     public override void OnStartLocalPlayer()
     {
         base.OnStartLocalPlayer();
+        
         PlayerControlsSO.OnMenu += EventOnCelularMenu;
+        
         // UI
         celularInstance = Instantiate(canvasCelularPrefab);
         mainMenu = celularInstance.GetComponentInChildren<MainMenu>(true);
@@ -264,10 +286,14 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         _animator.SetFloat(_MOVEX, _input.x, 0.1f, Time.deltaTime);
         _animator.SetFloat(_MOVEY, _input.z, 0.1f, Time.deltaTime);
         
+        aimWeigh = CustomMath.ConvertRange(_pitch, db.maxMouseX, db.minMouseY);
+        _animator.SetFloat("animweight", aimWeigh);
         
         _move = _move + Vector3.up * db.gravity * Time.deltaTime;
-        
-        _controller.Move(_move * Time.deltaTime);
+
+        if (State != PlayerState.Death){
+            _controller.Move(_move * Time.deltaTime);
+        }
 
         if (_controller.isGrounded){
             _move.y = db.gravityGrounded;
@@ -275,19 +301,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         
         transform.rotation = Quaternion.Euler(rot);
         
-        
-        if ( Keyboard.current.escapeKey.wasPressedThisFrame || Keyboard.current.tabKey.wasPressedThisFrame)
-        {
-            bool show = !Cursor.visible;
-            Cursor.visible   = show;
-            Cursor.lockState = show 
-                ? CursorLockMode.None 
-                : CursorLockMode.Locked;
-
-            Debug.Log($"Cursor {(show? "visible":"hidden")}");
-        }
-
-
     }
     private void LateUpdate()
     {
@@ -313,9 +326,18 @@ public class PlayerScript : NetworkBehaviour, IDamageable
             _cam.transform.position = desiredPos;
         }
     }
+
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        if (hit.gameObject.CompareTag("KillPlane"))
+            InternalDeath();
+    }
+
+
     //
     private void AerialDetection()
     {
+        if(State == PlayerState.Death) return;
         if(State == PlayerState.Stagger) return;
         if(State == PlayerState.Roll) return;
         
@@ -433,23 +455,26 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     }    
     private void PlayerControlsSO_OnLook(Vector2 obj)
     {
+
+        if(panel) return;
+        if (Cursor.visible == true) return;
         if(!this.isOwned) return;
-        // _mouseX += obj.x * sens;
-        // _mouseY += -obj.y * sens;
-        //
-        // _mouseY = Mathf.Clamp(_mouseY, db.minMouseY, db.maxMouseX);
-        _yaw   += obj.x * sensibilidade * Time.deltaTime;
-        _pitch -= obj.y * sensibilidade * Time.deltaTime;
+        float sensitivityFactor = sensibilidade;
+        
+        _yaw   += obj.x * sensitivityFactor * 0.01f;
+        _pitch -= obj.y * sensitivityFactor * 0.01f;
+        
         _pitch = Mathf.Clamp(_pitch, db.minMouseY, db.maxMouseX);
         
-         aimWeigh = CustomMath.ConvertRange(_pitch, db.maxMouseX, db.minMouseY);
-        _animator.SetFloat("animweight", aimWeigh);
+
 
     }
 
     public float aimWeigh;
     private void PlayerControlsSO_OnJump()
     {
+        if(panel) return;
+        if(isFrozen) return;
         if(State != PlayerState.Default) return;
         
         if (_move.y > 0)
@@ -464,6 +489,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     }
     private void PlayerControlsSO_OnPush()
     {
+        if(panel) return;
+        if(isFrozen) return;
         if(State == PlayerState.Stagger) return;
         if(Status != PlayerStatus.Default || Status == PlayerStatus.Blinded) return;
         
@@ -474,6 +501,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     }
     private void PlayerControlsSO_OnRoll()
     {
+        if(isFrozen) return;
+        if(panel) return;
         if(IsAirborne) return;
         if(State == PlayerState.Stagger) return;
         if(_rollCooldown > 0) return;
@@ -489,6 +518,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     }
     private void PlayerControlsSO_OnThrow()
     {
+        if(isFrozen) return;
+        if(panel ) return;
         if(State == PlayerState.Stagger) return;
         if(Status != PlayerStatus.Default) return;
         if(Status == PlayerStatus.Throw) return;
@@ -501,6 +532,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     
     private void PlayerControlsSO_OnThrowCancel()
     {
+        if(isFrozen) return;
+        if(panel) return;
         if (State == PlayerState.Stagger) return;
         if(Status == PlayerStatus.Pushing) return;
         if(Status == PlayerStatus.Throw) return;
@@ -517,8 +550,15 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         );
         _throwCooldown = db.playerThrowCooldown;
     }
-
-
+    
+    // MUDAR ISSO AQUI DEPOIS
+    private void PlayerControlsSOOnOnDebug()
+    {
+        if(!base.isServer) return;
+        Debug.LogError("DEBUG: PlayerControlsSOOnOnDebug");
+        //LobbyController.singleton.
+        LobbyController.singleton.CmdPrepareMath();
+    }
     //
     private void OnStateChanged(PlayerState oldState, PlayerState newState)
     {
@@ -533,11 +573,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable
     public void ReceiveDamage(DamageType dmgType, Vector3 dir)
     {
         NetworkConnection coon = transform.GetComponent<NetworkIdentity>().connectionToClient;
-        RpcReceiveDamage(coon, dmgType, dir);
+        TargetRpcReceiveDamage(coon, dmgType, dir);
     }
     
     [TargetRpc]
-    public void RpcReceiveDamage(NetworkConnection coon, DamageType dmgType, Vector3 dir)
+    public void TargetRpcReceiveDamage(NetworkConnection coon, DamageType dmgType, Vector3 dir)
     {
         if (dmgType == DamageType.Poop){
 
@@ -582,23 +622,26 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         _staggerIndicator.gameObject.SetActive(newValue);
     }
 
+    public void OnHitKill()
+    {
+        if(base.isOwned == false) return;
+        
+        InternalDeath();
+    }
+    private void OnExtraFreezeChanged(bool oldVal, bool newVal)
+    {
+        
+        Debug.LogError(newVal + "FOI");
+    }
     #region Menu
     private void EventOnCelularMenu()
     {
+        if (panel){
+            HUDSO.HideColorChangePanel();
+            return;
+        }
         _menuOpen = !_menuOpen;
         mainMenu.ToggleCelular();
-        var look = _playerInput.actions["Look"];
-        var shoot = _playerInput.actions["Shoot"];
-        Debug.Log($"Look.enabled = {look.enabled}");
-        if (_menuOpen){
-            look.Disable();
-            shoot.Disable();
-        }
-        else{
-            look.Enable();
-            shoot.Enable();
-        }
-        Debug.Log($"Look.enabled = {look.enabled}");
     }
     
 
@@ -618,13 +661,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
     #endregion
     #region System Network
-    [Command]
-    public void Die()
-    {
-        State = PlayerState.Death;
-        _controller.enabled = false; 
-        RpcSpectate();
-    }
+    
+    // mudar isso 
 
     [TargetRpc]
     private void RpcSpectate()
@@ -637,6 +675,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable
             if (newTarget == null) return;
             SetCameraTarget(newTarget);
     }
+    
     public void SetCameraTarget(Transform newTarget)
     {
         cameraTarget = newTarget;
@@ -655,13 +694,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable
         return null;
     }
     
-    [Command]
-    public void RespawnAt(Vector3 position)
-    {
-        if (!isServer) return;
-
-        RpcRespawn(position);
-    }
 
     [TargetRpc]
     private void RpcRespawn(Vector3 position)
@@ -679,5 +711,79 @@ public class PlayerScript : NetworkBehaviour, IDamageable
 
         Debug.Log($"[CLIENT] Player {netId} respawned at {position}");
     }
+    
+    // isso
+
+    [TargetRpc]
+    public void TargetRpcTeleport(NetworkConnection conn, Vector3 pos, Quaternion rot)
+    {
+        InternalTeleport(pos, rot);
+    }
+
+   
+    void InternalTeleport(Vector3 pos, Quaternion rot)
+    {
+        _controller.enabled = false;
+        transform.position = pos;
+        transform.rotation = rot;
+        _smoothSyncMirror.teleportOwnedObjectFromOwner();
+        _controller.enabled = true;
+        
+        InternalResetProperties();
+    }
+
+    void InternalDeath()
+    {
+        _controller.enabled = false;
+
+        InternalResetProperties();
+        CmdDeath();
+
+        State = PlayerState.Death;
+    }
+
+    void InternalResetProperties()
+    {
+        Status = PlayerStatus.Default;
+
+        _move = Vector3.zero;
+        _inertia = Vector3.zero;
+        
+        _staggerTimer = 0;
+        _pushCooldown = 0;
+        _rollTimer = 0;
+        _rollCooldown = 0;
+        _blindTimer = 0;
+        _throwCooldown = 0;
+    }
+    [Command]
+    void CmdDeath()
+    {
+        Debug.LogError("CmdDeath");
+        this.EventOnDeathServerSide?.Invoke();
+        RpcOnDeath();
+    }
+    
+    [ClientRpc]
+    public void RpcOnDeath()
+    {
+        Debug.LogError("RpcOnOnDeath called");
+        this.EventOnDeath?.Invoke();
+        
+    }
+    
+    [ClientRpc]
+    public void RpcOnRespawn()
+    {
+        Debug.LogError("RpcOnRespawn");
+        this.EventOnRespawn?.Invoke();
+                
+        if(base.isOwned == false) return;
+
+        InternalResetProperties();
+        State = PlayerState.Default;
+        
+    }
+    
     #endregion
 }

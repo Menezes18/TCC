@@ -22,6 +22,7 @@ public class MainMenu : MonoBehaviour
     [Header("Celular UI")]
     [SerializeField] private RectTransform celularUI;
     [SerializeField] private CanvasGroup celularCanvasGroup;
+    [SerializeField] private GameObject celularGameObject;
 
     [Header("DEBUG ANIMAÇÃO")]
     public bool toggleCelular = false;
@@ -79,7 +80,7 @@ public class MainMenu : MonoBehaviour
 
     public void StartSinglePlayer()
     {
-        LobbyController.instance.StartGameSolo();
+        LobbyController.singleton.StartGameSolo();
     }
 
     public void LeaveParty()
@@ -101,7 +102,7 @@ public class MainMenu : MonoBehaviour
 
     public void StartGame()
     {
-        LobbyController.instance.StartGameWithParty();
+        LobbyController.singleton.StartGameWithParty();
     }
 
     public void StartLocalClient()
@@ -119,7 +120,7 @@ public class MainMenu : MonoBehaviour
     public void ToggleReady()
     {
         if (!NetworkClient.active) return;
-        NetworkClient.localPlayer.GetComponent<MyClient>().ToggleReady();
+        NetworkClient.localPlayer.GetComponent<PlayerData>().ToggleReady();
     }
 
     public void UpdateReadyButton(bool value)
@@ -134,6 +135,7 @@ public class MainMenu : MonoBehaviour
         animando = true;
 
         celularCanvasGroup.alpha = 1;
+        celularUI.gameObject.SetActive(true);
 
         celularUI.anchoredPosition = new Vector2(0, -Screen.height);
         celularUI.localScale = new Vector3(0.85f, 0.85f, 1f);
@@ -161,6 +163,7 @@ public class MainMenu : MonoBehaviour
         seq.OnComplete(() =>
         {
             celularCanvasGroup.alpha = 0;
+            celularUI.gameObject.SetActive(false);
             celularAberto = false;
             animando = false;
         });

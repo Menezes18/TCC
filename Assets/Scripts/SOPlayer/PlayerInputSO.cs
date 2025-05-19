@@ -32,6 +32,10 @@ public class PlayerInputSO : ScriptableObject{
     // n vou usar, so para aprender
     public event Action<CallbackContext> OnRoll;
     public void Roll(CallbackContext obj) {this.OnRoll?.Invoke(obj);}
+    
+    public event Action<CallbackContext> OnDebug; 
+    
+    public void Debug(CallbackContext obj) {this.OnDebug?.Invoke(obj);}
 
     
 }

@@ -9,29 +9,35 @@ using Mirror.FizzySteam;
 
 
 [System.Serializable]
-public class PlayerData
+public class DataPlayer
 {
     public ulong steamID;
     public string playerName;
     public int points;
+    public int color;
 }
 [System.Serializable]
 public class PlayerScoreboard
 {
-    public List<PlayerData> players = new List<PlayerData>();
+    public List<DataPlayer> players = new List<DataPlayer>();
 }
 [System.Serializable]
 public class MyNetworkManager : NetworkManager, ISubjectPontos
 {
+    
     public static bool isMulitplayer;
     public static MyNetworkManager manager { get; internal set; }
 
-    public List<MyClient> allClients = new List<MyClient>();
+    public List<PlayerData> allClients = new List<PlayerData>();
+    public List<string> minigames;
+    public int indexScene = 0;
     public int minJogadores = 1;
+    
     [SerializeField]
     public PlayerScoreboard scoreboard = new PlayerScoreboard();
-    private Dictionary<ulong, PlayerData> pointsBoard = new Dictionary<ulong, PlayerData>();
+    public Dictionary<ulong, DataPlayer> pointsBoard = new Dictionary<ulong, DataPlayer>();
     public HSteamNetConnection steamConnection = HSteamNetConnection.Invalid;
+
     [Header("Para funcionar sem a steam")]
     public bool testMode = false;
     static ulong nextFakeId = 1;
@@ -56,19 +62,22 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             manager = this;
             DontDestroyOnLoad(gameObject);
         }
+
+        listaAleatoria();
+
             //     if (UIManager.Instance != null)
-            // UIManager.Instance.SpawnLocalUI();
+        // UIManager.Instance.SpawnLocalUI();
         base.Awake();
     }
 
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)
     {
-        if (conn.identity != null && allClients.Exists(c => c == conn.identity.GetComponent<MyClient>()))
-        return;
+        if (conn.identity != null && allClients.Exists(c => c == conn.identity.GetComponent<PlayerData>()))
+            return;
 
         base.OnServerAddPlayer(conn);
 
-        MyClient client = conn.identity.GetComponent<MyClient>();
+        PlayerData client = conn.identity.GetComponent<PlayerData>();
         // allClients.Add(client);
         if (testMode)
         {
@@ -85,19 +94,35 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         }
         if (!pointsBoard.ContainsKey(client.playerInfo.steamId))
         {
-            var playerData = new PlayerData 
+            int assignedColor = PlayerList.singleton.ServerRequestColor(-1, 1);
+            
+            var pd = conn.identity.GetComponent<PlayerData>();
+            string chosenName = SteamManager.Initialized
+                ? SteamFriends.GetFriendPersonaName(SteamUser.GetSteamID())
+                : "Mamaco";
+
+            var playerDatatemp = new DataPlayer 
             { 
                 steamID = client.playerInfo.steamId,
-                playerName = client.playerInfo.username,
-                points = 0 
+                playerName = chosenName,
+                points = 0, 
+                color = assignedColor
             };
             
-            pointsBoard[client.playerInfo.steamId] = playerData;
-            scoreboard.players.Add(playerData);
+            pointsBoard[client.playerInfo.steamId] = playerDatatemp;
+            scoreboard.players.Add(playerDatatemp);
+            client.alias = playerDatatemp.playerName;
+            client.score = playerDatatemp.points;
+            client.color = playerDatatemp.color;
         }
-        Debug.Log("Conectados" + allClients.Count);
-        if(allClients.Count >= minJogadores) iniciaContador();
+        else{
+            
+            client.score = pointsBoard[client.playerInfo.steamId].points;
+            client.color = pointsBoard[client.playerInfo.steamId].color;
+
+        }
         CharacterSkinHandler.instance.DestroyMesh();
+        
         Notifica();
     }
     [Server]
@@ -105,13 +130,11 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     {
         if (pointsBoard.ContainsKey(steamID))
         {
-            PlayerData data = pointsBoard[steamID];
+            DataPlayer data = pointsBoard[steamID];
             data.points += pointsToAdd;
             
-            // Atualiza tanto o dicionário quanto a lista visível
             pointsBoard[steamID] = data;
             
-            // Encontra e atualiza o jogador na lista do scoreboard
             var player = scoreboard.players.Find(p => p.steamID == steamID);
             if (player != null)
             {
@@ -124,6 +147,8 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         }
         Notifica();
     }
+
+    private int i = 0;
     private void UpdatePointsBoardInspector()
     {
        
@@ -131,7 +156,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     }
     public override void OnServerDisconnect(NetworkConnectionToClient conn)
     {
-        var client = conn.identity?.GetComponent<MyClient>();
+        var client = conn.identity?.GetComponent<PlayerData>();
         if (client != null)
         {
             allClients.Remove(client);
@@ -145,17 +170,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         }
         base.OnServerDisconnect(conn);
     }
-
-    public override void OnValidate()
-    {
-        // if (testMode && allClients.Count > 0)
-        // {
-        //     ulong firstSteamID = allClients[0].playerInfo.steamId;
-        //     AddPoints(firstSteamID, 10);
-        //     Debug.Log($"Adicionados 10 pontos para o primeiro jogador: {firstSteamID}");
-        //     testMode = false;
-        // }
-    }
+    
     public void StartDevHost()
     {
         testMode = true;
@@ -224,11 +239,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         
             NetworkServer.dontListen = true;
     }
-
-    public void iniciaContador(){
-        ContadorTempo temp = GameObject.Find("Temporizador").GetComponent<ContadorTempo>();
-        temp.IniciarContador();
-    }
+    
 
     public void Adicionar(IObserverPontos observer)
     {
@@ -244,11 +255,13 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     {
         string[] nomesJogadores = new string[scoreboard.players.Count];
         int[] pontosJogadores = new int[scoreboard.players.Count];
-        
+        int[] corplayer = new int[scoreboard.players.Count];
+            
         for (int i = 0; i < scoreboard.players.Count; i++)
         {
             nomesJogadores[i] = scoreboard.players[i].playerName;
             pontosJogadores[i] = scoreboard.players[i].points;
+            corplayer[i] = scoreboard.players[i].color;
         }
         
         foreach (IObserverPontos observer in _observers)
@@ -256,4 +269,19 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             observer.Atualizacao(this, pontosJogadores, nomesJogadores);
         }
     }
+    public void listaAleatoria()
+    {
+        int count = minigames.Count;
+        for (int i = 0; i < count - 1; i++)
+        {
+            int rnd = Random.Range(i, count);
+            // troca elementos
+            string temp = minigames[i];
+            minigames[i] = minigames[rnd];
+            minigames[rnd] = temp;
+        }
+
+        minigames.Add("Vitoria");
+    }
+    
 }

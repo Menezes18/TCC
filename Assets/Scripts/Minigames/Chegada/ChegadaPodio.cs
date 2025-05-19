@@ -5,7 +5,7 @@ using System.Linq;
 
 public class ChegadaPodio : MonoBehaviour, IObserver
 {
-    public List<MyClient> podio = new List<MyClient>();
+    public List<PlayerData> podio = new List<PlayerData>();
     public int pontosBase = 4;
     public bool isKillGame = false;
     
@@ -23,7 +23,7 @@ public class ChegadaPodio : MonoBehaviour, IObserver
     {
         if (other.CompareTag("Player"))
         {
-            MyClient clienteJogador = other.GetComponent<MyClient>();
+            PlayerData clienteJogador = other.GetComponent<PlayerData>();
             if (clienteJogador != null && !podio.Contains(clienteJogador))
             {
                 podio.Add(clienteJogador);
@@ -41,7 +41,7 @@ public class ChegadaPodio : MonoBehaviour, IObserver
         if (podio.Count >= jogadoresEsperados)
         {
             DistribuirPontos();
-            NetworkManager.singleton.ServerChangeScene("Vitoria");
+            //NetworkManager.singleton.ServerChangeScene("Vitoria");
         }
     }
 
@@ -66,7 +66,6 @@ public class ChegadaPodio : MonoBehaviour, IObserver
             
             MyNetworkManager.manager.AddPoints(podio[i].playerInfo.steamId, pontuacao);
             
-            Debug.Log($"Jogador {podio[i].playerInfo.steamId} na posição {i+1} recebeu {pontuacao} pontos");
         }
     }
     
@@ -77,9 +76,9 @@ public class ChegadaPodio : MonoBehaviour, IObserver
         {
             Debug.Log("Tempo esgotado! Distribuindo pontos para sobreviventes...");
             
-            List<MyClient> jogadoresVivos = new List<MyClient>();
+            List<PlayerData> jogadoresVivos = new List<PlayerData>();
             
-            foreach (MyClient cliente in MyNetworkManager.manager.allClients)
+            foreach (PlayerData cliente in MyNetworkManager.manager.allClients)
             {
                 if (!podio.Contains(cliente))
                 {
@@ -87,7 +86,7 @@ public class ChegadaPodio : MonoBehaviour, IObserver
                 }
             }
             
-            foreach (MyClient sobrevivente in jogadoresVivos)
+            foreach (PlayerData sobrevivente in jogadoresVivos)
             {
                 MyNetworkManager.manager.AddPoints(sobrevivente.playerInfo.steamId, pontosBase);
                 

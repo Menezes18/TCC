@@ -3,26 +3,72 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
-public class LobbyController : MonoBehaviour
+public class LobbyController : NetworkBehaviour
 {
-    public static LobbyController instance;
+    #region Singleton Setup
+
+    public static LobbyController singleton;
 
     private void Awake()
     {
-        instance = this;
+        singleton = this;
     }
 
+    #endregion
+
+    [SyncVar(hook = nameof(HookOnPrepareTimerUpdated))] float _prepareTimer;
+    [SerializeField] Database db;
+    [SerializeField] HUDSO HUDSO;
+
+    
+    [SerializeField]
+    private List<string> minigameSceneNames = new List<string>();
+
+
+    private void Start()
+    {
+        _prepareTimer = -1;
+
+    }
+
+    private void Update()
+    {
+
+        if (_prepareTimer > 0)
+            _prepareTimer -= Time.deltaTime;
+
+        if (_prepareTimer <= 0 && _prepareTimer != -1){
+            
+            ChangeToRandomMinigame();
+            
+            _prepareTimer = -1;
+        }
+    }
 
     public void StartGameWithParty() 
     {
         if (AllPlayersReady()) 
         {
-            StartGame();
+            
         }
     }
 
+    [Command(requiresAuthority = false)]
+    public void CmdPrepareMath() {
+        
+        if(_prepareTimer > 0) return;
+        
+        
+        InternalPrepareMath();
+    }
+    [Server]
+    void InternalPrepareMath() 
+    {
+        _prepareTimer = db.serverPrepareDuration;
 
+    }
     public void StartGameSolo()
     {
         StartCoroutine(StartSinglePlayer());
@@ -35,17 +81,23 @@ public class LobbyController : MonoBehaviour
             yield return new WaitForEndOfFrame();
 
         ((MyNetworkManager)NetworkManager.singleton).SetMultiplayer(false);
-        StartGame();
     }
 
-    private void StartGame()
+    void HookOnPrepareTimerUpdated(float oldValue, float newValue)
     {
-        NetworkManager.singleton.ServerChangeScene("MiniGame");
+        HUDSO.PrepareTimerUpdate(newValue);
     }
 
+    void ChangeToRandomMinigame()
+    {
+        NetworkManager.singleton.ServerChangeScene(MyNetworkManager.manager.minigames[MyNetworkManager.manager.indexScene]);
+        MyNetworkManager.manager.indexScene++;
+        //MyNetworkManager.manager.ChangeScenePlayer(PlayerList.singleton.players[0],sceneToLoad);
+    }
+    
     private bool AllPlayersReady() 
     {
-        foreach (MyClient client in ((MyNetworkManager)NetworkManager.singleton).allClients)
+        foreach (PlayerData client in ((MyNetworkManager)NetworkManager.singleton).allClients)
             if (!client.IsReady)
                 return false;
         return true;
