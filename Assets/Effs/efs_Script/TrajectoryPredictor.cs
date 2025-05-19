@@ -47,30 +47,27 @@ public class TrajectoryPredictor  : MonoBehaviour
             }
         }
 
-        int projectLayer = gameObject.layer;
-        for (int i = 0; i < 32; i++)
-        {
-            if (!Physics.GetIgnoreLayerCollision(projectLayer, i))
-            {
-                ProjectCollisionMask |= 1 << i;
-            }
-        }
+        //int projectLayer = gameObject.layer;
+        //for (int i = 0; i < 32; i++)
+        //{
+        //    if (!Physics.GetIgnoreLayerCollision(projectLayer, i))
+        //    {
+        //        ProjectCollisionMask |= 1 << i;
+        //    }
+        //}
     }
-    
+
     void Start()
     {
         HideTrajectory();
-        isTrajectoryVisible = false;
         hitObj.SetActive(false);
-        if (cameraTransform == null && Camera.main != null)
-        {
-            cameraTransform = Camera.main.transform;
-        }
+        cameraTransform = Camera.main.transform;
     }
 
 
     private void Update()
     {
+        if (cameraTransform == null) cameraTransform = Camera.main.transform;
         // Verificar se o PlayerScript está disponível
         if (playerScript == null) return;
 
@@ -167,12 +164,12 @@ public class TrajectoryPredictor  : MonoBehaviour
             
     }
 
-    private void ShowTrajectory()
+    public void ShowTrajectory()
     {
         lineRenderer.enabled = true;
     }
 
-    private void HideTrajectory()
+    public void HideTrajectory()
     {
         lineRenderer.enabled = false;
     }
