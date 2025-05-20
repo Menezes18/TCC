@@ -54,8 +54,8 @@ public class PrefabConstructorEditor : EditorWindow
 
             // Optional: reset model transform
             instance.transform.localPosition = Vector3.zero;
-            instance.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
-            instance.transform.localScale = Vector3.one;
+            instance.transform.localRotation = model.transform.localRotation;
+            instance.transform.localScale = model.transform.localScale;
 
             // Create prefab
             string prefabPath = $"{prefabFolder}/{model.name}.prefab";
