@@ -520,6 +520,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if(isFrozen) return;
         if(panel ) return;
+        if(State == PlayerState.Death) return;
         if(State == PlayerState.Stagger) return;
         if(Status != PlayerStatus.Default) return;
         if(Status == PlayerStatus.Throw) return;
@@ -534,35 +535,37 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if(isFrozen) return;
         if(panel) return;
+        if(State == PlayerState.Death) return;
         if (State == PlayerState.Stagger) return;
         if(Status == PlayerStatus.Pushing) return;
         if(Status == PlayerStatus.Throw) return;
         Status = PlayerStatus.Throw;
 
         
-        Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
+        // Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
         Vector3 direction = _cam.forward;
 
-        // PrefabInstancer.singleton.CmdSpawnProjectile(
-        //     origin,
-        //     direction,
-        //     this.netIdentity
-        // );
+         PrefabInstancer.singleton.CmdSpawnProjectile(
+             origin.transform.position,
+            direction,
+             this.netIdentity
+         );
     }
 
     public GameObject origin;
     public void PrefabFrameInstancer()
     {
-        //Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
-        Vector3 direction = _cam.forward;
-
-        PrefabInstancer.singleton.CmdSpawnProjectile(
-            origin.transform.position,
-            direction,
-            this.netIdentity
-        );
-        
-        _throwCooldown = db.playerThrowCooldown;
+        Debug.LogError("PrefabFrameInstancer");
+        // //Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
+        // Vector3 direction = _cam.forward;
+        //
+        // PrefabInstancer.singleton.CmdSpawnProjectile(
+        //     origin.transform.position,
+        //     direction,
+        //     this.netIdentity
+        // );
+        //
+        // _throwCooldown = db.playerThrowCooldown;
     }
     
     // MUDAR ISSO AQUI DEPOIS

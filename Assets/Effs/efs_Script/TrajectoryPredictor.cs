@@ -60,7 +60,7 @@ public class TrajectoryPredictor  : MonoBehaviour
     void Start()
     {
         HideTrajectory();
-        hitObj.SetActive(false);
+        if(hitObj != null) hitObj.SetActive(false);
         cameraTransform = Camera.main.transform;
     }
 
@@ -81,7 +81,7 @@ public class TrajectoryPredictor  : MonoBehaviour
         {
             HideTrajectory();
             isTrajectoryVisible = false;
-            hitObj.SetActive(false);
+            if(hitObj != null) hitObj.SetActive(false);
         }
 
         // Atualizar a trajetória enquanto estiver visível
@@ -90,14 +90,14 @@ public class TrajectoryPredictor  : MonoBehaviour
             DrawProjection();
         }
     }
-
+    
     private void DrawProjection()
     {
         lineRenderer.enabled = true;
         lineRenderer.positionCount = Mathf.CeilToInt(linePoints / timeBetweenPoints) + 1;
 
         // Posição inicial do projétil
-        Vector3 startPosition = transform.TransformPoint(db.projectileLocalOffset);
+        Vector3 startPosition = playerScript.origin.transform.position;
 
         // Calcula a velocidade inicial baseada na direção da câmera e velocidade do projétil
         Vector3 direction = cameraTransform.forward;

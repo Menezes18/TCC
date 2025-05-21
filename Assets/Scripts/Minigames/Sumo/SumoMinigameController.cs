@@ -59,8 +59,8 @@ public class SumoMinigameController : MinigameController
     }
     public override void UpdateScores()
     {
-        if (state == HideState.Done) return;
-        if(!_startGame) return;
+        if (!isServer || !_startGame || state == HideState.Done)
+            return;
         
         float dt = Time.deltaTime;
         switch (state)
@@ -82,19 +82,15 @@ public class SumoMinigameController : MinigameController
                 if (nextBlink <= 0f)
                 {
                     
-                    foreach (var mr in hideSequence[currentIndex].blinkTargets)
-                        mr.enabled = !mr.enabled;
+                    RpcToggleBlink(currentIndex);
                     nextBlink = blinkInterval;
                 }
 
                 if (timer <= 0f)
                 {
-                    foreach (var mr in hideSequence[currentIndex].blinkTargets)
-                        mr.enabled = true;
+                    RpcEnsureVisible(currentIndex);
+                    RpcDisableStep(currentIndex);
 
-                    foreach (var go in hideSequence[currentIndex].disableTargets)
-                        if (go != null) go.SetActive(false);
-                    
                     currentIndex++;
                     PrepareNextStep();
                 }
@@ -143,5 +139,22 @@ public class SumoMinigameController : MinigameController
     }
 
     public override Dictionary<ulong,int> GetResults() => finalScores;
-    
+    [ClientRpc]
+    void RpcToggleBlink(int step)
+    {
+        foreach (var mr in hideSequence[step].blinkTargets)
+            mr.enabled = !mr.enabled;
+    }
+    void RpcEnsureVisible(int step)
+    {
+        foreach (var mr in hideSequence[step].blinkTargets)
+            mr.enabled = true;
+    }
+
+    [ClientRpc]
+    void RpcDisableStep(int step)
+    {
+        foreach (var go in hideSequence[step].disableTargets)
+            if (go != null) go.SetActive(false);
+    }
 }
