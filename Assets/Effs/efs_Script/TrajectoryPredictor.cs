@@ -23,8 +23,8 @@ public class TrajectoryPredictor  : MonoBehaviour
     private LayerMask ProjectCollisionMask;
     private bool isTrajectoryVisible = false;
 
-    [Header("HitPoint")]
-    public GameObject hitObj;
+    //[Header("HitPoint")]
+    //public GameObject hitObj;
 
     private void Awake()
     {
@@ -60,7 +60,6 @@ public class TrajectoryPredictor  : MonoBehaviour
     void Start()
     {
         HideTrajectory();
-        if(hitObj != null) hitObj.SetActive(false);
         cameraTransform = Camera.main.transform;
     }
 
@@ -81,7 +80,6 @@ public class TrajectoryPredictor  : MonoBehaviour
         {
             HideTrajectory();
             isTrajectoryVisible = false;
-            if(hitObj != null) hitObj.SetActive(false);
         }
 
         // Atualizar a trajetória enquanto estiver visível
