@@ -543,11 +543,25 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
         Vector3 direction = _cam.forward;
 
+        // PrefabInstancer.singleton.CmdSpawnProjectile(
+        //     origin,
+        //     direction,
+        //     this.netIdentity
+        // );
+    }
+
+    public GameObject origin;
+    public void PrefabFrameInstancer()
+    {
+        //Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
+        Vector3 direction = _cam.forward;
+
         PrefabInstancer.singleton.CmdSpawnProjectile(
-            origin,
+            origin.transform.position,
             direction,
             this.netIdentity
         );
+        
         _throwCooldown = db.playerThrowCooldown;
     }
     

@@ -68,7 +68,7 @@ public class MatchManager : NetworkBehaviour
 
         });
         scoreRule = FindObjectOfType<MinigameController>() as IScoreRule;
-        (scoreRule as MinigameController)?.StartMatch();
+        (scoreRule as MinigameController)?.SetupMiniGame();
         //InternalStartMatch();
 
     }
@@ -90,6 +90,8 @@ public class MatchManager : NetworkBehaviour
             // efeito talvez
             // ou som
             // mas é aqui 
+            Debug.LogError("Acabou");
+            (scoreRule as MinigameController)?.StartMatch();
             _freezeTimer = -1;
             
         }

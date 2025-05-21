@@ -1,3 +1,4 @@
+using System;
 using Mirror;
 using UnityEngine;
 using Steamworks;
@@ -41,7 +42,19 @@ public class PlayerData : NetworkBehaviour{
    public CharacterSkinElement characterInstance { get; set; }
    protected Callback<AvatarImageLoaded_t> avatarImageLoaded;
    public Sprite icon { get; private set; }
-   
+
+   private void Awake()
+   {
+      if (base.isServer == true)
+      {
+         PlayerList.singleton.AddToList(this);
+      }
+   }
+   public override void OnStartLocalPlayer()
+   {
+      base.OnStartLocalPlayer();
+      CmdNetworkAlias();
+   }
    private void Start()
    {
       PlayerDataSO.EventOnColorRequest += PlayerDataSOOnEventOnColorRequest;
@@ -58,7 +71,6 @@ public class PlayerData : NetworkBehaviour{
       if(base.isOwned == false) return;
       
 
-      CmdNetworkAlias();
       // 
    }
    
@@ -91,6 +103,7 @@ public class PlayerData : NetworkBehaviour{
    [Command]
    void CmdNetworkAlias()
    {
+      if (!isOwned) return;
       string chosenName;
       if (SteamManager.Initialized)
       {
@@ -131,6 +144,7 @@ public class PlayerData : NetworkBehaviour{
    //
    void HookOnAliasUpdated(string oldVal, string newVal)
    {
+      if (!isOwned) return;
       this.OnAliasUpdated?.Invoke(newVal);
    }
 
