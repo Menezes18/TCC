@@ -30,9 +30,9 @@ public class SumoMinigameController : MinigameController
 
     public enum HideState { Waiting, Blinking, Done }
     private HideState state;
-    private int currentIndex;
-    private float timer = 5f;
-    private float nextBlink;
+    [SyncVar] int currentIndex;
+    [SyncVar] float timer = 5f;
+    [SyncVar] float nextBlink;
 
     public bool _startGame = false;
 
