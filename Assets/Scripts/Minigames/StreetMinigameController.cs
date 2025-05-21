@@ -15,6 +15,12 @@ public class StreetMinigameController : MinigameController
 
     private PlayerList playerList => PlayerList.singleton;
 
+    public void SetupMiniGame()
+    {
+        base.SetupMiniGame();
+        
+        
+    }
     public override void OnStartServer()
     {
         base.OnStartServer();
@@ -52,6 +58,7 @@ public class StreetMinigameController : MinigameController
 
             int deltaPoints = currentPercent - prevPercent;
             lastProgressPercent[steamId] = currentPercent;
+            Debug.LogWarning(accumulatedPointsDelta[steamId] + " "  +currDelta + " " + deltaPoints);
             accumulatedPointsDelta[steamId] = currDelta + deltaPoints;
         }
     }
@@ -68,11 +75,11 @@ public class StreetMinigameController : MinigameController
             .Select(pd => pd.playerInfo.steamId)
             .ToList();
 
-        for (int i = 0; i < finishOrder.Count; i++)
-        {
-            var steamId = finishOrder[i];
-            finalScores[steamId] += (finishOrder.Count - i) * 20;
-        }
+        // for (int i = 0; i < finishOrder.Count; i++)
+        // {
+        //     var steamId = finishOrder[i];
+        //     finalScores[steamId] += (finishOrder.Count - i) * 20;
+        // }
 
         if (finishOrder.Count == 0 && playerList.players.Count > 0)
         {

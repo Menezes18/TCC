@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 
-public interface IScoreRule
-{
+public interface IScoreRule{
+    void SetupMiniGame();
     void StartMatch();
     void UpdateScores();
     void AssignFinalPoints();

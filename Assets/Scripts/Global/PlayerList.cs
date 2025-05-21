@@ -11,6 +11,9 @@ public class PlayerList : NetworkBehaviour{
     private void Awake()
     {
         singleton = this;
+        for(int i = 0; i < db.playerColors.Count; i++){
+            ColorsAvailable.Add(i);
+        }
     }
     
 
@@ -27,9 +30,6 @@ public class PlayerList : NetworkBehaviour{
     private void Start()
     {
         ColorsAvailable.Callback += ColorsAvailable_Callback;
-        for(int i = 0; i < db.playerColors.Count; i++){
-            ColorsAvailable.Add(i);
-        }
     }
 
     private void OnDestroy()
@@ -99,14 +99,18 @@ public class PlayerList : NetworkBehaviour{
     [Server]
     public void AtivarPlayer(bool ativar)
     {
-        Debug.Log($"[Server] PlayerList.AtivarPlayer({ativar})");
-        foreach (PlayerData data in players)
+        var allPlayerData = FindObjectsOfType<PlayerData>();
+
+        foreach (var data in allPlayerData)
         {
             var ps = data.GetComponent<PlayerScript>();
-            ps.isFrozen = ativar;    
-            Debug.Log($"[Server] ({ativar})");
+            if (ps != null)
+            {
+                ps.isFrozen = ativar;
+            }
         }
     }
+
     //
     void ColorsAvailable_Callback(SyncList<int>.Operation op, int itemindex, int olditem, int newitem)
     {

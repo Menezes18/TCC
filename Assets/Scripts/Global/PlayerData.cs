@@ -1,3 +1,4 @@
+using System;
 using Mirror;
 using UnityEngine;
 using Steamworks;
@@ -41,7 +42,15 @@ public class PlayerData : NetworkBehaviour{
    public CharacterSkinElement characterInstance { get; set; }
    protected Callback<AvatarImageLoaded_t> avatarImageLoaded;
    public Sprite icon { get; private set; }
-   
+
+   private void Awake()
+   {
+      if (base.isServer == true)
+      {
+         PlayerList.singleton.AddToList(this);
+      }
+   }
+
    private void Start()
    {
       PlayerDataSO.EventOnColorRequest += PlayerDataSOOnEventOnColorRequest;
