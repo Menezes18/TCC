@@ -30,6 +30,11 @@ public class ContadorTempo : NetworkBehaviour, ISubject
     [SerializeField] private Color corOriginal = Color.white;
     [SerializeField] private Color corAlerta = Color.red;
 
+    void Start()
+    {
+        IniciarContador();
+    }
+
     public override void OnStartClient()
     {
         base.OnStartClient();
@@ -124,6 +129,8 @@ public class ContadorTempo : NetworkBehaviour, ISubject
             uiTempoPrincipal.color = corOriginal;
             efeitoFinalAtivado = false;
             Notifica();
+
+            MyNetworkManager.manager.ReiniciarJogo();
 
             if (NetworkServer.active)
             {

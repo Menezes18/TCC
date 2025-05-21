@@ -24,7 +24,7 @@ public class PlayerScoreboard
 [System.Serializable]
 public class MyNetworkManager : NetworkManager, ISubjectPontos
 {
-    
+
     public static bool isMulitplayer;
     public static MyNetworkManager manager { get; internal set; }
 
@@ -32,7 +32,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public List<string> minigames;
     public int indexScene = 0;
     public int minJogadores = 1;
-    
+
     [SerializeField]
     public PlayerScoreboard scoreboard = new PlayerScoreboard();
     public Dictionary<ulong, DataPlayer> pointsBoard = new Dictionary<ulong, DataPlayer>();
@@ -65,7 +65,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
         listaAleatoria();
 
-            //     if (UIManager.Instance != null)
+        //     if (UIManager.Instance != null)
         // UIManager.Instance.SpawnLocalUI();
         base.Awake();
     }
@@ -81,48 +81,49 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         // allClients.Add(client);
         if (testMode)
         {
-            var fakeId= nextFakeId++;
+            var fakeId = nextFakeId++;
             var fakeName = $"DevPlayer{fakeId:D2}";
             client.playerInfo = new PlayerInfoData(fakeName, fakeId);
         }
         else
         {
-            CSteamID steamId = SteamLobby.LobbyID.m_SteamID == 0 
-                ? SteamUser.GetSteamID() 
+            CSteamID steamId = SteamLobby.LobbyID.m_SteamID == 0
+                ? SteamUser.GetSteamID()
                 : SteamMatchmaking.GetLobbyMemberByIndex(SteamLobby.LobbyID, allClients.Count);
             client.playerInfo = new PlayerInfoData(SteamFriends.GetFriendPersonaName(steamId), steamId.m_SteamID);
         }
         if (!pointsBoard.ContainsKey(client.playerInfo.steamId))
         {
             int assignedColor = PlayerList.singleton.ServerRequestColor(-1, 1);
-            
+
             var pd = conn.identity.GetComponent<PlayerData>();
             string chosenName = SteamManager.Initialized
                 ? SteamFriends.GetFriendPersonaName(SteamUser.GetSteamID())
                 : "Mamaco";
 
-            var playerDatatemp = new DataPlayer 
-            { 
+            var playerDatatemp = new DataPlayer
+            {
                 steamID = client.playerInfo.steamId,
                 playerName = chosenName,
-                points = 0, 
+                points = 0,
                 color = assignedColor
             };
-            
+
             pointsBoard[client.playerInfo.steamId] = playerDatatemp;
             scoreboard.players.Add(playerDatatemp);
             client.alias = playerDatatemp.playerName;
             client.score = playerDatatemp.points;
             client.color = playerDatatemp.color;
         }
-        else{
-            
+        else
+        {
+
             client.score = pointsBoard[client.playerInfo.steamId].points;
             client.color = pointsBoard[client.playerInfo.steamId].color;
 
         }
         CharacterSkinHandler.instance.DestroyMesh();
-        
+
         Notifica();
     }
     [Server]
@@ -132,9 +133,9 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         {
             DataPlayer data = pointsBoard[steamID];
             data.points += pointsToAdd;
-            
+
             pointsBoard[steamID] = data;
-            
+
             var player = scoreboard.players.Find(p => p.steamID == steamID);
             if (player != null)
             {
@@ -151,8 +152,8 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     private int i = 0;
     private void UpdatePointsBoardInspector()
     {
-       
-        
+
+
     }
     public override void OnServerDisconnect(NetworkConnectionToClient conn)
     {
@@ -170,7 +171,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         }
         base.OnServerDisconnect(conn);
     }
-    
+
     public void StartDevHost()
     {
         testMode = true;
@@ -181,7 +182,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         if (steamLobby != null) Destroy(steamLobby);
         var lobbycontroller = GetComponent<LobbyController>();
         if (lobbycontroller != null) Destroy(lobbycontroller);
-        
+
         var kcp = GetComponent<KcpTransport>();
 
         transport = kcp;
@@ -209,7 +210,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
     public override void OnStartClient()
     {
-        if (isMulitplayer) 
+        if (isMulitplayer)
         {
             MainMenu.instance.SetMenuState(MenuState.InParty);
             PopupManager.instance.Popup_Close();
@@ -229,17 +230,17 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     }
 
     public void SetMultiplayer(bool value)
-    { 
+    {
         isMulitplayer = value;
 
-        if (isMulitplayer) 
+        if (isMulitplayer)
 
             NetworkServer.dontListen = false;
-        else 
-        
+        else
+
             NetworkServer.dontListen = true;
     }
-    
+
 
     public void Adicionar(IObserverPontos observer)
     {
@@ -256,14 +257,14 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         string[] nomesJogadores = new string[scoreboard.players.Count];
         int[] pontosJogadores = new int[scoreboard.players.Count];
         int[] corplayer = new int[scoreboard.players.Count];
-            
+
         for (int i = 0; i < scoreboard.players.Count; i++)
         {
             nomesJogadores[i] = scoreboard.players[i].playerName;
             pontosJogadores[i] = scoreboard.players[i].points;
             corplayer[i] = scoreboard.players[i].color;
         }
-        
+
         foreach (IObserverPontos observer in _observers)
         {
             observer.Atualizacao(this, pontosJogadores, nomesJogadores);
@@ -282,6 +283,26 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         }
 
         minigames.Add("Vitoria");
+    }
+
+    public void ReiniciarJogo()
+    {
+        limparPontos();
+        limparLista();
+        listaAleatoria();
+    }
+
+    public void limparPontos()
+    {
+        for (int i = 0; i < scoreboard.players.Count; i++)
+        {
+            scoreboard.players[i].points = 0;
+        }
+    }
+    public void limparLista()
+    {
+        indexScene = 0;
+        minigames.RemoveAt(minigames.Count - 1);
     }
     
 }

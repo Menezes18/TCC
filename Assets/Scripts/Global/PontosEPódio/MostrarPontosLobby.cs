@@ -1,43 +1,47 @@
+using Mirror;
 using TMPro;
 using UnityEngine;
 using System;
 
-public class MostrarPontosLobby : MonoBehaviour, IObserverPontos
+public class MostrarPontosLobby : NetworkBehaviour, IObserverPontos
 {
     public TMP_Text[] jogadores;
     public TMP_Text[] jogadoresPontos;
-    
+
     void Awake()
     {
         MyNetworkManager.manager.Adicionar(this);
     }
 
-    public void Atualizacao(ISubjectPontos subject, int[] pontos, string[] jogadoresNomes)
+    [ClientRpc]
+    public void RpcAtualizarPontos(int[] pontos, string[] jogadoresNomes)
+    {
+        AtualizarUI(pontos, jogadoresNomes);
+    }
+
+    private void AtualizarUI(int[] pontos, string[] jogadoresNomes)
     {
         for (int i = 0; i < jogadores.Length; i++)
         {
-            if (jogadores[i] != null)
-                jogadores[i].text = "";
-            
-            if (jogadoresPontos[i] != null)
-                jogadoresPontos[i].text = "";
+            if (jogadores[i] != null) jogadores[i].text = "";
+            if (jogadoresPontos[i] != null) jogadoresPontos[i].text = "";
         }
-        
-        var jogadoresPontuacao = new Tuple<string, int>[jogadoresNomes.Length];
+
+        var lista = new Tuple<string, int>[jogadoresNomes.Length];
         for (int i = 0; i < jogadoresNomes.Length && i < pontos.Length; i++)
+            lista[i] = Tuple.Create(jogadoresNomes[i], pontos[i]);
+
+        Array.Sort(lista, (a, b) => b.Item2.CompareTo(a.Item2));
+
+        for (int i = 0; i < lista.Length && i < jogadores.Length; i++)
         {
-            jogadoresPontuacao[i] = new Tuple<string, int>(jogadoresNomes[i], pontos[i]);
+            if (jogadores[i] != null) jogadores[i].text = lista[i].Item1;
+            if (jogadoresPontos[i] != null) jogadoresPontos[i].text = lista[i].Item2.ToString();
         }
-        
-        Array.Sort(jogadoresPontuacao, (a, b) => b.Item2.CompareTo(a.Item2));
-        
-        for (int i = 0; i < jogadoresPontuacao.Length && i < jogadores.Length; i++)
-        {
-            if (jogadores[i] != null)
-                jogadores[i].text = jogadoresPontuacao[i].Item1;
-            
-            if (jogadoresPontos[i] != null)
-                jogadoresPontos[i].text = jogadoresPontuacao[i].Item2.ToString();
-        }
+    }
+
+    public void Atualizacao(ISubjectPontos subject, int[] pontos, string[] jogadores)
+    {
+        RpcAtualizarPontos(pontos, jogadores);
     }
 }
