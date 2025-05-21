@@ -543,15 +543,16 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
         
         // Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
-        Vector3 direction = _cam.forward;
+         direction = _cam.forward;
 
-         PrefabInstancer.singleton.CmdSpawnProjectile(
-             origin.transform.position,
-            direction,
-             this.netIdentity
-         );
+        // PrefabInstancer.singleton.CmdSpawnProjectile(
+        //     origin.transform.position,
+        //    direction,
+        //     this.netIdentity
+        // );
+        _throwCooldown = db.playerThrowCooldown;
     }
-
+    private Vector3 direction;
     public GameObject origin;
     public void PrefabFrameInstancer()
     {
@@ -559,13 +560,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         // //Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
         // Vector3 direction = _cam.forward;
         //
-        // PrefabInstancer.singleton.CmdSpawnProjectile(
-        //     origin.transform.position,
-        //     direction,
-        //     this.netIdentity
-        // );
-        //
-        // _throwCooldown = db.playerThrowCooldown;
+        PrefabInstancer.singleton.CmdSpawnProjectile(
+            origin.transform.position,
+            direction,
+            this.netIdentity
+        );
+
+       // _throwCooldown = db.playerThrowCooldown;
     }
     
     // MUDAR ISSO AQUI DEPOIS

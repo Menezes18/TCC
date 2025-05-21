@@ -43,17 +43,13 @@ public class PlayerData : NetworkBehaviour{
    protected Callback<AvatarImageLoaded_t> avatarImageLoaded;
    public Sprite icon { get; private set; }
 
-   private void Awake()
+    private void Awake()
    {
       if (base.isServer == true)
       {
          PlayerList.singleton.AddToList(this);
       }
-   }
-   public override void OnStartLocalPlayer()
-   {
-      base.OnStartLocalPlayer();
-      CmdNetworkAlias();
+      
    }
    private void Start()
    {
@@ -66,9 +62,9 @@ public class PlayerData : NetworkBehaviour{
       {
          PlayerList.singleton.AddToList(this);
       }
-      
-      //
-      if(base.isOwned == false) return;
+        CmdNetworkAlias();
+        //
+        if (base.isOwned == false) return;
       
 
       // 
@@ -103,7 +99,7 @@ public class PlayerData : NetworkBehaviour{
    [Command]
    void CmdNetworkAlias()
    {
-      if (!isOwned) return;
+      //if (!isOwned) return;
       string chosenName;
       if (SteamManager.Initialized)
       {
@@ -137,14 +133,14 @@ public class PlayerData : NetworkBehaviour{
       color = playerList.ServerRequestColor(color, value);
 
      
-      var playerData = GetComponent<PlayerData>();
-      MyNetworkManager.manager.pointsBoard[playerData.playerInfo.steamId].color = value;
+      MyNetworkManager.manager.pointsBoard[this.playerInfo.steamId].color = value;
    }
    
    //
    void HookOnAliasUpdated(string oldVal, string newVal)
    {
       if (!isOwned) return;
+      MyNetworkManager.manager.pointsBoard[this.playerInfo.steamId].playerName = newVal;
       this.OnAliasUpdated?.Invoke(newVal);
    }
 
