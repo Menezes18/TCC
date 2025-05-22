@@ -62,7 +62,6 @@ public class PlayerData : NetworkBehaviour{
       {
          PlayerList.singleton.AddToList(this);
       }
-        CmdNetworkAlias();
         //
         if (base.isOwned == false) return;
       
@@ -70,7 +69,11 @@ public class PlayerData : NetworkBehaviour{
       // 
    }
    
-   
+   public override void OnStartLocalPlayer()
+   {
+      base.OnStartLocalPlayer();
+      CmdNetworkAlias();
+   }
    
    
    private void SteamInitialization()
@@ -100,21 +103,36 @@ public class PlayerData : NetworkBehaviour{
    void CmdNetworkAlias()
    {
       //if (!isOwned) return;
-      string chosenName;
+ 
       if (SteamManager.Initialized)
       {
          CSteamID myId = SteamUser.GetSteamID();
-         chosenName = SteamFriends.GetFriendPersonaName(myId);
+         alias = SteamFriends.GetFriendPersonaName(myId);
       }
       else
       {
-         chosenName = "Mamaco";
+         alias = "Mamaco";
       }
 
-      alias = chosenName;
    }
    
+   private string lastSentAlias = "";
 
+   void Update()
+   {
+      if (!isLocalPlayer) return;
+
+      string currentAlias = SteamManager.Initialized
+         ? SteamFriends.GetPersonaName()
+         : "Mamaco";
+
+      if (currentAlias != lastSentAlias)
+      {
+         lastSentAlias = currentAlias;
+         alias = currentAlias;
+      }
+   }
+   
    [Command]
    void CmdRequestAlias(string value)
    {
@@ -139,7 +157,6 @@ public class PlayerData : NetworkBehaviour{
    //
    void HookOnAliasUpdated(string oldVal, string newVal)
    {
-      if (!isOwned) return;
       MyNetworkManager.manager.pointsBoard[this.playerInfo.steamId].playerName = newVal;
       this.OnAliasUpdated?.Invoke(newVal);
    }

@@ -9,73 +9,65 @@ public class LobbyUI : MonoBehaviour
 {
     public static LobbyUI Instance;
 
-    [Header("Referências")]
-    public Database db;                  
-    public Transform slotsParent;        
-    public GameObject slotPrefab;        
+    public GameObject slotPrefab;
+    public Transform slotsParent;
 
-    private readonly List<GameObject> slots = new List<GameObject>();
+    private readonly Dictionary<ulong, LobbySlot> slotsById = new Dictionary<ulong, LobbySlot>();
 
-    private SyncList<PlayerData>.SyncListChanged playersCallback;
-
-    void Awake() => Instance = this;
-
-    void Start()
+    private void Awake()
     {
-        playersCallback = OnPlayersChanged;
-
-        // registra o callback
-        PlayerList.singleton.players.Callback += playersCallback;
-        RefreshLobby();
-        
-    }
-    
-    void OnDestroy()
-    {
-        if (PlayerList.singleton != null)
-            PlayerList.singleton.players.Callback -= playersCallback;
+        Instance = this;
+        MyNetworkManager.manager.onClientsChanged += SyncSlots;
     }
 
-    private void OnPlayersChanged(
-        SyncList<PlayerData>.Operation op, 
-        int index, 
-        PlayerData oldPlayer, 
-        PlayerData newPlayer
-    ) {
-        RefreshLobby();
+    private void OnDestroy()
+    {
+        if (MyNetworkManager.manager != null)
+            MyNetworkManager.manager.onClientsChanged -= SyncSlots;
+    }
+
+    private void Start()
+    {
+        SyncSlots();
+    }
+
+    private void SyncSlots()
+    {
+        var seenIds = new HashSet<ulong>();
+
+        foreach (var pd in MyNetworkManager.manager.allClients)
+        {
+            seenIds.Add(pd.playerInfo.steamId);
+            if (!slotsById.TryGetValue(pd.playerInfo.steamId, out var slot))
+            {
+                var go = Instantiate(slotPrefab, slotsParent);
+                slot = go.GetComponent<LobbySlot>();
+                slot.Initialize(pd.playerInfo.steamId);
+                slotsById[pd.playerInfo.steamId] = slot;
+            }
+            // primeiro refresh
+            slot.Refresh(pd.alias, pd.IsReady);
+        }
+
+        foreach (var id in new List<ulong>(slotsById.Keys))
+        {
+            if (!seenIds.Contains(id))
+            {
+                Destroy(slotsById[id].gameObject);
+                slotsById.Remove(id);
+            }
+        }
     }
 
     private void Update()
     {
-        RefreshLobby();
-    }
-
-    public void RefreshLobby()
-    {
-        foreach (var go in slots)
-            Destroy(go);
-        slots.Clear();
-
-        var list = PlayerList.singleton.players;
-        for (int i = 0; i < list.Count; i++)
+        foreach (var pd in MyNetworkManager.manager.allClients)
         {
-            var pd = list[i];
-            var go = Instantiate(slotPrefab, slotsParent);
-            slots.Add(go);
-            
-            
-
-            // Nome
-            var txt = go.transform
-                .Find("Name")  
-                .GetComponent<TextMeshProUGUI>();
-            txt.text = pd.alias;
-            txt.text = pd.alias;
-
-            // Ready Toggle
-            var readyImg = go.transform.Find("readyImg").GetComponent<Image>();
-            readyImg.color = pd.IsReady ? Color.green : Color.red;
-
+            if (slotsById.TryGetValue(pd.playerInfo.steamId, out var slot))
+            {
+                slot.Refresh(pd.alias, pd.IsReady);
+            }
         }
     }
 }
+

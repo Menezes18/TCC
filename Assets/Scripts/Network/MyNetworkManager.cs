@@ -1,3 +1,4 @@
+using System;
 using Mirror;
 using Steamworks;
 using System.Collections;
@@ -5,7 +6,7 @@ using System.Collections.Generic;
 using kcp2k;
 using UnityEngine;
 using Mirror.FizzySteam;
-
+using Random = UnityEngine.Random;
 
 
 [System.Serializable]
@@ -42,6 +43,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public bool testMode = false;
     static ulong nextFakeId = 1;
     public List<IObserverPontos> _observers = new List<IObserverPontos>();
+    public event Action onClientsChanged;
     private void Awake()
     {
         MyNetworkManager[] managers = FindObjectsOfType<MyNetworkManager>();
@@ -76,7 +78,12 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             return;
 
         base.OnServerAddPlayer(conn);
-
+        var pd = conn.identity.GetComponent<PlayerData>();
+        if (!allClients.Contains(pd))
+        {
+            allClients.Add(pd);
+            onClientsChanged?.Invoke();
+        }
         PlayerData client = conn.identity.GetComponent<PlayerData>();
         // allClients.Add(client);
         if (testMode)
@@ -95,8 +102,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         if (!pointsBoard.ContainsKey(client.playerInfo.steamId))
         {
             int assignedColor = PlayerList.singleton.ServerRequestColor(-1, 1);
-
-            var pd = conn.identity.GetComponent<PlayerData>();
+            
             string chosenName = SteamManager.Initialized
                 ? SteamFriends.GetFriendPersonaName(SteamUser.GetSteamID())
                 : "Mamaco";
@@ -166,6 +172,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             if (pointsBoard.ContainsKey(sid))
             {
                 pointsBoard.Remove(sid);
+                onClientsChanged?.Invoke();
                 scoreboard.players.RemoveAll(p => p.steamID == sid);
                 PlayerList.singleton.players.Remove(client);
             }
