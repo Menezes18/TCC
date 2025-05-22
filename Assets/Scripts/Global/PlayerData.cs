@@ -1,4 +1,3 @@
-using System;
 using Mirror;
 using UnityEngine;
 using Steamworks;
@@ -23,7 +22,6 @@ public class PlayerData : NetworkBehaviour{
    private PlayerList playerList => PlayerList.singleton;
    
    [SerializeField] PlayerDataSO PlayerDataSO;
-   [SerializeField] Database db;
    
    
    [SyncVar(hook = nameof(PlayerInfoUpdate))] public PlayerInfoData playerInfo;
@@ -42,47 +40,38 @@ public class PlayerData : NetworkBehaviour{
    public CharacterSkinElement characterInstance { get; set; }
    protected Callback<AvatarImageLoaded_t> avatarImageLoaded;
    public Sprite icon { get; private set; }
-
-    private void Awake()
-   {
-      if (base.isServer == true)
-      {
-         PlayerList.singleton.AddToList(this);
-      }
-      
-   }
+   
    private void Start()
    {
       PlayerDataSO.EventOnColorRequest += PlayerDataSOOnEventOnColorRequest;
       
       SteamInitialization();
       CmdNetworkAlias();
+
       //
       if (base.isServer == true)
       {
          PlayerList.singleton.AddToList(this);
+         
       }
-        //
-        if (base.isOwned == false) return;
       
-        int lastColor = PlayerPrefs.GetInt("lastcolor", 1);
-        CmdRequestColor(lastColor);
-      // 
+      //
+      if(base.isOwned == false) return;
+ 
+      
+      //
+      int lastColor = PlayerPrefs.GetInt("lastcolor", 1);
+      CmdRequestColor(lastColor);
    }
-   
-   public override void OnStartLocalPlayer()
-   {
-      base.OnStartLocalPlayer();
-      CmdNetworkAlias();
-   }
-   
-   
+
    private void SteamInitialization()
    {
       if (NetworkManager.singleton != null)
          ((MyNetworkManager)NetworkManager.singleton).allClients.Add(this);
         
-      
+
+      if(CharacterSkinHandler.instance) CharacterSkinHandler.instance.SpawnCharacterMesh(this);
+      avatarImageLoaded = Callback<AvatarImageLoaded_t>.Create(OnAvatarImageLoaded);
    }
 
    private void OnDestroy()
@@ -101,38 +90,21 @@ public class PlayerData : NetworkBehaviour{
    [Command]
    void CmdNetworkAlias()
    {
-      //if (!isOwned) return;
- 
-      if (SteamManager.Initialized)
+      string chosenName;
+      if (SteamManager.Initialized && SteamUser.BLoggedOn())
       {
          CSteamID myId = SteamUser.GetSteamID();
-         alias = SteamFriends.GetFriendPersonaName(myId);
+         chosenName = SteamFriends.GetFriendPersonaName(myId);
       }
       else
       {
-         alias = "Mamaco";
+         chosenName = "Mamaco";
       }
 
+      alias = chosenName;
    }
    
-   private string lastSentAlias = "";
 
-   void Update()
-   {
-      if (!isLocalPlayer || isServer) return;
-
-
-      string currentAlias = SteamManager.Initialized
-         ? SteamFriends.GetPersonaName()
-         : "Mamaco";
-
-      if (currentAlias != lastSentAlias)
-      {
-         lastSentAlias = currentAlias;
-         alias = currentAlias;
-      }
-   }
-   
    [Command]
    void CmdRequestAlias(string value)
    {
@@ -149,35 +121,20 @@ public class PlayerData : NetworkBehaviour{
    {
       Debug.LogError(value + " is not a valid color");
       color = playerList.ServerRequestColor(color, value);
-
-     
-      MyNetworkManager.manager.pointsBoard[this.playerInfo.steamId].color = value;
    }
    
    //
    void HookOnAliasUpdated(string oldVal, string newVal)
    {
-      newVal = MyNetworkManager.manager.pointsBoard[this.playerInfo.steamId].playerName;
       this.OnAliasUpdated?.Invoke(newVal);
    }
 
    void HookOnColorUpdated(int oldVal, int newVal)
    {
       this.OnColorUpdated?.Invoke(newVal);
-      if (isServer)
-      {
-         var steamId = playerInfo.steamId;
-         if (MyNetworkManager.manager.pointsBoard.TryGetValue(steamId, out var dp))
-         {
-            dp.color = newVal;
-            MyNetworkManager.manager.pointsBoard[steamId] = dp;
-            // e no scoreboard sincronizado também
-            var plr = MyNetworkManager.manager.scoreboard.players
-               .Find(p => p.steamID == steamId);
-            if (plr != null) plr.color = newVal;
-         }
-      }
    }
+   
+   
    void PlayerDataSOOnEventOnColorRequest(int obj)
    {
       if(!isOwned) return;
