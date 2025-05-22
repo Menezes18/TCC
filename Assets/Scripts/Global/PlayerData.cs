@@ -56,7 +56,7 @@ public class PlayerData : NetworkBehaviour{
       PlayerDataSO.EventOnColorRequest += PlayerDataSOOnEventOnColorRequest;
       
       SteamInitialization();
-
+      CmdNetworkAlias();
       //
       if (base.isServer == true)
       {
@@ -65,7 +65,8 @@ public class PlayerData : NetworkBehaviour{
         //
         if (base.isOwned == false) return;
       
-
+        int lastColor = PlayerPrefs.GetInt("lastcolor", 1);
+        CmdRequestColor(lastColor);
       // 
    }
    
@@ -81,9 +82,7 @@ public class PlayerData : NetworkBehaviour{
       if (NetworkManager.singleton != null)
          ((MyNetworkManager)NetworkManager.singleton).allClients.Add(this);
         
-
-      if(CharacterSkinHandler.instance) CharacterSkinHandler.instance.SpawnCharacterMesh(this);
-      avatarImageLoaded = Callback<AvatarImageLoaded_t>.Create(OnAvatarImageLoaded);
+      
    }
 
    private void OnDestroy()
@@ -120,7 +119,8 @@ public class PlayerData : NetworkBehaviour{
 
    void Update()
    {
-      if (!isLocalPlayer) return;
+      if (!isLocalPlayer || isServer) return;
+
 
       string currentAlias = SteamManager.Initialized
          ? SteamFriends.GetPersonaName()
@@ -157,7 +157,7 @@ public class PlayerData : NetworkBehaviour{
    //
    void HookOnAliasUpdated(string oldVal, string newVal)
    {
-      MyNetworkManager.manager.pointsBoard[this.playerInfo.steamId].playerName = newVal;
+      newVal = MyNetworkManager.manager.pointsBoard[this.playerInfo.steamId].playerName;
       this.OnAliasUpdated?.Invoke(newVal);
    }
 
