@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using Mirror;
 using UnityEngine;
 using Steamworks;
@@ -22,6 +24,7 @@ public class PlayerData : NetworkBehaviour{
    private PlayerList playerList => PlayerList.singleton;
    
    [SerializeField] PlayerDataSO PlayerDataSO;
+   [SerializeField] Database db;
    
    
    [SyncVar(hook = nameof(PlayerInfoUpdate))] public PlayerInfoData playerInfo;
@@ -40,30 +43,63 @@ public class PlayerData : NetworkBehaviour{
    public CharacterSkinElement characterInstance { get; set; }
    protected Callback<AvatarImageLoaded_t> avatarImageLoaded;
    public Sprite icon { get; private set; }
-   
+
+   private void Awake()
+   {
+      if (base.isServer == true)
+      {
+         PlayerList.singleton.AddToList(this);
+      }
+   }
+   public override void OnStartLocalPlayer()
+   {
+      base.OnStartLocalPlayer();
+      CmdNetworkAlias();
+   }
+   private IEnumerator InitializePlayerInfo()
+   {
+      yield return new WaitForEndOfFrame();
+      
+      if (SteamManager.Initialized)
+      {
+         CSteamID myId = SteamUser.GetSteamID();
+         string steamName = SteamFriends.GetFriendPersonaName(myId);
+         ulong steamIdValue = myId.m_SteamID;
+         
+         CmdSetPlayerInfo(steamName, steamIdValue);
+      }
+
+   }
+   [Command]
+   void CmdSetPlayerInfo(string steamName, ulong steamIdValue)
+   {
+
+      alias = steamName;
+      
+
+   }
    private void Start()
    {
       PlayerDataSO.EventOnColorRequest += PlayerDataSOOnEventOnColorRequest;
       
       SteamInitialization();
-      CmdNetworkAlias();
 
       //
       if (base.isServer == true)
       {
          PlayerList.singleton.AddToList(this);
-         
       }
       
       //
       if(base.isOwned == false) return;
- 
       
-      //
-      int lastColor = PlayerPrefs.GetInt("lastcolor", 1);
-      CmdRequestColor(lastColor);
-   }
 
+      // 
+   }
+   
+   
+
+   
    private void SteamInitialization()
    {
       if (NetworkManager.singleton != null)
@@ -91,17 +127,19 @@ public class PlayerData : NetworkBehaviour{
    void CmdNetworkAlias()
    {
       string chosenName;
-      if (SteamManager.Initialized && SteamUser.BLoggedOn())
+      if (SteamManager.Initialized)
       {
          CSteamID myId = SteamUser.GetSteamID();
-         chosenName = SteamFriends.GetFriendPersonaName(myId);
+         string steamName = SteamFriends.GetFriendPersonaName(myId);
+         ulong steamIdValue = myId.m_SteamID;
+         
       }
       else
       {
          chosenName = "Mamaco";
       }
 
-      alias = chosenName;
+
    }
    
 
@@ -121,6 +159,10 @@ public class PlayerData : NetworkBehaviour{
    {
       Debug.LogError(value + " is not a valid color");
       color = playerList.ServerRequestColor(color, value);
+
+     
+      var playerData = GetComponent<PlayerData>();
+      MyNetworkManager.manager.pointsBoard[playerData.playerInfo.steamId].color = value;
    }
    
    //
@@ -132,9 +174,20 @@ public class PlayerData : NetworkBehaviour{
    void HookOnColorUpdated(int oldVal, int newVal)
    {
       this.OnColorUpdated?.Invoke(newVal);
+      if (isServer)
+      {
+         var steamId = playerInfo.steamId;
+         if (MyNetworkManager.manager.pointsBoard.TryGetValue(steamId, out var dp))
+         {
+            dp.color = newVal;
+            MyNetworkManager.manager.pointsBoard[steamId] = dp;
+            // e no scoreboard sincronizado também
+            var plr = MyNetworkManager.manager.scoreboard.players
+               .Find(p => p.steamID == steamId);
+            if (plr != null) plr.color = newVal;
+         }
+      }
    }
-   
-   
    void PlayerDataSOOnEventOnColorRequest(int obj)
    {
       if(!isOwned) return;
