@@ -520,6 +520,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if(isFrozen) return;
         if(panel ) return;
+        if (Cursor.visible == true) return;
         if(State == PlayerState.Death) return;
         if(State == PlayerState.Stagger) return;
         if(Status != PlayerStatus.Default) return;
@@ -535,6 +536,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if(isFrozen) return;
         if(panel) return;
+        if (Cursor.visible == true) return;
         if(State == PlayerState.Death) return;
         if (State == PlayerState.Stagger) return;
         if(Status == PlayerStatus.Pushing) return;
@@ -573,9 +575,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private void PlayerControlsSOOnOnDebug()
     {
         if(!base.isServer) return;
-        Debug.LogError("DEBUG: PlayerControlsSOOnOnDebug");
         //LobbyController.singleton.
-        LobbyController.singleton.CmdPrepareMath();
+        //LobbyController.singleton.CmdPrepareMath();
     }
     //
     private void OnStateChanged(PlayerState oldState, PlayerState newState)

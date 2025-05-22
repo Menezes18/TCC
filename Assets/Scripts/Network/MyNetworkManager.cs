@@ -167,6 +167,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             {
                 pointsBoard.Remove(sid);
                 scoreboard.players.RemoveAll(p => p.steamID == sid);
+                PlayerList.singleton.players.Remove(client);
             }
         }
         base.OnServerDisconnect(conn);

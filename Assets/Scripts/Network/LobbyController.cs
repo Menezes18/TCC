@@ -49,9 +49,8 @@ public class LobbyController : NetworkBehaviour
 
     public void StartGameWithParty() 
     {
-        if (AllPlayersReady()) 
-        {
-            
+        if (AllPlayersReady()){
+            CmdPrepareMath();
         }
     }
 
