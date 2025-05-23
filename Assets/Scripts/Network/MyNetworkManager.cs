@@ -79,11 +79,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
         base.OnServerAddPlayer(conn);
         var pd = conn.identity.GetComponent<PlayerData>();
-        if (!allClients.Contains(pd))
-        {
-            allClients.Add(pd);
-            onClientsChanged?.Invoke();
-        }
+
         PlayerData client = conn.identity.GetComponent<PlayerData>();
         // allClients.Add(client);
         if (testMode)

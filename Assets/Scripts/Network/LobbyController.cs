@@ -26,7 +26,9 @@ public class LobbyController : NetworkBehaviour
     [SerializeField]
     private List<string> minigameSceneNames = new List<string>();
 
-
+    // TODO:
+    //Melhor chamar quando a pessoa da pronto, arrumar para depos 
+    private bool startgame = true;
     private void Start()
     {
         _prepareTimer = -1;
@@ -51,6 +53,11 @@ public class LobbyController : NetworkBehaviour
     {
         if (AllPlayersReady()){
             CmdPrepareMath();
+            startgame = false;
+        }
+        else
+        {
+            Debug.LogError("N esta pronto");
         }
     }
 
