@@ -30,8 +30,7 @@ public class PlayerList : NetworkBehaviour{
     private void Start()
     {
         ColorsAvailable.Callback += ColorsAvailable_Callback;
-
-        players.Callback += OnPlayersChanged; 
+        
     }
 
     private void OnDestroy()
@@ -114,10 +113,6 @@ public class PlayerList : NetworkBehaviour{
     }
 
     //
-    private void OnPlayersChanged(SyncList<PlayerData>.Operation op, int index, PlayerData oldItem, PlayerData newItem)
-    {
-        LobbyUI.Instance?.SyncSlots();
-    }
     void ColorsAvailable_Callback(SyncList<int>.Operation op, int itemindex, int olditem, int newitem)
     {
        

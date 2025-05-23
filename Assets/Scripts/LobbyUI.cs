@@ -1,8 +1,6 @@
 using System;
-using UnityEngine;
-using UnityEngine.UI;
-using Mirror;
 using System.Collections.Generic;
+using UnityEngine;
 using TMPro;
 
 public class LobbyUI : MonoBehaviour
@@ -17,27 +15,22 @@ public class LobbyUI : MonoBehaviour
     private void Awake()
     {
         Instance = this;
-        MyNetworkManager.manager.onClientsChanged += SyncSlots;
     }
 
-    private void OnDestroy()
+    private void Update()
     {
-        if (MyNetworkManager.manager != null)
-            MyNetworkManager.manager.onClientsChanged -= SyncSlots;
+        RefreshLobby();
     }
 
-    private void Start()
+    public void RefreshLobby()
     {
-        SyncSlots();
-    }
-
-    public void SyncSlots()
-    {
+        var foundPlayerData = FindObjectsOfType<PlayerData>();
         var seenIds = new HashSet<ulong>();
 
-        foreach (var pd in PlayerList.singleton.players)
+        foreach (var pd in foundPlayerData)
         {
-            if (pd == null) continue;
+            if (pd.playerInfo.steamId == 0) continue; 
+
             seenIds.Add(pd.playerInfo.steamId);
 
             if (!slotsById.TryGetValue(pd.playerInfo.steamId, out var slot))
@@ -48,10 +41,9 @@ public class LobbyUI : MonoBehaviour
                 slotsById[pd.playerInfo.steamId] = slot;
             }
 
-            slot.Refresh(pd.alias, pd.IsReady);
+            slot.Refresh(pd.alias, pd.IsReady); 
         }
 
-        // Remover slots antigos
         foreach (var id in new List<ulong>(slotsById.Keys))
         {
             if (!seenIds.Contains(id))
@@ -61,17 +53,4 @@ public class LobbyUI : MonoBehaviour
             }
         }
     }
-
-
-    private void Update()
-    {
-        foreach (var pd in MyNetworkManager.manager.allClients)
-        {
-            if (slotsById.TryGetValue(pd.playerInfo.steamId, out var slot))
-            {
-                slot.Refresh(pd.alias, pd.IsReady);
-            }
-        }
-    }
 }
-
