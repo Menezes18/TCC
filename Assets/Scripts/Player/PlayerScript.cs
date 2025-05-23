@@ -543,9 +543,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if(Status == PlayerStatus.Throw) return;
         Status = PlayerStatus.Throw;
 
-        
+        Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
+        Vector3 direction = _cam.forward;
         // Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
-         direction = _cam.forward;
+         //direction = _cam.forward;
 
         // PrefabInstancer.singleton.CmdSpawnProjectile(
         //     origin.transform.position,
@@ -554,13 +555,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         // );
         _throwCooldown = db.playerThrowCooldown;
     }
-    private Vector3 direction;
     public GameObject origin;
     public void PrefabFrameInstancer()
     {
         Debug.LogError("PrefabFrameInstancer");
         // //Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
-        // Vector3 direction = _cam.forward;
+        Vector3 direction = _cam.forward;
         //
         PrefabInstancer.singleton.CmdSpawnProjectile(
             origin.transform.position,
@@ -751,7 +751,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         InternalResetProperties();
     }
 
-    void InternalDeath()
+    public void InternalDeath()
     {
         _controller.enabled = false;
 

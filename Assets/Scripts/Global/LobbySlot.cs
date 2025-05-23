@@ -7,22 +7,20 @@ using UnityEngine.UI;
 
 public class LobbySlot : MonoBehaviour
 {
-    [Header("Referências")]
-    [SerializeField] private TMP_Text nameText;
-    [SerializeField] private Image readyImage;
+    [SerializeField] TMP_Text nameText;
+    [SerializeField] Image readyIndicator;
+    [SerializeField] Image avatarImage;
 
-    private ulong playerId;
+    private ulong steamId;
 
     public void Initialize(ulong id)
     {
-        playerId = id;
+        steamId = id;
     }
 
     public void Refresh(string alias, bool isReady)
     {
         nameText.text = alias;
-        readyImage.color = isReady ? Color.green : Color.red;
+        readyIndicator.color = isReady ? Color.green : Color.red;
     }
-
-    public ulong PlayerId => playerId;
 }

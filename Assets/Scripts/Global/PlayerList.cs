@@ -1,8 +1,9 @@
 using System;
+using System.Linq;
 using Mirror;
 using UnityEngine;
 using Random = UnityEngine.Random;
-
+using UnityEngine.SceneManagement;
 public class PlayerList : NetworkBehaviour{
 
     #region Singleton Setup
@@ -10,10 +11,18 @@ public class PlayerList : NetworkBehaviour{
     public static PlayerList singleton;
     private void Awake()
     {
-        singleton = this;
-        for(int i = 0; i < db.playerColors.Count; i++){
-            ColorsAvailable.Add(i);
+        if (singleton != null && singleton != this)
+        {
+            Destroy(gameObject);
+            return;
         }
+
+        singleton = this;
+        DontDestroyOnLoad(gameObject);
+
+        // for(int i = 0; i < db.playerColors.Count; i++){
+        //     ColorsAvailable.Add(i);
+        // }
     }
     
 
@@ -30,8 +39,31 @@ public class PlayerList : NetworkBehaviour{
     private void Start()
     {
         ColorsAvailable.Callback += ColorsAvailable_Callback;
+        
     }
 
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        if (ColorsAvailable.Count == 0)
+        {
+            for (int i = 0; i < db.playerColors.Count; i++)
+                ColorsAvailable.Add(i);
+        }
+        
+        foreach (var pd in FindObjectsOfType<PlayerData>())
+        {
+            AddToList(pd);
+        }
+
+        
+        SceneManager.sceneLoaded += (_, __) =>
+        {
+            foreach (var pd in FindObjectsOfType<PlayerData>())
+                AddToList(pd);
+        };
+    }
+    
     private void OnDestroy()
     {
         ColorsAvailable.Callback -= ColorsAvailable_Callback;
@@ -42,9 +74,10 @@ public class PlayerList : NetworkBehaviour{
     {
         if(players.Contains(data) == true) return;
         
-        if(players.Contains(data) == true) return;
         
         players.Add(data);
+        if (data.color >= 0 && ColorsAvailable.Contains(data.color))
+            ColorsAvailable.Remove(data.color);
     }
     [Server]
     public void RemoveFromList(PlayerData data)
@@ -110,7 +143,14 @@ public class PlayerList : NetworkBehaviour{
             }
         }
     }
-
+    [Server]
+    public int RequestRandomColor()
+    {
+        int idx = Random.Range(0, ColorsAvailable.Count);
+        int color = ColorsAvailable[idx];
+        ColorsAvailable.RemoveAt(idx);
+        return color;
+    }
     //
     void ColorsAvailable_Callback(SyncList<int>.Operation op, int itemindex, int olditem, int newitem)
     {
