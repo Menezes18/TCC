@@ -97,10 +97,10 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         }
         if (!pointsBoard.ContainsKey(client.playerInfo.steamId))
         {
-            int assignedColor = PlayerList.singleton.ServerRequestColor(-1, 1);
+            int assignedColor = PlayerList.singleton.RequestRandomColor();
             
             string chosenName = SteamManager.Initialized
-                ? SteamFriends.GetFriendPersonaName(SteamUser.GetSteamID())
+                ? SteamFriends.GetPersonaName()
                 : "Mamaco";
 
             var playerDatatemp = new DataPlayer
@@ -113,6 +113,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
             pointsBoard[client.playerInfo.steamId] = playerDatatemp;
             scoreboard.players.Add(playerDatatemp);
+            
             client.alias = playerDatatemp.playerName;
             client.score = playerDatatemp.points;
             client.color = playerDatatemp.color;
@@ -172,6 +173,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
                 scoreboard.players.RemoveAll(p => p.steamID == sid);
                 PlayerList.singleton.players.Remove(client);
             }
+            PlayerList.singleton.RemoveFromList(client);
         }
         base.OnServerDisconnect(conn);
     }
