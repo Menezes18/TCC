@@ -6,7 +6,7 @@ using Mirror;
 public class VehicleLane : MonoBehaviour
 {
 
-    [SerializeField] private List<Transform> vehicles = new List<Transform>();
+    [SerializeField] public List<Transform> vehicles = new List<Transform>();
     
     [SerializeField] private Transform startPoint;
     [SerializeField] private Transform endPoint;
@@ -51,7 +51,6 @@ public class VehicleLane : MonoBehaviour
             vehicles[i].position = new Vector3(flatPos.x, originalY, flatPos.z);
         }
     }
-    
     
     private void OnDrawGizmos()
     {
