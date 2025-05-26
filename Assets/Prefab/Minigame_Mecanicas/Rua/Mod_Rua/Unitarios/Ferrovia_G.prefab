@@ -251,7 +251,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 2876
+  m_VersionIndex: 2921
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -379,7 +379,7 @@ Transform:
   m_GameObject: {fileID: 740513564338536815}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.11, y: 0, z: -46.4}
+  m_LocalPosition: {x: -0.11, y: 1, z: -46.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -410,7 +410,7 @@ Transform:
   m_GameObject: {fileID: 973318756099419505}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.11, y: 0, z: -46.4}
+  m_LocalPosition: {x: -0.11, y: 1, z: -46.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -441,7 +441,7 @@ Transform:
   m_GameObject: {fileID: 1091682292435459440}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.11001587, y: 0, z: 47.98}
+  m_LocalPosition: {x: -0.11001587, y: 0, z: 160.00008}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -499,8 +499,9 @@ GameObject:
   m_Component:
   - component: {fileID: 4659701277537373405}
   - component: {fileID: 6330188134841817279}
+  - component: {fileID: 7979909004669439876}
   m_Layer: 0
-  m_Name: Lane
+  m_Name: TrainLane
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -539,8 +540,30 @@ MonoBehaviour:
   - {fileID: 0}
   startPoint: {fileID: 2310405526640932680}
   endPoint: {fileID: 4356195645998563949}
-  speed: 1
+  speed: 100
   offset: 0
+  OnSpeedChanged:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &7979909004669439876
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2561251593616201024}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd36c9e4848c2d3428dfd0cf766d2d6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  vehiclePrefab: {fileID: 0}
+  vehicleCount: 1
+  startPoint: {fileID: 0}
+  useFirstChildAsStart: 1
+  spacing: 0
+  isTrainLane: 1
+  signalController: {fileID: 0}
 --- !u!1 &2826222789183763065
 GameObject:
   m_ObjectHideFlags: 0
@@ -566,7 +589,7 @@ Transform:
   m_GameObject: {fileID: 2826222789183763065}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.11001587, y: 0, z: 47.98}
+  m_LocalPosition: {x: -0.11001587, y: 0, z: 160.00003}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -582,8 +605,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1681695896172142076}
   - component: {fileID: 8153708250720145047}
+  - component: {fileID: 2494713652261766241}
   m_Layer: 0
-  m_Name: Lane
+  m_Name: TrainLane
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -622,8 +646,30 @@ MonoBehaviour:
   - {fileID: 0}
   startPoint: {fileID: 4124450356954067001}
   endPoint: {fileID: 5058001362190527159}
-  speed: 1
+  speed: 100
   offset: 0
+  OnSpeedChanged:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &2494713652261766241
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2839301429425934909}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd36c9e4848c2d3428dfd0cf766d2d6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  vehiclePrefab: {fileID: 0}
+  vehicleCount: 1
+  startPoint: {fileID: 0}
+  useFirstChildAsStart: 1
+  spacing: 0
+  isTrainLane: 1
+  signalController: {fileID: 0}
 --- !u!1 &5844535327229638365
 GameObject:
   m_ObjectHideFlags: 0
@@ -649,7 +695,7 @@ Transform:
   m_GameObject: {fileID: 5844535327229638365}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.11001587, y: 0, z: 47.98}
+  m_LocalPosition: {x: -0.11001587, y: 0, z: 160.00006}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -764,7 +810,7 @@ Transform:
   m_GameObject: {fileID: 8552880059031027574}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.11, y: 0, z: -46.4}
+  m_LocalPosition: {x: -0.11, y: 1, z: -46.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -780,8 +826,9 @@ GameObject:
   m_Component:
   - component: {fileID: 7171646047982612807}
   - component: {fileID: 937673093397438134}
+  - component: {fileID: 7311586926561780243}
   m_Layer: 0
-  m_Name: Lane
+  m_Name: TrainLane
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -820,8 +867,30 @@ MonoBehaviour:
   - {fileID: 0}
   startPoint: {fileID: 5084701427716397960}
   endPoint: {fileID: 1517170023301149291}
-  speed: 1
+  speed: 100
   offset: 0
+  OnSpeedChanged:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &7311586926561780243
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8832654449792819968}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd36c9e4848c2d3428dfd0cf766d2d6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  vehiclePrefab: {fileID: 0}
+  vehicleCount: 1
+  startPoint: {fileID: 0}
+  useFirstChildAsStart: 1
+  spacing: 0
+  isTrainLane: 1
+  signalController: {fileID: 0}
 --- !u!1001 &891134714791876266
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -834,6 +903,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: TrilhoReto (7)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
@@ -924,6 +1003,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: TrilhoReto (7)
       objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -1012,6 +1101,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: TrilhoReto (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
@@ -1102,6 +1201,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: TrilhoReto (8)
       objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -1190,6 +1299,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: TrilhoReto (3)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
@@ -1280,6 +1399,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: TrilhoReto (4)
       objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -1368,6 +1497,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: TrilhoReto (6)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
@@ -1458,6 +1597,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: TrilhoReto (7)
       objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -1546,6 +1695,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: TrilhoReto (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
@@ -1636,6 +1795,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: TrilhoReto
       objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -1724,6 +1893,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: TrilhoReto (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
@@ -1814,6 +1993,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: TrilhoReto (4)
       objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -1902,6 +2091,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: TrilhoReto (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
@@ -1992,6 +2191,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: TrilhoReto (5)
       objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -2080,6 +2289,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: TrilhoReto
+      objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
@@ -2170,6 +2389,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: TrilhoReto (8)
       objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -2258,6 +2487,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: TrilhoReto (9)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
@@ -2348,6 +2587,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: TrilhoReto (9)
       objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -2436,6 +2685,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: TrilhoReto (6)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
@@ -2526,6 +2785,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: TrilhoReto (6)
       objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -2614,6 +2883,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: TrilhoReto (5)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
@@ -2704,6 +2983,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: TrilhoReto
       objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -2792,6 +3081,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: TrilhoReto (8)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
@@ -2882,6 +3181,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: TrilhoReto (3)
       objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -2970,6 +3279,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: TrilhoReto (4)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
@@ -3060,6 +3379,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: TrilhoReto (2)
       objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -3148,6 +3477,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: TrilhoReto (3)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
@@ -3238,6 +3577,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: TrilhoReto (9)
       objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -3327,6 +3676,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: TrilhoReto (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -3415,6 +3774,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: TrilhoReto (5)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5581491684067620215, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 5911483208499653980, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 7089324718108444395, guid: f805d6f1f60c683439fb7af3aa5ccbfd,
         type: 3}

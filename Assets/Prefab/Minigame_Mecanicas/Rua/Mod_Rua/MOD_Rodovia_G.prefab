@@ -41,6 +41,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3281507678900871364}
   - component: {fileID: 865857259849109826}
+  - component: {fileID: 3924431857621908472}
   m_Layer: 0
   m_Name: Lane (2)
   m_TagString: Untagged
@@ -83,6 +84,23 @@ MonoBehaviour:
   endPoint: {fileID: 8174369028297123134}
   speed: 1
   offset: 0
+--- !u!114 &3924431857621908472
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1234733002757162073}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd36c9e4848c2d3428dfd0cf766d2d6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  vehiclePrefab: {fileID: 0}
+  vehicleCount: 5
+  startPoint: {fileID: 0}
+  useFirstChildAsStart: 1
+  spacing: 2
 --- !u!1 &1494718496319772533
 GameObject:
   m_ObjectHideFlags: 0
@@ -93,6 +111,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2162285859198343122}
   - component: {fileID: 4211693527656119286}
+  - component: {fileID: 5811772373801691577}
   m_Layer: 0
   m_Name: Lane (1)
   m_TagString: Untagged
@@ -135,6 +154,23 @@ MonoBehaviour:
   endPoint: {fileID: 7005041401562245636}
   speed: 1
   offset: 0
+--- !u!114 &5811772373801691577
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1494718496319772533}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd36c9e4848c2d3428dfd0cf766d2d6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  vehiclePrefab: {fileID: 0}
+  vehicleCount: 5
+  startPoint: {fileID: 0}
+  useFirstChildAsStart: 1
+  spacing: 2
 --- !u!1 &3560025622333630835
 GameObject:
   m_ObjectHideFlags: 0
@@ -258,7 +294,7 @@ Transform:
   m_GameObject: {fileID: 6743757713273610936}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.11, y: 0, z: -46.4}
+  m_LocalPosition: {x: -0.11, y: 1, z: -46.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -289,7 +325,7 @@ Transform:
   m_GameObject: {fileID: 6954930005436731241}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.11, y: 0, z: -46.4}
+  m_LocalPosition: {x: -0.11, y: 1, z: -46.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -305,6 +341,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1102440777679636109}
   - component: {fileID: 185267388087818748}
+  - component: {fileID: 1325072711614683847}
   m_Layer: 0
   m_Name: Lane
   m_TagString: Untagged
@@ -347,6 +384,23 @@ MonoBehaviour:
   endPoint: {fileID: 4594440068502332764}
   speed: 1
   offset: 0
+--- !u!114 &1325072711614683847
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7901158374224072102}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd36c9e4848c2d3428dfd0cf766d2d6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  vehiclePrefab: {fileID: 0}
+  vehicleCount: 5
+  startPoint: {fileID: 0}
+  useFirstChildAsStart: 1
+  spacing: 2
 --- !u!1 &8866814285880309929
 GameObject:
   m_ObjectHideFlags: 0
@@ -372,7 +426,7 @@ Transform:
   m_GameObject: {fileID: 8866814285880309929}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.11, y: 0, z: -46.4}
+  m_LocalPosition: {x: -0.11, y: 1, z: -46.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -389,7 +443,7 @@ PrefabInstance:
     - target: {fileID: 3186364536954885451, guid: bbf1999b44e15214fa525a74469e2f1c,
         type: 3}
       propertyPath: m_VersionIndex
-      value: 2885
+      value: 2936
       objectReference: {fileID: 0}
     - target: {fileID: 3369122412815013372, guid: bbf1999b44e15214fa525a74469e2f1c,
         type: 3}

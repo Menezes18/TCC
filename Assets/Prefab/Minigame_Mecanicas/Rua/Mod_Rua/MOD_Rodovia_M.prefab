@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4311302646841195522}
   - component: {fileID: 4263424876880272875}
+  - component: {fileID: 9181292466837215256}
   m_Layer: 0
   m_Name: Lane (1)
   m_TagString: Untagged
@@ -26,7 +27,7 @@ Transform:
   m_GameObject: {fileID: 369256298095492027}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 156.6, y: -0, z: -0.000015258789}
+  m_LocalPosition: {x: 157, y: 0, z: -0.000015258789}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -52,6 +53,23 @@ MonoBehaviour:
   endPoint: {fileID: 2161165941370650686}
   speed: 1
   offset: 0
+--- !u!114 &9181292466837215256
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 369256298095492027}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd36c9e4848c2d3428dfd0cf766d2d6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  vehiclePrefab: {fileID: 0}
+  vehicleCount: 5
+  startPoint: {fileID: 0}
+  useFirstChildAsStart: 1
+  spacing: 2
 --- !u!1 &3251584404188261885
 GameObject:
   m_ObjectHideFlags: 0
@@ -62,6 +80,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2368538744421728214}
   - component: {fileID: 3520267780641373062}
+  - component: {fileID: 9073509674636066208}
   m_Layer: 0
   m_Name: Lane
   m_TagString: Untagged
@@ -78,7 +97,7 @@ Transform:
   m_GameObject: {fileID: 3251584404188261885}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 149.7, y: -0, z: -0.000015258789}
+  m_LocalPosition: {x: 151, y: 0, z: -0.000015258789}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -104,6 +123,23 @@ MonoBehaviour:
   endPoint: {fileID: 1682564221206425586}
   speed: 1
   offset: 0
+--- !u!114 &9073509674636066208
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3251584404188261885}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd36c9e4848c2d3428dfd0cf766d2d6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  vehiclePrefab: {fileID: 0}
+  vehicleCount: 5
+  startPoint: {fileID: 0}
+  useFirstChildAsStart: 1
+  spacing: 2
 --- !u!1 &4065815014197645244
 GameObject:
   m_ObjectHideFlags: 0
@@ -226,7 +262,7 @@ Transform:
   m_GameObject: {fileID: 6691738421125949590}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.11, y: 0, z: -46.4}
+  m_LocalPosition: {x: -0.11, y: 1, z: -46.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -257,7 +293,7 @@ Transform:
   m_GameObject: {fileID: 7386384595028105646}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.11, y: 0, z: -46.4}
+  m_LocalPosition: {x: -0.11, y: 1, z: -46.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -363,7 +399,7 @@ PrefabInstance:
     - target: {fileID: 3186364536954885451, guid: bbf1999b44e15214fa525a74469e2f1c,
         type: 3}
       propertyPath: m_VersionIndex
-      value: 2879
+      value: 2912
       objectReference: {fileID: 0}
     - target: {fileID: 3369122412815013372, guid: bbf1999b44e15214fa525a74469e2f1c,
         type: 3}
