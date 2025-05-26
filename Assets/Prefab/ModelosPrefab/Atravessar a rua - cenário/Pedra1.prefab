@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8047320510192546077}
+  - component: {fileID: 4681945223943059278}
   m_Layer: 0
   m_Name: Pedra1
   m_TagString: Untagged
@@ -32,6 +33,27 @@ Transform:
   - {fileID: 8020871087967889967}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &4681945223943059278
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4950869795067343421}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 5.9423122, y: 2.1113114, z: 3.8694122}
+  m_Center: {x: -0.94191504, y: 1.0557458, z: 0.6290051}
 --- !u!1 &9208354350558724704
 GameObject:
   m_ObjectHideFlags: 0
@@ -43,7 +65,6 @@ GameObject:
   - component: {fileID: 8020871087967889967}
   - component: {fileID: 4165086884101841903}
   - component: {fileID: 614524567850086011}
-  - component: {fileID: 9190062870525846904}
   m_Layer: 0
   m_Name: Pedra1
   m_TagString: Untagged
@@ -119,25 +140,3 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &9190062870525846904
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9208354350558724704}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 3040972226149898984, guid: 35881739fdf316d4bb56549ac5b49b20, type: 3}
