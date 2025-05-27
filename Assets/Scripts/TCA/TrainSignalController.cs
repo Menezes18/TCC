@@ -105,16 +105,16 @@ public class TrainSignalController : MonoBehaviour
         // Atualiza luz se existir
         if (signalLight != null)
         {
-            signalLight.color = isGreen ? Color.green : Color.red;
+            signalLight.color = isGreen ? Color.red : Color.green;
         }
         
         // Atualiza material se existir
         if (signalRenderer != null)
         {
             if (isGreen && greenMaterial != null)
-                signalRenderer.material = greenMaterial;
-            else if (!isGreen && redMaterial != null)
                 signalRenderer.material = redMaterial;
+            else if (!isGreen && redMaterial != null)
+                signalRenderer.material = greenMaterial;
         }
     }
     

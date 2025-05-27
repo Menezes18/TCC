@@ -277,7 +277,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   isGreen: 1
-  changeInterval: 8
+  changeIntervalInit: 5
+  changeIntervalEnd: 8
   autoChange: 1
   signalLight: {fileID: 4579029011037701814}
   signalRenderer: {fileID: 0}
@@ -292,10 +293,34 @@ MonoBehaviour:
   - {fileID: 0}
   OnSignalGreen:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 789098516329906594}
+        m_TargetAssemblyTypeName: ActiveAnimation, Assembly-CSharp
+        m_MethodName: BoolAnimacao
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   OnSignalRed:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 789098516329906594}
+        m_TargetAssemblyTypeName: ActiveAnimation, Assembly-CSharp
+        m_MethodName: BoolAnimacao
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
 --- !u!1001 &4975182438371983465
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -367,7 +392,15 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 03a07cf84dcbf4c448337d54deb6ed52,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7365100119621286559}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 03a07cf84dcbf4c448337d54deb6ed52,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 789098516329906594}
   m_SourcePrefab: {fileID: 100100000, guid: 03a07cf84dcbf4c448337d54deb6ed52, type: 3}
 --- !u!4 &4792357133806069634 stripped
 Transform:
@@ -375,3 +408,43 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 4975182438371983465}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &5317079629786365240 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 03a07cf84dcbf4c448337d54deb6ed52,
+    type: 3}
+  m_PrefabInstance: {fileID: 4975182438371983465}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &7365100119621286559
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5317079629786365240}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: ce0f28bd115734e46a390c783b37f58e, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &789098516329906594
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5317079629786365240}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39be7c198f8a0fb4d8b82716da383219, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
