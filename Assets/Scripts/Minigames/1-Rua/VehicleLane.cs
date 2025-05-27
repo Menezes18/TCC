@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using Mirror;
 
-public class VehicleLane : MonoBehaviour
+public class VehicleLane : NetworkBehaviour
 {
     [SerializeField] public List<Transform> vehicles = new List<Transform>();
     [SerializeField] private Transform startPoint;
@@ -17,9 +17,13 @@ public class VehicleLane : MonoBehaviour
     public float speed = 1f;
     public float offset = 0f;
     
-    // Nova variável para velocidade atual (pode ser diferente da speed base)
+    // SyncVar para sincronizar velocidade atual entre clientes
+    [SyncVar(hook = nameof(OnCurrentSpeedChanged))]
     private float currentSpeed;
-
+    
+    // SyncVar para sincronizar o timer entre clientes
+    [SyncVar]
+    private float _timer;
     
     // UnityEvent para quando a velocidade mudar
     [Header("Events")]
@@ -27,7 +31,6 @@ public class VehicleLane : MonoBehaviour
     
     float Speed => currentSpeed * 0.01f;
     float Offset => offset * 0.01f;
-    float _timer;
     float _frequency;
     
     // Coroutine de referência para poder cancelar se necessário
@@ -36,14 +39,29 @@ public class VehicleLane : MonoBehaviour
     private void Start()
     {
         _frequency = 1.0f / vehicles.Count;
-        currentSpeed = speed; // Inicializa com a velocidade padrão
+        
+        // Apenas o servidor inicializa os valores
+        if (isServer)
+        {
+            currentSpeed = speed; // Inicializa com a velocidade padrão
+        }
     }
     
     private void Update()
     {
-        _timer += Speed * Time.deltaTime;
-        if (_timer >= 1) _timer = 0;
+        // Apenas o servidor atualiza a lógica do movimento
+        if (isServer)
+        {
+            _timer += Speed * Time.deltaTime;
+            if (_timer >= 1) _timer = 0;
+        }
         
+        // Todos os clientes aplicam as posições baseadas no timer sincronizado
+        UpdateVehiclePositions();
+    }
+    
+    private void UpdateVehiclePositions()
+    {
         for (int i = 0; i < vehicles.Count; i++)
         {
             float startTime = _frequency * i;
@@ -56,14 +74,22 @@ public class VehicleLane : MonoBehaviour
         }
     }
 
-    // Método público para alterar a velocidade
+    // Hook chamado quando currentSpeed muda via SyncVar
+    private void OnCurrentSpeedChanged(float oldSpeed, float newSpeed)
+    {
+        OnSpeedChanged?.Invoke(newSpeed);
+    }
+
+    // Método público para alterar a velocidade (apenas server)
+    [Server]
     public void SetSpeed(float newSpeed)
     {
         currentSpeed = newSpeed;
-        OnSpeedChanged?.Invoke(currentSpeed);
+        // O hook OnCurrentSpeedChanged será chamado automaticamente
     }
 
-    // Métodos específicos para o sinal do trem
+    // Métodos específicos para o sinal do trem (apenas server)
+    [Server]
     public void SetTrainSpeedGreen()
     {
         // Cancela o reset automático se estiver rodando
@@ -77,7 +103,7 @@ public class VehicleLane : MonoBehaviour
         Debug.Log($"Trem em {gameObject.name}: Sinal VERDE - Velocidade 100");
     }
     
-
+    [Server]
     public void SetTrainSpeedRed()
     {
         SetSpeed(0f);
@@ -87,7 +113,8 @@ public class VehicleLane : MonoBehaviour
         AutoResetToStart();
     }
     
-    // Coroutine para voltar ao startPoint
+    // Coroutine para voltar ao startPoint (apenas server)
+    [Server]
     private void AutoResetToStart()
     {        
         // Reset do timer para posição inicial
@@ -99,7 +126,8 @@ public class VehicleLane : MonoBehaviour
         resetCoroutine = null;
     }
     
-    // Método para restaurar velocidade original
+    // Método para restaurar velocidade original (apenas server)
+    [Server]
     public void RestoreOriginalSpeed()
     {
         SetSpeed(speed);

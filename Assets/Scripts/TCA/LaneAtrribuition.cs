@@ -27,8 +27,8 @@ public class LaneAtrribuition : MonoBehaviour
             vehicleLane.speed = 0f; // Trens começam parados
         }
 
-        SetupStartPoint();
-        SpawnVehicles();
+        //SetupStartPoint();
+        //SpawnVehicles();
         
         // Conecta ao controlador de sinal se for trilho de trem
         if (isTrainLane && signalController != null)
