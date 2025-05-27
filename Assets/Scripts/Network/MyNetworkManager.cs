@@ -78,54 +78,35 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             return;
 
         base.OnServerAddPlayer(conn);
-        var pd = conn.identity.GetComponent<PlayerData>();
+    }
+    public void RegisterNewPlayer(PlayerData pd)
+    {
+        ulong id   = pd.playerInfo.steamId;
+        string name= pd.playerInfo.username;
 
-        PlayerData client = conn.identity.GetComponent<PlayerData>();
-        // allClients.Add(client);
-        if (testMode)
-        {
-            var fakeId = nextFakeId++;
-            var fakeName = $"DevPlayer{fakeId:D2}";
-            client.playerInfo = new PlayerInfoData(fakeName, fakeId);
-        }
-        else
-        {
-            CSteamID steamId = SteamLobby.LobbyID.m_SteamID == 0
-                ? SteamUser.GetSteamID()
-                : SteamMatchmaking.GetLobbyMemberByIndex(SteamLobby.LobbyID, allClients.Count);
-            client.playerInfo = new PlayerInfoData(SteamFriends.GetFriendPersonaName(steamId), steamId.m_SteamID);
-        }
-        if (!pointsBoard.ContainsKey(client.playerInfo.steamId))
+        if (!pointsBoard.ContainsKey(id))
         {
             int assignedColor = PlayerList.singleton.RequestRandomColor();
-            
-            string chosenName = SteamManager.Initialized
-                ? SteamFriends.GetPersonaName()
-                : "Mamaco";
-
-            var playerDatatemp = new DataPlayer
-            {
-                steamID = client.playerInfo.steamId,
-                playerName = chosenName,
-                points = 0,
-                color = assignedColor
+            var dp = new DataPlayer {
+                steamID    = id,
+                playerName = name,
+                points     = 0,
+                color      = assignedColor
             };
+            pointsBoard[id]        = dp;
+            scoreboard.players.Add(dp);
 
-            pointsBoard[client.playerInfo.steamId] = playerDatatemp;
-            scoreboard.players.Add(playerDatatemp);
-            
-            client.alias = playerDatatemp.playerName;
-            client.score = playerDatatemp.points;
-            client.color = playerDatatemp.color;
+            pd.color = assignedColor;
+            pd.score = 0;
+            pd.alias = name;
         }
         else
         {
-
-            client.score = pointsBoard[client.playerInfo.steamId].points;
-            client.color = pointsBoard[client.playerInfo.steamId].color;
-
+            var stored = pointsBoard[id];
+            pd.color = stored.color;
+            pd.score = stored.points;
+            pd.alias = stored.playerName;
         }
-        CharacterSkinHandler.instance.DestroyMesh();
 
         Notifica();
     }
