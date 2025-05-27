@@ -42,7 +42,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SerializeField] NetworkAnimator _networkAnimator;
 
     [SerializeField] PlayerState _state;
-    PlayerState State {
+    public PlayerState State {
         get { return _state; }
         set {
             if (_state == value) { return; }
