@@ -1,133 +1,134 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 public class MovingPlatform : MonoBehaviour
 {
-     [Header("Platform Settings")]
+    [Header("Platform Settings")]
     [SerializeField] private Transform platformTransform;
     [SerializeField] private LayerMask playerLayerMask = -1;
-    [SerializeField] private float detectionRadius = 2f;
-    [SerializeField] private float maxHeightDifference = 2f;
+    [SerializeField] private float detectionRadius = 1f;
     
-    private Vector3 lastPosition;
-    private Vector3 lastRotation;
-    private List<Transform> passengersOnPlatform = new List<Transform>();
+    private List<Transform> playersOnPlatform = new List<Transform>();
+    private Vector3 lastPlatformPosition;
     
-    private void Start()
+    void Start()
     {
         if (platformTransform == null)
             platformTransform = transform;
             
-        lastPosition = platformTransform.position;
-        lastRotation = platformTransform.eulerAngles;
+        lastPlatformPosition = platformTransform.position;
     }
     
-    private void Update()
+    void LateUpdate()
     {
         // Calcula o movimento da plataforma
-        Vector3 deltaPosition = platformTransform.position - lastPosition;
-        Vector3 deltaRotation = platformTransform.eulerAngles - lastRotation;
+        Vector3 platformMovement = platformTransform.position - lastPlatformPosition;
         
-        // Move todos os passageiros junto com a plataforma
-        foreach (Transform passenger in passengersOnPlatform)
+        if (platformMovement.magnitude > 0.001f)
         {
-            if (passenger != null)
-            {
-                // Move o passageiro junto com a plataforma
-                CharacterController controller = passenger.GetComponent<CharacterController>();
-                if (controller != null)
-                {
-                    controller.Move(deltaPosition);
-                }
-                else
-                {
-                    passenger.position += deltaPosition;
-                }
-                
-                // Aplica rotação se necessário
-                if (deltaRotation.magnitude > 0.1f)
-                {
-                    passenger.RotateAround(platformTransform.position, Vector3.up, deltaRotation.y);
-                }
-            }
+            // Move apenas players válidos (vivos)
+            MoveValidPlayers(platformMovement);
         }
         
-        lastPosition = platformTransform.position;
-        lastRotation = platformTransform.eulerAngles;
+        lastPlatformPosition = platformTransform.position;
+        
+        // Limpa lista de players inválidos periodicamente
+        CleanupInvalidPlayers();
     }
     
-    private void OnTriggerEnter(Collider other)
+    void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
+        if (IsPlayerLayer(other.gameObject) && IsPlayerValid(other.transform))
         {
-            AddPassenger(other.transform);
-            Debug.Log(other.tag + " Entrou");
-        }
-    }
-    
-    private void OnTriggerExit(Collider other)
-    {
-        if (other.CompareTag("Player"))
-        {
-            RemovePassenger(other.transform);
-            Debug.Log(other.tag + " Saiu");
-        }
-    }
-    
-    private void OnTriggerStay(Collider other)
-    {
-        if (other.CompareTag("Player"))
-        {
-            Debug.Log(other.tag + " Está");
-            // Verifica se o jogador está realmente em cima da plataforma
-            float heightDifference = other.transform.position.y - transform.position.y;
-            
-            if (heightDifference > 0.1f && heightDifference < maxHeightDifference)
+            if (!playersOnPlatform.Contains(other.transform))
             {
-                if (!passengersOnPlatform.Contains(other.transform))
-                {
-                    AddPassenger(other.transform);
-                }
-            }
-            else if (heightDifference <= 0.1f)
-            {
-                RemovePassenger(other.transform);
+                playersOnPlatform.Add(other.transform);
             }
         }
     }
     
-    private void AddPassenger(Transform passenger)
+    void OnTriggerExit(Collider other)
     {
-        if (!passengersOnPlatform.Contains(passenger))
+        if (IsPlayerLayer(other.gameObject))
         {
-            passengersOnPlatform.Add(passenger);
-            Debug.Log($"Passageiro {passenger.name} adicionado à plataforma");
+            playersOnPlatform.Remove(other.transform);
         }
     }
     
-    private void RemovePassenger(Transform passenger)
+    private void MoveValidPlayers(Vector3 movement)
     {
-        if (passengersOnPlatform.Contains(passenger))
-        {
-            passengersOnPlatform.Remove(passenger);
-            Debug.Log($"Passageiro {passenger.name} removido da plataforma");
-        }
-    }
-    
-    // Limpa referências nulas
-    private void LateUpdate()
-    {
-        passengersOnPlatform.RemoveAll(passenger => passenger == null);
-    }
-    
-    // Visualização no editor
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRadius);
+        // Cria uma lista temporária para evitar modificar durante iteração
+        var validPlayers = playersOnPlatform.Where(IsPlayerValid).ToList();
         
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireCube(transform.position + Vector3.up * maxHeightDifference/2, 
-                           new Vector3(detectionRadius * 2, maxHeightDifference, detectionRadius * 2));
+        foreach (Transform player in validPlayers)
+        {
+            // Verifica se ainda é válido antes de mover
+            if (IsPlayerValid(player))
+            {
+                CharacterController controller = player.GetComponent<CharacterController>();
+                if (controller != null && controller.enabled)
+                {
+                    controller.Move(movement);
+                }
+            }
+        }
+    }
+    
+    private bool IsPlayerValid(Transform player)
+    {
+        if (player == null) return false;
+        
+        // Verifica se o GameObject está ativo
+        if (!player.gameObject.activeInHierarchy) return false;
+        
+        // Verifica CharacterController - PRINCIPAL INDICADOR DE MORTE
+        CharacterController controller = player.GetComponent<CharacterController>();
+        if (controller == null || !controller.enabled) return false;
+        
+        // Verifica estado do player diretamente (sem reflection)
+        var playerScript = player.GetComponent<PlayerScript>();
+        if (playerScript != null)
+        {
+            // Acesso direto ao enum PlayerState.Death
+            if (playerScript.State == PlayerState.Death) return false;
+        }
+        
+        return true;
+    }
+    
+    // Método adicional para debug - opcional
+    private void LogPlayerState(Transform player)
+    {
+        var playerScript = player.GetComponent<PlayerScript>();
+        var controller = player.GetComponent<CharacterController>();
+        
+        Debug.Log($"Player {player.name}: " +
+                 $"Active={player.gameObject.activeInHierarchy}, " +
+                 $"Controller={controller?.enabled}, " +
+                 $"State={playerScript?.State}");
+    }
+    
+    private void CleanupInvalidPlayers()
+    {
+        // Remove players inválidos da lista
+        playersOnPlatform.RemoveAll(player => !IsPlayerValid(player));
+    }
+    
+    private bool IsPlayerLayer(GameObject obj)
+    {
+        return ((1 << obj.layer) & playerLayerMask) != 0;
+    }
+    
+    // Método público para forçar remoção de um player específico
+    public void RemovePlayer(Transform player)
+    {
+        playersOnPlatform.Remove(player);
+    }
+    
+    // Método público para limpar todos os players
+    public void ClearAllPlayers()
+    {
+        playersOnPlatform.Clear();
     }
 }
