@@ -114,6 +114,10 @@ public class SumoMinigameController : MinigameController
         alivePlayers.Remove(pd);
         eliminationOrder.Add(pd);
         Debug.LogError($"[Sumo] Eliminado: {pd.playerInfo.steamId}");
+        if (alivePlayers.Count <= 1)
+        {
+            EndMatch();
+        }
     }
     public override void AssignFinalPoints()
     {

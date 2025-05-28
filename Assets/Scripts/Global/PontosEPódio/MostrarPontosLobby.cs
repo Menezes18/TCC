@@ -44,4 +44,9 @@ public class MostrarPontosLobby : NetworkBehaviour, IObserverPontos
     {
         RpcAtualizarPontos(pontos, jogadores);
     }
+
+    void OnDisable()
+    {
+        MyNetworkManager.manager.Retira(this);
+    }
 }

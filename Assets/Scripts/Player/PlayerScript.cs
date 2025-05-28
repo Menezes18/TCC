@@ -340,7 +340,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
         if (hit.gameObject.CompareTag("KillPlane"))
-            InternalDeath();
+            InternalDeath(false);
     }
 
 
@@ -665,7 +665,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if (base.isOwned == false) return;
 
-        InternalDeath();
+        InternalDeath(false);
+    }
+    public void OnHitSpectate()
+    {
+        if (base.isOwned == false) return;
+        InternalDeath(true);
+
     }
     private void OnExtraFreezeChanged(bool oldVal, bool newVal)
     {
@@ -771,12 +777,18 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         InternalResetProperties();
     }
 
-    public void InternalDeath()
+    public void InternalDeath(bool permaDeath)
     {
         _controller.enabled = false;
-
-        InternalResetProperties();
-        CmdDeath();
+        if (permaDeath)
+        {
+            RpcSpectate();
+        }
+        else
+        {
+            InternalResetProperties();
+            CmdDeath();
+        }
 
         State = PlayerState.Death;
     }

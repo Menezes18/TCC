@@ -30,6 +30,6 @@ public class DeathZoneTrigger : NetworkBehaviour
         onDeath?.Invoke(pd);
         
         
-        pds.InternalDeath();
+        pds.InternalDeath(false);
     }
 }
