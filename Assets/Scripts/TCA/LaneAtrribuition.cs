@@ -9,8 +9,8 @@ public class LaneAtrribuition : MonoBehaviour
     [SerializeField] private float spacing = 2f;
     
     [Header("Train Settings")]
-    [SerializeField] private bool isTrainLane = false;
-    // Removido signalController daqui - será conectado pelo TrainSignalController
+    [SerializeField] private bool isTrainLane = false; // Marcar se é trilho de trem
+    [SerializeField] private TrainSignalController signalController; // Referência ao controlador do sinal
     
     private VehicleLane vehicleLane;
 
@@ -21,8 +21,20 @@ public class LaneAtrribuition : MonoBehaviour
         // Configurações de velocidade baseadas no tipo de veículo
         SetVehicleSpeed();
         
-        // Trens começam com velocidade normal, mas serão controlados pelo sinal
-        // O sinal que determinará quando parar/andar
+        // Se for trilho de trem, configura velocidade inicial como 0 (parado)
+        if (isTrainLane)
+        {
+            vehicleLane.speed = 0f; // Trens começam parados
+        }
+
+        //SetupStartPoint();
+        //SpawnVehicles();
+        
+        // Conecta ao controlador de sinal se for trilho de trem
+        if (isTrainLane && signalController != null)
+        {
+            ConnectToSignalController();
+        }
     }
     
     private void SetVehicleSpeed()
@@ -35,21 +47,21 @@ public class LaneAtrribuition : MonoBehaviour
         {
             case "Elefante":
             case "Skatista":
-            case "CarrinhoDeMao":
+            case "CarrinhoDeMao" :
                 vehicleLane.speed = 4f;
                 break;
             case "Golirao":
             case "Bicicleta":
-            case "CavaloMontado":
+            case "CavaloMontado" :
                 vehicleLane.speed = 9f;
                 break;
             case "Micos":
             case "BananaCar":
                 vehicleLane.speed = 25f;
                 break;
-            case "Train":
-                vehicleLane.speed = 120f;
-                isTrainLane = true;
+            case "Train": // Adicione o nome do seu prefab de trem
+                vehicleLane.speed = 20f; // Velocidade máxima do trem
+                isTrainLane = true; // Marca automaticamente como trilho
                 break;
         }
     }
@@ -59,6 +71,7 @@ public class LaneAtrribuition : MonoBehaviour
         if (useFirstChildAsStart && transform.childCount > 0)
         {
             startPoint = transform.GetChild(0);
+            Debug.Log($"StartPoint definido automaticamente: {startPoint.name}");
         }
         else if (transform.childCount == 0)
         {
@@ -76,11 +89,17 @@ public class LaneAtrribuition : MonoBehaviour
         {
             Vector3 spawnPosition = startPoint.position + new Vector3(0, 0, spacing * i);
             GameObject clone = Instantiate(vehiclePrefab, spawnPosition, transform.rotation, transform);
-            clone.name = $"{vehiclePrefab.name}_Clone_{i}";
+            clone.name = $"{vehiclePrefab.name}Clone{i}";
             vehicleLane.vehicles.Add(clone.transform);
         }
     }
     
-    // Propriedade pública para verificar se é trilho de trem
-    public bool IsTrainLane => isTrainLane;
+    private void ConnectToSignalController()
+    {
+        if (signalController != null)
+        {
+            signalController.OnSignalGreen.AddListener(vehicleLane.SetTrainSpeedGreen);
+            signalController.OnSignalRed.AddListener(vehicleLane.SetTrainSpeedRed);
+        }
+    }
 }
