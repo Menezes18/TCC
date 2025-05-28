@@ -42,6 +42,7 @@ GameObject:
   - component: {fileID: 3281507678900871364}
   - component: {fileID: 865857259849109826}
   - component: {fileID: 3924431857621908472}
+  - component: {fileID: 8660003084441773795}
   m_Layer: 0
   m_Name: Lane (2)
   m_TagString: Untagged
@@ -78,12 +79,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4e39b362cd0c664b8f52e4be21574dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   vehicles:
   - {fileID: 0}
   startPoint: {fileID: 1607402552743858768}
   endPoint: {fileID: 8174369028297123134}
   speed: 1
   offset: 0
+  OnSpeedChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!114 &3924431857621908472
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -101,6 +108,25 @@ MonoBehaviour:
   startPoint: {fileID: 0}
   useFirstChildAsStart: 1
   spacing: 2
+  isTrainLane: 0
+  signalController: {fileID: 0}
+--- !u!114 &8660003084441773795
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1234733002757162073}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sceneId: 0
+  _assetId: 389375739
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
 --- !u!1 &1494718496319772533
 GameObject:
   m_ObjectHideFlags: 0
@@ -112,6 +138,7 @@ GameObject:
   - component: {fileID: 2162285859198343122}
   - component: {fileID: 4211693527656119286}
   - component: {fileID: 5811772373801691577}
+  - component: {fileID: 1797853583244288436}
   m_Layer: 0
   m_Name: Lane (1)
   m_TagString: Untagged
@@ -148,12 +175,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4e39b362cd0c664b8f52e4be21574dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   vehicles:
   - {fileID: 0}
   startPoint: {fileID: 8834276671317360125}
   endPoint: {fileID: 7005041401562245636}
   speed: 1
   offset: 0
+  OnSpeedChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!114 &5811772373801691577
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -171,6 +204,25 @@ MonoBehaviour:
   startPoint: {fileID: 0}
   useFirstChildAsStart: 1
   spacing: 2
+  isTrainLane: 0
+  signalController: {fileID: 0}
+--- !u!114 &1797853583244288436
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1494718496319772533}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sceneId: 0
+  _assetId: 389375739
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
 --- !u!1 &3560025622333630835
 GameObject:
   m_ObjectHideFlags: 0
@@ -342,6 +394,7 @@ GameObject:
   - component: {fileID: 1102440777679636109}
   - component: {fileID: 185267388087818748}
   - component: {fileID: 1325072711614683847}
+  - component: {fileID: 506821983781970290}
   m_Layer: 0
   m_Name: Lane
   m_TagString: Untagged
@@ -378,12 +431,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4e39b362cd0c664b8f52e4be21574dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   vehicles:
   - {fileID: 0}
   startPoint: {fileID: 1541909241381511840}
   endPoint: {fileID: 4594440068502332764}
   speed: 1
   offset: 0
+  OnSpeedChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!114 &1325072711614683847
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -401,6 +460,25 @@ MonoBehaviour:
   startPoint: {fileID: 0}
   useFirstChildAsStart: 1
   spacing: 2
+  isTrainLane: 0
+  signalController: {fileID: 0}
+--- !u!114 &506821983781970290
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7901158374224072102}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sceneId: 0
+  _assetId: 389375739
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
 --- !u!1 &8866814285880309929
 GameObject:
   m_ObjectHideFlags: 0
