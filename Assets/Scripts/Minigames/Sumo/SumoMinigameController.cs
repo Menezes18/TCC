@@ -16,8 +16,8 @@ public class SumoMinigameController : MinigameController
     [SerializeField] private int winnerPoints = 100;
     [SerializeField] private int eliminationStepPoints = 20;
     
-    private List<PlayerData> alivePlayers = new List<PlayerData>();
-    private List<PlayerData> eliminationOrder = new List<PlayerData>();
+    [SerializeField] private List<PlayerData> alivePlayers = new List<PlayerData>();
+    [SerializeField] private List<PlayerData> eliminationOrder = new List<PlayerData>();
     private Dictionary<ulong,int> finalScores = new Dictionary<ulong,int>();
     
     private PlayerList playerList => PlayerList.singleton;
@@ -116,6 +116,7 @@ public class SumoMinigameController : MinigameController
         Debug.LogError($"[Sumo] Eliminado: {pd.playerInfo.steamId}");
         if (alivePlayers.Count <= 1)
         {
+            Debug.LogError("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
             EndMatch();
         }
     }
