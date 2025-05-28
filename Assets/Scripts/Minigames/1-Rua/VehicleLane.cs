@@ -100,14 +100,14 @@ public class VehicleLane : NetworkBehaviour
         }
 
         SetSpeed(100f);
-        Debug.Log($"Trem em {gameObject.name}: Sinal VERDE - Velocidade 100");
+        //Debug.Log($"Trem em {gameObject.name}: Sinal VERDE - Velocidade 100");
     }
     
     [Server]
     public void SetTrainSpeedRed()
     {
         SetSpeed(0f);
-        Debug.Log($"Trem em {gameObject.name}: Sinal VERMELHO - Parado");
+        //Debug.Log($"Trem em {gameObject.name}: Sinal VERMELHO - Parado");
 
         // Inicia o reset automático para voltar ao startPoint
         AutoResetToStart();

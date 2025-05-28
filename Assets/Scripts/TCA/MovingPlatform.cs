@@ -98,16 +98,6 @@ public class MovingPlatform : MonoBehaviour
     }
     
     // Método adicional para debug - opcional
-    private void LogPlayerState(Transform player)
-    {
-        var playerScript = player.GetComponent<PlayerScript>();
-        var controller = player.GetComponent<CharacterController>();
-        
-        Debug.Log($"Player {player.name}: " +
-                 $"Active={player.gameObject.activeInHierarchy}, " +
-                 $"Controller={controller?.enabled}, " +
-                 $"State={playerScript?.State}");
-    }
     
     private void CleanupInvalidPlayers()
     {
