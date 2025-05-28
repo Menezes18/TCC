@@ -4,8 +4,8 @@ using System.Collections;
 public class VfxClone : MonoBehaviour
 {
     [SerializeField] private float lifetime = 2f;
-    private bool _cd = false;
-    [SerializeField] GameObject vfx;
+    //private bool _cd = false;
+    //[SerializeField] GameObject vfx;
     public void Cloner()
     {
         // Ativa o objeto original (opcional se já estiver ativo)
@@ -28,16 +28,16 @@ public class VfxClone : MonoBehaviour
     }
 
     // Para Gatilhos práticos, mudar depois
-    void GatilhoVFX()
-    {
-        vfx.SetActive(_cd);
-    }
-    IEnumerator Timer()
-    {
-        _cd = true;
-        GatilhoVFX();
-        yield return new WaitForSeconds(lifetime);
-        _cd = false;
-        GatilhoVFX();
-    }
+    //void GatilhoVFX()
+    //{
+    //    vfx.SetActive(_cd);
+    //}
+    //IEnumerator Timer()
+    //{
+    //    _cd = true;
+    //    GatilhoVFX();
+    //    yield return new WaitForSeconds(lifetime);
+    //    _cd = false;
+    //    GatilhoVFX();
+    //}
 }

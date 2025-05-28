@@ -2912,7 +2912,6 @@ GameObject:
   - component: {fileID: 85999220}
   - component: {fileID: 85999219}
   - component: {fileID: 85999218}
-  - component: {fileID: 85999217}
   m_Layer: 0
   m_Name: TriggerVFX
   m_TagString: Untagged
@@ -2920,23 +2919,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &85999217
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 85999216}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2a34876d999801b44bb026fb9a425542, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  target: {fileID: 139443340}
-  EventName: Event
-  colliders:
-  - {fileID: 85999218}
-  activation: 0
 --- !u!65 &85999218
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -4874,12 +4856,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e2692d139577c394faa05710e32cf65f, type: 3}
---- !u!2083052967 &139443340 stripped
-VisualEffect:
-  m_CorrespondingSourceObject: {fileID: 7737960462853017006, guid: e2692d139577c394faa05710e32cf65f,
-    type: 3}
-  m_PrefabInstance: {fileID: 139443339}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &139443341 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 574984406957757475, guid: e2692d139577c394faa05710e32cf65f,
