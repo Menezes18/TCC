@@ -5899,6 +5899,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: VoltaSpawn (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 7733649701504474943, guid: 4e626b05df21d9844bd3a62b9faff57a,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 1299211850193306406, guid: 4e626b05df21d9844bd3a62b9faff57a, type: 3}
     m_RemovedGameObjects: []
@@ -7638,6 +7643,7 @@ GameObject:
   - component: {fileID: 1584339838}
   - component: {fileID: 1584339843}
   - component: {fileID: 1584339842}
+  - component: {fileID: 1584339844}
   m_Layer: 0
   m_Name: trigger
   m_TagString: Untagged
@@ -7758,7 +7764,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1584339837}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a23831ab502aa4a46b5402e79ce4ef75, type: 3}
   m_Name: 
@@ -7782,6 +7788,18 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   players: {fileID: 0}
+--- !u!114 &1584339844
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1584339837}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: efa3a27f17c6fbc24ac6bd063eee34d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1587429152
 GameObject:
   m_ObjectHideFlags: 0
