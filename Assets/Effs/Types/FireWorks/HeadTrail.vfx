@@ -60,36 +60,6 @@ MonoBehaviour:
     - model: {fileID: 8926484042661617476}
       id: 0
       isStickyNote: 0
-    - model: {fileID: 8926484042661617441}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661617419}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661617448}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661617450}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661617452}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661617454}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661617088}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661617460}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661617260}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661617094}
-      id: 0
-      isStickyNote: 0
     - model: {fileID: 8926484042661617761}
       id: 0
       isStickyNote: 0
@@ -100,6 +70,9 @@ MonoBehaviour:
       id: 0
       isStickyNote: 0
     - model: {fileID: 8926484042661617820}
+      id: 0
+      isStickyNote: 0
+    - model: {fileID: 8926484042661617830}
       id: 0
       isStickyNote: 0
   stickyNoteInfos: []
@@ -142,12 +115,29 @@ MonoBehaviour:
   - {fileID: 8926484042661617808}
   - {fileID: 8926484042661617810}
   - {fileID: 8926484042661617820}
+  - {fileID: 8926484042661617830}
   m_UIPosition: {x: 0, y: 0}
   m_UICollapsed: 1
   m_UISuperCollapsed: 0
   m_UIInfos: {fileID: 114340500867371532}
   m_CustomAttributes: []
-  m_ParameterInfo: []
+  m_ParameterInfo:
+  - name: Gradiente
+    path: Gradiente
+    tooltip: 
+    space: -1
+    spaceable: 0
+    sheetType: m_Gradient
+    realType: Gradient
+    defaultValue:
+      m_Type:
+        m_SerializableType: UnityEngine.Gradient, UnityEngine.CoreModule, Version=0.0.0.0,
+          Culture=neutral, PublicKeyToken=null
+      m_SerializableObject: '{"colorKeys":[{"color":{"r":3.4415900707244875,"g":1.4340726137161255,"b":0.018018830567598344,"a":1.0},"time":0.0},{"color":{"r":3.927455186843872,"g":0.7218088507652283,"b":0.0,"a":1.0},"time":0.7192950248718262},{"color":{"r":2.6390156745910646,"g":2.6390156745910646,"b":2.6390156745910646,"a":1.0},"time":1.0}],"alphaKeys":[{"alpha":1.0,"time":0.0},{"alpha":1.0,"time":1.0}],"gradientMode":0}'
+    min: -Infinity
+    max: Infinity
+    enumValues: []
+    descendantCount: 0
   m_ImportDependencies: []
   m_GraphVersion: 18
   m_ResourceVersion: 1
@@ -1087,7 +1077,8 @@ MonoBehaviour:
       m_SerializableType: UnityEngine.Gradient, UnityEngine.CoreModule, Version=0.0.0.0,
         Culture=neutral, PublicKeyToken=null
   m_Direction: 0
-  m_LinkedSlots: []
+  m_LinkedSlots:
+  - {fileID: 8926484042661617831}
 --- !u!114 &8926484042661617226
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5700,3 +5691,84 @@ MonoBehaviour:
         PublicKeyToken=b77a5c561934e089
   m_Direction: 0
   m_LinkedSlots: []
+--- !u!114 &8926484042661617830
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 0
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661617831}
+  m_ExposedName: Gradiente
+  m_Exposed: 1
+  m_Order: 0
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: 
+    m_SerializableObject: 
+  m_Max:
+    m_Type:
+      m_SerializableType: 
+    m_SerializableObject: 
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 0
+  m_Tooltip: 
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661617831}
+      inputSlot: {fileID: 8926484042661617225}
+    position: {x: 1410.0399, y: -119.18749}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
+--- !u!114 &8926484042661617831
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f778ff57c4e8145b9681fe3268d8e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 0}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_MasterSlot: {fileID: 8926484042661617831}
+  m_MasterData:
+    m_Owner: {fileID: 8926484042661617830}
+    m_Value:
+      m_Type:
+        m_SerializableType: UnityEngine.Gradient, UnityEngine.CoreModule, Version=0.0.0.0,
+          Culture=neutral, PublicKeyToken=null
+      m_SerializableObject: '{"colorKeys":[{"color":{"r":3.4415900707244875,"g":1.4340726137161255,"b":0.018018830567598344,"a":1.0},"time":0.0},{"color":{"r":3.927455186843872,"g":0.7218088507652283,"b":0.0,"a":1.0},"time":0.7192950248718262},{"color":{"r":2.6390156745910646,"g":2.6390156745910646,"b":2.6390156745910646,"a":1.0},"time":1.0}],"alphaKeys":[{"alpha":1.0,"time":0.0},{"alpha":1.0,"time":1.0}],"gradientMode":0}'
+    m_Space: -1
+  m_Property:
+    name: o
+    m_serializedType:
+      m_SerializableType: UnityEngine.Gradient, UnityEngine.CoreModule, Version=0.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+  m_Direction: 1
+  m_LinkedSlots:
+  - {fileID: 8926484042661617225}

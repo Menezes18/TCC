@@ -177,7 +177,7 @@ public class MatchManager : NetworkBehaviour
         LeanTween.delayedCall(2.0f, () =>
         {
             
-            NetworkManager.singleton.ServerChangeScene("MainMenu");
+            NetworkManager.singleton.ServerChangeScene("RASCUNHO");
             
             
             _activePlayers.Clear();

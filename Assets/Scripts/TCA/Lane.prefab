@@ -109,11 +109,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4e39b362cd0c664b8f52e4be21574dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   vehicles: []
   startPoint: {fileID: 262841307799034939}
   endPoint: {fileID: 4973145962028187064}
   speed: 15
   offset: 0
+  OnSpeedChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!114 &643805008404695177
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -131,3 +137,5 @@ MonoBehaviour:
   startPoint: {fileID: 262841307799034939}
   useFirstChildAsStart: 1
   spacing: 2
+  isTrainLane: 0
+  signalController: {fileID: 0}
