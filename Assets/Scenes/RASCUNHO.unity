@@ -37513,10 +37513,9 @@ GameObject:
   m_Component:
   - component: {fileID: 998129535}
   - component: {fileID: 998129534}
-  - component: {fileID: 998129533}
-  - component: {fileID: 998129532}
   - component: {fileID: 998129531}
   - component: {fileID: 998129530}
+  - component: {fileID: 998129536}
   m_Layer: 0
   m_Name: CORE
   m_TagString: Untagged
@@ -37560,47 +37559,6 @@ MonoBehaviour:
   HUDSO: {fileID: 11400000, guid: 159da097a9cb83941a79e616fe586e23, type: 2}
   minigameSceneNames:
   - RuaTeste
---- !u!114 &998129532
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 998129529}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3b3f61a3919f5b54ebf11f7b83625522, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
-  db: {fileID: 11400000, guid: d6c25b14977fb5445a4b66c63b66829e, type: 2}
-  HUDSO: {fileID: 11400000, guid: 159da097a9cb83941a79e616fe586e23, type: 2}
-  _spawns:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
---- !u!114 &998129533
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 998129529}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 895020ddff7da7f42965ee6085810bf0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
-  db: {fileID: 11400000, guid: d6c25b14977fb5445a4b66c63b66829e, type: 2}
 --- !u!114 &998129534
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -37632,6 +37590,28 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &998129536
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 998129529}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b3f61a3919f5b54ebf11f7b83625522, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  db: {fileID: 11400000, guid: d6c25b14977fb5445a4b66c63b66829e, type: 2}
+  HUDSO: {fileID: 11400000, guid: 159da097a9cb83941a79e616fe586e23, type: 2}
+  _spawns:
+  - {fileID: 408054734}
+  - {fileID: 1147238474}
+  - {fileID: 2125853218}
+  - {fileID: 1447145128}
 --- !u!1001 &998131622
 PrefabInstance:
   m_ObjectHideFlags: 0
