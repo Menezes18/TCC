@@ -10,13 +10,11 @@ public class DeathZoneTrigger : NetworkBehaviour
     public UnityEvent<PlayerData> onDeath;
     public bool spectate = false;
     public PlayerData players;
-    public SumoMinigameController controller;
 
     [ServerCallback]
     private void OnTriggerEnter(Collider other)
     {
         var pd = other.GetComponent<PlayerData>();
-        controller.Eliminate(pd);
         
         if (pd == null) return;
         players = pd;

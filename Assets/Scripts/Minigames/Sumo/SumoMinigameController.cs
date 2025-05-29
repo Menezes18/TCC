@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Mirror;
 using UnityEngine;
+using UnityEngine.Events;
 
 
 [System.Serializable]
@@ -13,6 +14,7 @@ public class HideStep
 
 public class SumoMinigameController : MinigameController
 {
+    public UnityEvent finalizar;
     [SerializeField] private int winnerPoints = 100;
     [SerializeField] private int eliminationStepPoints = 20;
     
@@ -116,8 +118,7 @@ public class SumoMinigameController : MinigameController
         Debug.LogError($"[Sumo] Eliminado: {pd.playerInfo.steamId}");
         if (alivePlayers.Count <= 1)
         {
-            Debug.LogError("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-            EndMatch();
+            finalizar?.Invoke();
         }
     }
     public override void AssignFinalPoints()

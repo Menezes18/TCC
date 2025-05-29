@@ -158,7 +158,7 @@ public class MatchManager : NetworkBehaviour
     }
 
     [Server]
-    void InternalEndMatch()
+    public void InternalEndMatch()
     {
         Debug.LogError("Acabou o endMatch");
         _matchHasStarted = false;
