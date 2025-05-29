@@ -38,6 +38,7 @@ public class PrefabInstancer : NetworkBehaviour
       ps.Initialize(origin, dir);
 
       NetworkServer.Spawn(instance.gameObject);
+      Debug.Log("teste instancer");
    }
 
 }

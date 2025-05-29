@@ -580,6 +580,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             this.netIdentity
         );
 
+        Debug.Log("teste instancer Player");
         // _throwCooldown = db.playerThrowCooldown;
     }
 
