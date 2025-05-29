@@ -176,12 +176,12 @@ public class MatchManager : NetworkBehaviour
         
         LeanTween.delayedCall(2.0f, () =>
         {
+            _activePlayers.Clear();
+            _winnerPlayers .Clear();
             
             NetworkManager.singleton.ServerChangeScene("RASCUNHO");
             
             
-            _activePlayers.Clear();
-            _winnerPlayers .Clear();
         });
     }
 
