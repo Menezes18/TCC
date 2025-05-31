@@ -82,7 +82,7 @@ public class SumoMinigameController : MinigameController
             case HideState.Blinking:
                 timer     -= dt;
                 nextBlink -= dt;
-                _thor?.SetTrigger("Marretar");
+                 _thor?.SetTrigger("Marretar");
 
                 if (nextBlink <= 0f)
                 {
@@ -141,7 +141,7 @@ public class SumoMinigameController : MinigameController
         
         for (int i = 0; i < eliminationOrder.Count; i++)
         {
-            int pts = eliminationStepPoints * (eliminationOrder.Count - i);
+            int pts = eliminationStepPoints * (i + 1);
             var pd  = eliminationOrder[i];
             finalScores[pd.playerInfo.steamId] = pts;
         }

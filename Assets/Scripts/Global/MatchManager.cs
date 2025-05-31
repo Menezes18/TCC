@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Smooth;
 using Random = UnityEngine.Random;
+using UnityEngine.Events;
 public struct PlayerScoreEntry
 {
     public ulong steamId;
@@ -45,6 +46,7 @@ public class MatchManager : NetworkBehaviour
 
     List<PlayerData> _activePlayers = new List<PlayerData>();
     List<PlayerData> _winnerPlayers = new List<PlayerData>();
+    public UnityEvent acabarFreezeTime;
     
     
     private bool _matchHasStarted;
@@ -93,6 +95,7 @@ public class MatchManager : NetworkBehaviour
             Debug.LogError("Acabou");
             (scoreRule as MinigameController)?.StartMatch();
             _freezeTimer = -1;
+            acabarFreezeTime?.Invoke();
             
         }
         
