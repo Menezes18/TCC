@@ -95,7 +95,7 @@ public class MatchManager : NetworkBehaviour
             Debug.LogError("Acabou");
             (scoreRule as MinigameController)?.StartMatch();
             _freezeTimer = -1;
-            if(acabarFreezeTime != null) CmdLiberar();
+            if(acabarFreezeTime != null)CmdLiberar();
             
         }
         
@@ -127,7 +127,7 @@ public class MatchManager : NetworkBehaviour
     public void CmdLiberar()
     {
 
-        acabarFreezeTime.SetActive(false);
+        acabarFreezeTime.SetActive(_matchHasStarted);
 
     }
 
