@@ -38,6 +38,8 @@ public class SumoMinigameController : MinigameController
 
     public bool _startGame = false;
 
+    public Animator _thor;
+
     public void StartGame()
     {
         _startGame = true;
@@ -80,10 +82,11 @@ public class SumoMinigameController : MinigameController
             case HideState.Blinking:
                 timer     -= dt;
                 nextBlink -= dt;
+                _thor?.SetTrigger("Marretar");
 
                 if (nextBlink <= 0f)
                 {
-                    
+
                     RpcToggleBlink(currentIndex);
                     nextBlink = blinkInterval;
                 }
