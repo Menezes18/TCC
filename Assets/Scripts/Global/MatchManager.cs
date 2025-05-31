@@ -74,13 +74,12 @@ public class MatchManager : NetworkBehaviour
         //InternalStartMatch();
 
     }
-    [SyncVar(hook = nameof(HookOnFreezeStateChanged))]
+    [SyncVar(hook = nameof(HookOnShowAcabarFreezeTimeChanged))]
     private bool _showAcabarFreezeTime;
 
-    void HookOnFreezeStateChanged(bool oldValue, bool newValue)
+    void HookOnShowAcabarFreezeTimeChanged(bool oldValue, bool newValue)
     {
-        if (acabarFreezeTime != null)
-            acabarFreezeTime.SetActive(newValue);
+        acabarFreezeTime.SetActive(newValue);
     }
     private void Update()
     {
@@ -133,7 +132,7 @@ public class MatchManager : NetworkBehaviour
     [Command(requiresAuthority = false)]
     public void CmdLiberar()
     {
-        acabarFreezeTime.SetActive(_showAcabarFreezeTime);
+        _showAcabarFreezeTime = !_matchHasStarted;
     }
 
     [Server]
