@@ -46,7 +46,7 @@ public class MatchManager : NetworkBehaviour
 
     List<PlayerData> _activePlayers = new List<PlayerData>();
     List<PlayerData> _winnerPlayers = new List<PlayerData>();
-    public UnityEvent acabarFreezeTime;
+    public GameObject acabarFreezeTime;
     
     
     private bool _matchHasStarted;
@@ -95,7 +95,7 @@ public class MatchManager : NetworkBehaviour
             Debug.LogError("Acabou");
             (scoreRule as MinigameController)?.StartMatch();
             _freezeTimer = -1;
-            acabarFreezeTime?.Invoke();
+            if(acabarFreezeTime != null) CmdLiberar();
             
         }
         
@@ -122,7 +122,15 @@ public class MatchManager : NetworkBehaviour
         
         InternalPrepareMath();
     }
-    
+
+    [Command(requiresAuthority = false)]
+    public void CmdLiberar()
+    {
+
+        acabarFreezeTime.SetActive(false);
+
+    }
+
     [Server]
     void InternalPrepareMath() 
     {
