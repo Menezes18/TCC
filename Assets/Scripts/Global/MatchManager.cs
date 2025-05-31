@@ -79,7 +79,7 @@ public class MatchManager : NetworkBehaviour
     void RpcAtivarAcabarFreezeTime()
     {
         if (acabarFreezeTime != null)
-            acabarFreezeTime.SetActive(true);
+            acabarFreezeTime.SetActive(false);
     }
     private void Update()
     {
