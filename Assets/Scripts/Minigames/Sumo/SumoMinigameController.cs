@@ -141,7 +141,7 @@ public class SumoMinigameController : MinigameController
         
         for (int i = 0; i < eliminationOrder.Count; i++)
         {
-            int pts = eliminationStepPoints * (i + 1);
+            int pts = 60 - (eliminationStepPoints * i);
             var pd  = eliminationOrder[i];
             finalScores[pd.playerInfo.steamId] = pts;
         }
