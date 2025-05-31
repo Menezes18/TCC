@@ -74,12 +74,12 @@ public class MatchManager : NetworkBehaviour
         //InternalStartMatch();
 
     }
-    [SyncVar(hook = nameof(HookOnShowAcabarFreezeTimeChanged))]
-    private bool _showAcabarFreezeTime;
 
-    void HookOnShowAcabarFreezeTimeChanged(bool oldValue, bool newValue)
+    [ClientRpc]
+    void RpcAtivarAcabarFreezeTime()
     {
-        acabarFreezeTime.SetActive(newValue);
+        if (acabarFreezeTime != null)
+            acabarFreezeTime.SetActive(true);
     }
     private void Update()
     {
@@ -102,8 +102,8 @@ public class MatchManager : NetworkBehaviour
             Debug.LogError("Acabou");
             (scoreRule as MinigameController)?.StartMatch();
             _freezeTimer = -1;
-            if(acabarFreezeTime != null)CmdLiberar();
-            
+            if(acabarFreezeTime != null) RpcAtivarAcabarFreezeTime();
+
         }
         
         if(_freezeTimer >= 0) return;
@@ -129,12 +129,6 @@ public class MatchManager : NetworkBehaviour
         
         InternalPrepareMath();
     }
-    [Command(requiresAuthority = false)]
-    public void CmdLiberar()
-    {
-        _showAcabarFreezeTime = !_matchHasStarted;
-    }
-
     [Server]
     void InternalPrepareMath() 
     {
