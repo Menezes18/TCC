@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 5953761730878260978}
   - component: {fileID: 3949776738191480289}
   - component: {fileID: 4454412957416659035}
+  - component: {fileID: 6553171127328729831}
   m_Layer: 10
   m_Name: CarrinhoDeMao
   m_TagString: Untagged
@@ -69,6 +70,27 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.5101547, y: 2.2912393, z: 2.910031}
   m_Center: {x: -0.0009765625, y: 1.0833352, z: -0.007958531}
+--- !u!205 &6553171127328729831
+LODGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3409596473859402240}
+  serializedVersion: 2
+  m_LocalReferencePoint: {x: 0, y: 0, z: 0}
+  m_Size: 1
+  m_FadeMode: 0
+  m_AnimateCrossFading: 0
+  m_LastLODIsBillboard: 0
+  m_LODs:
+  - screenRelativeHeight: 0.01904482
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 2595498475255877738}
+    - renderer: {fileID: 7275943151822810113}
+    - renderer: {fileID: 8088108362028816866}
+  m_Enabled: 1
 --- !u!1001 &868944932312767094
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1744,6 +1766,12 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 868944932312767094}
   m_PrefabAsset: {fileID: 0}
+--- !u!137 &8088108362028816866 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 8949118086594216852, guid: 693805ba71c4b0b48b050e036042fe62,
+    type: 3}
+  m_PrefabInstance: {fileID: 868944932312767094}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &3667907552495586626
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3414,6 +3442,12 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!137 &7275943151822810113 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -3017884800365272765, guid: 693805ba71c4b0b48b050e036042fe62,
+    type: 3}
+  m_PrefabInstance: {fileID: 3667907552495586626}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &7157376557323595631
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4190,6 +4224,12 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 7178083895949175442}
   m_SourcePrefab: {fileID: 100100000, guid: 693805ba71c4b0b48b050e036042fe62, type: 3}
+--- !u!137 &2595498475255877738 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -4084470114822717691, guid: 693805ba71c4b0b48b050e036042fe62,
+    type: 3}
+  m_PrefabInstance: {fileID: 7157376557323595631}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &7268428765322430596 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 693805ba71c4b0b48b050e036042fe62,

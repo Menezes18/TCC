@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 9051601023802391554}
   - component: {fileID: 2440362970679664905}
   - component: {fileID: 4710532736660553758}
+  - component: {fileID: 1522698848005749403}
   m_Layer: 10
   m_Name: Elefante
   m_TagString: Untagged
@@ -68,6 +69,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5af1df2b4afda948b3d792ba057f5ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!205 &1522698848005749403
+LODGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2104505747645236383}
+  serializedVersion: 2
+  m_LocalReferencePoint: {x: 0, y: 0, z: 0}
+  m_Size: 1
+  m_FadeMode: 0
+  m_AnimateCrossFading: 0
+  m_LastLODIsBillboard: 0
+  m_LODs:
+  - screenRelativeHeight: 0.0165928
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 2290956322373293633}
+    - renderer: {fileID: 7278072261725763004}
+  m_Enabled: 1
 --- !u!1001 &1700305469720737950
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1117,6 +1138,12 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!137 &2290956322373293633 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 600014988385808095, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
+    type: 3}
+  m_PrefabInstance: {fileID: 1700305469720737950}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &4475826597863946830
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1458,6 +1485,12 @@ BoxCollider:
 --- !u!4 &4150047191715650981 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
+    type: 3}
+  m_PrefabInstance: {fileID: 4475826597863946830}
+  m_PrefabAsset: {fileID: 0}
+--- !u!137 &7278072261725763004 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -2657760694134026254, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
     type: 3}
   m_PrefabInstance: {fileID: 4475826597863946830}
   m_PrefabAsset: {fileID: 0}

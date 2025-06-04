@@ -6,6 +6,19 @@ public class ChaoCaindo : ChaoMae
 {
     public float tempoPraCair = 0.5f;
     public BoxCollider colisor;
+    void Start()
+    {
+        BoxCollider[] colliders = GetComponents<BoxCollider>();
+
+        foreach (BoxCollider col in colliders)
+        {
+            if (col.isTrigger)
+            {
+                colisor = col;
+                break; 
+            }
+        }
+    }
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player") && !chaoTirado)
