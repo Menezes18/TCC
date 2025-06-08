@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Smooth;
 using Random = UnityEngine.Random;
+using UnityEngine.Events;
 public struct PlayerScoreEntry
 {
     public ulong steamId;
@@ -45,6 +46,7 @@ public class MatchManager : NetworkBehaviour
 
     List<PlayerData> _activePlayers = new List<PlayerData>();
     List<PlayerData> _winnerPlayers = new List<PlayerData>();
+    public GameObject acabarFreezeTime;
     
     
     private bool _matchHasStarted;
@@ -72,6 +74,13 @@ public class MatchManager : NetworkBehaviour
         //InternalStartMatch();
 
     }
+
+    [ClientRpc]
+    void RpcAtivarAcabarFreezeTime()
+    {
+        if (acabarFreezeTime != null)
+            acabarFreezeTime.SetActive(false);
+    }
     private void Update()
     {
         if(base.isServer == false) return;
@@ -93,7 +102,8 @@ public class MatchManager : NetworkBehaviour
             Debug.LogError("Acabou");
             (scoreRule as MinigameController)?.StartMatch();
             _freezeTimer = -1;
-            
+            if(acabarFreezeTime != null) RpcAtivarAcabarFreezeTime();
+
         }
         
         if(_freezeTimer >= 0) return;
@@ -119,7 +129,6 @@ public class MatchManager : NetworkBehaviour
         
         InternalPrepareMath();
     }
-    
     [Server]
     void InternalPrepareMath() 
     {

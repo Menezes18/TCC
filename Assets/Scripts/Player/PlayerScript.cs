@@ -80,7 +80,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         }
     }
 
-    [SerializeField] private Transform _cam;
+    public Transform _cam;
 
     public Vector3 rot => new Vector3(0, _cam.transform.rotation.eulerAngles.y, 0);
 
