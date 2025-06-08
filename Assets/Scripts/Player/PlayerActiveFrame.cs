@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
@@ -14,13 +15,34 @@ public class PlayerActiveFrame : NetworkBehaviour{
 
     [SerializeField] List<Collider> _affectedPlayer;
     
-    
+    private Transform _cam;
+
+    private PlayerScript _playerScript;
+
+    private void Start()
+    {
+        if (!this.isOwned) return;
+        if (!isLocalPlayer) return;
+        _cam = Camera.main.transform;
+        
+    }
+
     public void SphereFront()
     {
-        Collider[] orb = Physics.OverlapSphere(transform.position + transform.forward, 
-            db.playerPushRadius, db.PlayerMask);
-        if(orb.Length == 0) return;
-        
+        if (!this.isOwned) return;
+        // 1) Pega a direção que a câmera está olhando (incluindo vertical).
+        Vector3 camForward = _cam.transform.forward.normalized;
+
+        // 2) Origem da esfera: posição do player + direção da câmera multiplicada pelo raio de detecção.
+        Vector3 sphereOrigin = transform.position + camForward * db.playerPushRadius;
+
+        Collider[] orb = Physics.OverlapSphere(
+            sphereOrigin,
+            db.playerPushRadius,
+            db.PlayerMask
+        );
+        if (orb.Length == 0) return;
+
         ApplyDamage(orb, DamageType.Push);
     }
 
@@ -28,6 +50,7 @@ public class PlayerActiveFrame : NetworkBehaviour{
     
     public void ApplyDamage(Collider[] target, DamageType dmgType)
     {
+        if (!this.isOwned) return;
         Vector3 origin = transform.position;
         origin.y = 0;
         
@@ -50,5 +73,17 @@ public class PlayerActiveFrame : NetworkBehaviour{
             dmg.ReceiveDamage(DamageType.Push, final);
 
         }
+    }
+
+
+    private void OnDrawGizmosSelected()
+    {
+        if (!Application.isPlaying) return;
+
+        Vector3 camForward = _cam.transform.forward.normalized;
+        Vector3 sphereOrigin = transform.position + camForward * db.playerPushRadius;
+
+        Gizmos.color = Color.blue;
+        Gizmos.DrawWireSphere(sphereOrigin, db.playerPushRadius);
     }
 }
