@@ -15,8 +15,7 @@ public class HideStep
 public class SumoMinigameController : MinigameController
 {
     public UnityEvent finalizar;
-    [SerializeField] private int winnerPoints = 100;
-    [SerializeField] private int eliminationStepPoints = 20;
+    public SettingsMiniGameData gameData;
     
     [SerializeField] private List<PlayerData> alivePlayers = new List<PlayerData>();
     [SerializeField] private List<PlayerData> eliminationOrder = new List<PlayerData>();
@@ -27,8 +26,8 @@ public class SumoMinigameController : MinigameController
 
     [Header("Tempos")]
     [SerializeField] private float timeBetweenSteps = 5f;
-    [SerializeField] private float blinkDuration    = 1f;
-    [SerializeField] private float blinkInterval    = 0.2f;
+    [SerializeField] private float blinkDuration = 1f;
+    [SerializeField] private float blinkInterval = 0.2f;
 
     public enum HideState { Waiting, Blinking, Done }
     private HideState state;
@@ -129,19 +128,19 @@ public class SumoMinigameController : MinigameController
         if (alivePlayers.Count == 1)
         {
             var winner = alivePlayers[0];
-            finalScores[winner.playerInfo.steamId] = winnerPoints;
+            finalScores[winner.playerInfo.steamId] = gameData.firstPlaceBonus;
         }
         else if (alivePlayers.Count > 1)
         {
             foreach (var pdA in alivePlayers){
                 
-                finalScores[pdA.playerInfo.steamId] = winnerPoints;
+                finalScores[pdA.playerInfo.steamId] = gameData.firstPlaceBonus;
             }
         }
         
         for (int i = 0; i < eliminationOrder.Count; i++)
         {
-            int pts = 60 - (eliminationStepPoints * i);
+            int pts = 60 - (gameData.secondPlaceBonus * i);
             var pd  = eliminationOrder[i];
             finalScores[pd.playerInfo.steamId] = pts;
         }

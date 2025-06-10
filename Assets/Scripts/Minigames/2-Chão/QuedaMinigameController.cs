@@ -7,8 +7,7 @@ using UnityEngine.Events;
 public class QuedaMinigameController : MinigameController
 {
     public UnityEvent finalizar;
-    [SerializeField] private int winnerPoints = 100;
-    [SerializeField] private int eliminationStepPoints = 20;
+    [SerializeField] SettingsMiniGameData settingsData;
     
     [SerializeField] private List<PlayerData> alivePlayers = new List<PlayerData>();
     [SerializeField] private List<PlayerData> eliminationOrder = new List<PlayerData>();
@@ -63,19 +62,19 @@ public class QuedaMinigameController : MinigameController
         if (alivePlayers.Count == 1)
         {
             var winner = alivePlayers[0];
-            finalScores[winner.playerInfo.steamId] = winnerPoints;
+            finalScores[winner.playerInfo.steamId] = settingsData.firstPlaceBonus;
         }
         else if (alivePlayers.Count > 1)
         {
             foreach (var pdA in alivePlayers){
                 
-                finalScores[pdA.playerInfo.steamId] = winnerPoints;
+                finalScores[pdA.playerInfo.steamId] = settingsData.firstPlaceBonus;
             }
         }
                 
         for (int i = 0; i < eliminationOrder.Count; i++)
         {
-            int pts = 60 - (eliminationStepPoints * i);
+            int pts = 60 - (settingsData.secondPlaceBonus * i);
             var pd  = eliminationOrder[i];
             finalScores[pd.playerInfo.steamId] = pts;
         }
