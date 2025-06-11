@@ -6,6 +6,8 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
+
 
 public enum PlayerState{
     Default,
@@ -79,6 +81,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
         }
     }
+    public bool IsDead => State == PlayerState.Death;
 
     public Transform _cam;
 
@@ -251,7 +254,21 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (_throwCooldown > 0) _throwCooldown -= Time.deltaTime;
 
         if (_blindTimer > 0) _blindTimer -= Time.deltaTime;
-
+        
+        if (Keyboard.current.pKey.wasPressedThisFrame ) // input
+        {
+            Scene sceneAtual = SceneManager.GetActiveScene();
+            if (sceneAtual.name != "RASCUNHO"){
+                Debug.LogError(sceneAtual.name + " not found");
+                return;
+            }
+            NetworkClient.localPlayer.GetComponent<PlayerData>().ToggleReady();
+            
+            LeanTween.delayedCall(1f, () => {
+                if(MainMenu.instance == null) return;
+                MainMenu.instance.StartGame();
+            });
+        }
         float blindWeight = CustomMath.ConvertRange(_blindTimer, db.playerBlindDuration, 0);
         float blindRange = db.playerBlindCurve.Evaluate(blindWeight);
         HUDSO.SetBlindAlpha(blindRange);
