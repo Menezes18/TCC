@@ -11,11 +11,11 @@ GameObject:
   - component: {fileID: 4192033133491858036}
   - component: {fileID: 3345209128312291461}
   - component: {fileID: 5922854804848874920}
-  - component: {fileID: 3571979525995798571}
   - component: {fileID: 7254044939097134232}
   - component: {fileID: 7163842753433567929}
   - component: {fileID: 7593900097256670279}
   - component: {fileID: 5165951980804229233}
+  - component: {fileID: 1201953790163204768}
   m_Layer: 3
   m_Name: ChaoCaindoGeloEscuro
   m_TagString: Untagged
@@ -91,26 +91,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &3571979525995798571
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4387716239591625814}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5b19d308eb9df7841a68be4dff5a88df, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
-  _chaoTirado: 0
-  dataChao: {fileID: 11400000, guid: 4e96945eb35b14211b1e6d3f083d6c8c, type: 2}
-  posIncial: {x: 0, y: 0, z: 0}
-  tempoPraCair: 0.5
-  colisor: {fileID: 5165951980804229233}
 --- !u!114 &7254044939097134232
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -205,3 +185,22 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.0495012, y: 1.77, z: 1.03}
   m_Center: {x: 0, y: 0, z: -0.0675133}
+--- !u!114 &1201953790163204768
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4387716239591625814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eab2419b8af967b4380b2bcb307ed638, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  _chaoTirado: 0
+  dataChao: {fileID: 11400000, guid: 4e96945eb35b14211b1e6d3f083d6c8c, type: 2}
+  posIncial: {x: 0, y: 0, z: 0}
+  estadosChao: []
