@@ -125,6 +125,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private float _blindTimer;
     private float _throwCooldown;
 
+    public float PushCooldownNormalized => Mathf.Clamp01(_pushCooldown / db.playerPushCooldownTimer);
+    public float ThrowCooldownNormalized => Mathf.Clamp01(_throwCooldown / db.playerThrowCooldown);
     private float BlindTimer {
         get => _blindTimer;
         set {
@@ -164,6 +166,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SerializeField] private GameObject canvasCelularPrefab;
     private GameObject celularInstance;
     public MainMenu mainMenu;
+    [SerializeField] private GameObject cooldownUIPrefab;
+    GameObject cooldownUIInstance;
 
     // Event
     public UnityEvent EventOnDeath;
@@ -210,12 +214,21 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         // UI
         celularInstance = Instantiate(canvasCelularPrefab);
         mainMenu = celularInstance.GetComponentInChildren<MainMenu>(true);
+        if (cooldownUIPrefab != null)
+        {
+            cooldownUIInstance = Instantiate(cooldownUIPrefab);
+            var ui = cooldownUIInstance.GetComponent<CooldownUI>();
+            if (ui != null)
+                ui.Init(this);
+        }
     }
     public override void OnStopLocalPlayer()
     {
         base.OnStopLocalPlayer();
 
         PlayerControlsSO.OnMenu -= EventOnCelularMenu;
+        if (cooldownUIInstance != null)
+            Destroy(cooldownUIInstance);
 
 
     }
@@ -234,7 +247,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         //UI
         PlayerControlsSO.OnMenu -= EventOnCelularMenu;
         // PlayerControlsSO.OnCursor -= PlayerControlsSO_OnCursor;
-
+        if (cooldownUIInstance != null)
+            Destroy(cooldownUIInstance);
     }
 
     private void Update()
