@@ -12,7 +12,7 @@ public class HideStep
     public GameObject[] disableTargets;
 }
 
-public class SumoMinigameController : MinigameController
+public class SumoMinigameController : MinigameController, IObserver
 {
     public UnityEvent finalizar;
     public SettingsMiniGameData gameData;
@@ -43,7 +43,15 @@ public class SumoMinigameController : MinigameController
     {
         _startGame = true;
     }
-    
+    public override void StartMatch()
+    {
+        base.StartMatch();
+        Notifica();  
+    }
+    public void SetupMiniGame()
+    {
+        base.SetupMiniGame();
+    }
     public override void OnStartServer()
     {
         base.OnStartServer();
@@ -51,7 +59,8 @@ public class SumoMinigameController : MinigameController
         alivePlayers  = playerList.players.ToList();   
         eliminationOrder.Clear();
         finalScores.Clear();
-
+        Adicionar(this);
+        Notifica();
         Debug.Log($"[Sumo] Round iniciado com {alivePlayers.Count} jogadores.");
         Invoke("AddPlayer", 2f);
     }
@@ -118,8 +127,10 @@ public class SumoMinigameController : MinigameController
         alivePlayers.Remove(pd);
         eliminationOrder.Add(pd);
         Debug.LogError($"[Sumo] Eliminado: {pd.playerInfo.steamId}");
+        Notifica();
         if (alivePlayers.Count <= 1)
         {
+            AssignFinalPoints();
             finalizar?.Invoke();
         }
     }
@@ -146,7 +157,7 @@ public class SumoMinigameController : MinigameController
         }
     }
 
-    public override Dictionary<ulong,int> GetResults() => finalScores;
+
     [ClientRpc]
     void RpcToggleBlink(int step)
     {
@@ -165,4 +176,23 @@ public class SumoMinigameController : MinigameController
         foreach (var go in hideSequence[step].disableTargets)
             if (go != null) go.SetActive(false);
     }
+    
+    public override Dictionary<ulong,int> GetResults() => finalScores;
+    public override Dictionary<ulong,int> GetLiveScores()
+    {
+        var live = new Dictionary<ulong,int>();
+        int baseScore = alivePlayers.Count + eliminationOrder.Count;
+
+        foreach (var pd in alivePlayers)
+            live[pd.playerInfo.steamId] = baseScore;
+
+        for (int i = 0; i < eliminationOrder.Count; i++)
+        {
+            var pd = eliminationOrder[i];
+            live[pd.playerInfo.steamId] = baseScore - (i + 1);
+        }
+
+        return live;
+    }
+
 }

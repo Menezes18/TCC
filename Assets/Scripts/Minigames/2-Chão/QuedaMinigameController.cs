@@ -4,7 +4,7 @@ using Mirror;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class QuedaMinigameController : MinigameController
+public class QuedaMinigameController : MinigameController, IObserver
 {
     public UnityEvent finalizar;
     [SerializeField] SettingsMiniGameData settingsData;
@@ -23,7 +23,15 @@ public class QuedaMinigameController : MinigameController
     {
         _startGame = true;
     }
-    
+    public override void StartMatch()
+    {
+        base.StartMatch();
+        Notifica();  
+    }
+    public void SetupMiniGame()
+    {
+        base.SetupMiniGame();
+    }
     public override void OnStartServer()
     {
         base.OnStartServer();
@@ -31,7 +39,9 @@ public class QuedaMinigameController : MinigameController
         alivePlayers  = playerList.players.ToList();   
         eliminationOrder.Clear();
         finalScores.Clear();
-
+        Adicionar(this);
+        Notifica();
+        
         Debug.Log($"[Queda] Round iniciado com {alivePlayers.Count} jogadores.");
         Invoke("AddPlayer", 2f);
     }
@@ -52,8 +62,10 @@ public class QuedaMinigameController : MinigameController
         alivePlayers.Remove(pd);
         eliminationOrder.Add(pd);
         Debug.LogError($"[Sumo] Eliminado: {pd.playerInfo.steamId}");
+        Notifica();
         if (alivePlayers.Count <= 1)
         {
+            AssignFinalPoints();
             finalizar?.Invoke();
         }
     }
@@ -81,4 +93,20 @@ public class QuedaMinigameController : MinigameController
     }
 
     public override Dictionary<ulong,int> GetResults() => finalScores;
+    public override Dictionary<ulong,int> GetLiveScores()
+    {
+        var live = new Dictionary<ulong,int>();
+        int baseScore = alivePlayers.Count + eliminationOrder.Count;
+
+        foreach (var pd in alivePlayers)
+            live[pd.playerInfo.steamId] = baseScore;
+
+        for (int i = 0; i < eliminationOrder.Count; i++)
+        {
+            var pd = eliminationOrder[i];
+            live[pd.playerInfo.steamId] = baseScore - (i + 1);
+        }
+
+        return live;
+    }
 }

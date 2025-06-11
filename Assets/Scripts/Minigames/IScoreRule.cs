@@ -7,4 +7,5 @@ public interface IScoreRule{
     void UpdateScores();
     void AssignFinalPoints();
     Dictionary<ulong,int> GetResults();
+    Dictionary<ulong,int> GetLiveScores();
 }
