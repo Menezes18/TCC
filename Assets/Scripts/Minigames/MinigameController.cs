@@ -32,6 +32,7 @@ public abstract class MinigameController : NetworkBehaviour, IScoreRule, ISubjec
         AssignFinalPoints();
         Notifica();
         DispatchPoints();
+        MyNetworkManager.manager.StoreLastResults(GetResults());
         Debug.LogWarning("Minigame End");
     }
     [Server]
@@ -50,6 +51,7 @@ public abstract class MinigameController : NetworkBehaviour, IScoreRule, ISubjec
     public abstract void UpdateScores();
     public abstract void AssignFinalPoints();
     public abstract Dictionary<ulong, int> GetResults();
+    public abstract Dictionary<ulong, int> GetLiveScores();
     public void Atualizacao(ISubject subject){}
     
     public void Adicionar(IObserver observer) => _observers.Add(observer);
