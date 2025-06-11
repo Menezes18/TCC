@@ -1,20 +1,25 @@
 using System.Collections.Generic;
-using System.Linq;
 using Mirror;
 using UnityEngine;
+using System.Linq;
 
-public class StreetMinigameController : MinigameController
+public class StreetMinigameController : MinigameController, IObserver
 {
     [Header("Configuração da Pista")]
-    [SerializeField] private Transform startLine;
-    [SerializeField] private Transform finishLine;
+    [SerializeField] Transform _startLine;
+    [SerializeField] Transform _finishLine;
+    [SerializeField] SettingsMiniGameData settingsMiniGameData;
     
-    private Dictionary<ulong, int> lastProgressPercent = new();
-    private Dictionary<ulong, int> accumulatedPointsDelta = new();
-    private Dictionary<ulong, int> finalScores = new();
 
+    bool _isMatchActive;
+
+    readonly Dictionary<ulong, float> _lastProgress = new();
+    readonly Dictionary<ulong, float> _rawScore = new();
+    readonly Dictionary<ulong, int> _scores = new();
+    Dictionary<ulong, int> _finalScores = new();
+    private readonly List<ulong> _finishOrder = new();
     private PlayerList playerList => PlayerList.singleton;
-
+    
     public void SetupMiniGame()
     {
         base.SetupMiniGame();
@@ -23,75 +28,101 @@ public class StreetMinigameController : MinigameController
     }
     public override void OnStartServer()
     {
-        base.OnStartServer();
-        lastProgressPercent.Clear();
-        accumulatedPointsDelta.Clear();
-        finalScores.Clear();
+        Adicionar(this);
+        Notifica();
+    }
 
-        foreach (var playerData in playerList.players)
+    [Server]
+    public override void StartMatch()
+    {
+        base.StartMatch();
+        _isMatchActive = true;
+
+        _lastProgress.Clear();
+        _rawScore.Clear();
+        _scores.Clear();
+
+        foreach (var p in playerList.players)
         {
-            var steamId = playerData.playerInfo.steamId;
-            lastProgressPercent[steamId] = 0;
-            accumulatedPointsDelta[steamId] = 0;
-            finalScores[steamId] = 0;
+            ulong id = p.playerInfo.steamId;
+            _lastProgress[id] = 0f;
+            _rawScore[id] = 0f;
+            _scores[id] = 0;
         }
+    }
+
+    [Server]
+    public override void EndMatch()
+    {
+        _isMatchActive = false;
+        AssignFinalPoints();
+        base.EndMatch();
+    }
+
+    [ServerCallback]
+    private void Update()
+    {
+        if (_isMatchActive)
+            UpdateScores();
     }
 
     public override void UpdateScores()
     {
-        float startZ = startLine.position.z;
-        float finishZ = finishLine.position.z;
-        float trackLength = finishZ - startZ;
+        Vector3 start = _startLine.position;
+        Vector3 finish = _finishLine.position;
+        Vector3 trackVec = finish - start;
+        float trackSqr = trackVec.sqrMagnitude;
 
-        foreach (var playerData in playerList.players)
+        foreach (var p in playerList.players)
         {
-            var steamId = playerData.playerInfo.steamId;
+            ulong id = p.playerInfo.steamId;
+            Vector3 pos = p.transform.position;
 
-            if (!lastProgressPercent.TryGetValue(steamId, out int prevPercent))
-                lastProgressPercent[steamId] = prevPercent = 0;
-            if (!accumulatedPointsDelta.TryGetValue(steamId, out int currDelta))
-                accumulatedPointsDelta[steamId] = currDelta = 0;
+            if (!_lastProgress.ContainsKey(id))
+            {
+                _lastProgress[id] = 0f;
+                _rawScore[id]   = 0f;
+                _scores[id]     = 0;
+            }
 
-            float currentZ = playerData.transform.position.z;
-            float normalizedProgress = Mathf.Clamp01((currentZ - startZ) / trackLength);
-            int currentPercent = Mathf.FloorToInt(normalizedProgress * 100);
+            float progress = Mathf.Clamp01(Vector3.Dot(pos - start, trackVec) / trackSqr);
+            float delta    = progress - _lastProgress[id];
 
-            int deltaPoints = currentPercent - prevPercent;
-            lastProgressPercent[steamId] = currentPercent;
-            Debug.LogWarning(accumulatedPointsDelta[steamId] + " "  +currDelta + " " + deltaPoints);
-            accumulatedPointsDelta[steamId] = currDelta + deltaPoints;
+            if (delta > 0f)
+            {
+                _rawScore[id] += delta * settingsMiniGameData.maxPoints;
+                _lastProgress[id] = progress;
+            }
+
+            if (progress >= 1f && !_finishOrder.Contains(id))
+            {
+                _finishOrder.Add(id);
+                int place = _finishOrder.Count; // 1, 2, 3, …
+
+                int bonus =
+                    place == 1 ? settingsMiniGameData.firstPlaceBonus :
+                    place == 2 ? settingsMiniGameData.secondPlaceBonus :
+                    place == 3 ? settingsMiniGameData.thirdPlaceBonus :
+                    0;
+
+                _rawScore[id] += bonus;
+            }
+
+            _scores[id] = Mathf.FloorToInt(_rawScore[id]);
         }
+
+        Notifica();
     }
 
+
+    [Server]
     public override void AssignFinalPoints()
     {
-        foreach (var steamId in accumulatedPointsDelta.Keys)
-            finalScores[steamId] = accumulatedPointsDelta[steamId];
-
-        float finishZ = finishLine.position.z;
-        var finishOrder = playerList.players
-            .Where(pd => pd.transform.position.z >= finishZ)
-            .OrderByDescending(pd => pd.transform.position.z)
-            .Select(pd => pd.playerInfo.steamId)
-            .ToList();
-
-        // for (int i = 0; i < finishOrder.Count; i++)
-        // {
-        //     var steamId = finishOrder[i];
-        //     finalScores[steamId] += (finishOrder.Count - i) * 20;
-        // }
-
-        if (finishOrder.Count == 0 && playerList.players.Count > 0)
-        {
-            var leaderSteamId = playerList.players
-                .OrderByDescending(pd => pd.transform.position.z)
-                .First().playerInfo.steamId;
-            finalScores[leaderSteamId] += 10;
-        }
+        Notifica();
     }
 
-    public override Dictionary<ulong,int> GetResults()
-    {
-        return finalScores;
-    }
+    // SIM essa porra vai ficar igual 
+    public override Dictionary<ulong, int> GetLiveScores() =>
+        _scores; 
+    public override Dictionary<ulong, int> GetResults() => _scores;
 }

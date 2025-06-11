@@ -31,6 +31,7 @@ public class MatchManager : NetworkBehaviour
 
     PlayerList playerList => PlayerList.singleton;
     [SerializeField] Database db;
+    [SerializeField] SettingsMiniGameData settingsMiniGameData; 
     [SerializeField] HUDSO HUDSO;
     private List<PlayerScoreEntry> _temporaryRanking = new List<PlayerScoreEntry>();
     private HashSet<NetworkConnectionToClient> _readyConnections = new();
@@ -101,6 +102,7 @@ public class MatchManager : NetworkBehaviour
             // mas é aqui 
             Debug.LogError("Acabou");
             (scoreRule as MinigameController)?.StartMatch();
+            
             _freezeTimer = -1;
             if(acabarFreezeTime != null) RpcAtivarAcabarFreezeTime();
 
@@ -142,7 +144,7 @@ public class MatchManager : NetworkBehaviour
     public void InternalStartMatch() 
     {
         _freezeTimer = db.serverFreezeDuration;
-        _matchTimer = db.serverMatchDuration;
+        _matchTimer = settingsMiniGameData.miniGameDuration;
         _matchHasStarted = true;
     }
 

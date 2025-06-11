@@ -33,7 +33,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public List<string> minigames;
     public int indexScene = 0;
     public int minJogadores = 1;
-
+    public Dictionary<ulong, int> lastGameResults = new Dictionary<ulong, int>();
     [SerializeField]
     public PlayerScoreboard scoreboard = new PlayerScoreboard();
     public Dictionary<ulong, DataPlayer> pointsBoard = new Dictionary<ulong, DataPlayer>();
@@ -71,7 +71,11 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         // UIManager.Instance.SpawnLocalUI();
         base.Awake();
     }
-
+    [Server]
+    public void StoreLastResults(Dictionary<ulong, int> results)
+    {
+        lastGameResults = new Dictionary<ulong, int>(results);
+    }
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)
     {
         if (conn.identity != null && allClients.Exists(c => c == conn.identity.GetComponent<PlayerData>()))

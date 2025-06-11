@@ -6,6 +6,8 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
+
 
 public enum PlayerState{
     Default,
@@ -79,8 +81,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
         }
     }
+    public bool IsDead => State == PlayerState.Death;
 
-    [SerializeField] private Transform _cam;
+    public Transform _cam;
 
     public Vector3 rot => new Vector3(0, _cam.transform.rotation.eulerAngles.y, 0);
 
@@ -122,6 +125,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private float _blindTimer;
     private float _throwCooldown;
 
+    public float PushCooldownNormalized => Mathf.Clamp01(_pushCooldown / db.playerPushCooldownTimer);
+    public float ThrowCooldownNormalized => Mathf.Clamp01(_throwCooldown / db.playerThrowCooldown);
     private float BlindTimer {
         get => _blindTimer;
         set {
@@ -161,6 +166,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SerializeField] private GameObject canvasCelularPrefab;
     private GameObject celularInstance;
     public MainMenu mainMenu;
+    [SerializeField] private GameObject cooldownUIPrefab;
+    GameObject cooldownUIInstance;
 
     // Event
     public UnityEvent EventOnDeath;
@@ -171,7 +178,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     private void Start()
     {
-        if (!this.isOwned) return;
         if (!isLocalPlayer) return;
 
         PlayerControlsSO.OnMove += PlayerControlsSO_OnMove;
@@ -204,16 +210,25 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         base.OnStartLocalPlayer();
 
         PlayerControlsSO.OnMenu += EventOnCelularMenu;
-
+        _cam = Camera.main.transform;
         // UI
         celularInstance = Instantiate(canvasCelularPrefab);
         mainMenu = celularInstance.GetComponentInChildren<MainMenu>(true);
+        if (cooldownUIPrefab != null)
+        {
+            cooldownUIInstance = Instantiate(cooldownUIPrefab);
+            var ui = cooldownUIInstance.GetComponent<CooldownUI>();
+            if (ui != null)
+                ui.Init(this);
+        }
     }
     public override void OnStopLocalPlayer()
     {
         base.OnStopLocalPlayer();
 
         PlayerControlsSO.OnMenu -= EventOnCelularMenu;
+        if (cooldownUIInstance != null)
+            Destroy(cooldownUIInstance);
 
 
     }
@@ -232,7 +247,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         //UI
         PlayerControlsSO.OnMenu -= EventOnCelularMenu;
         // PlayerControlsSO.OnCursor -= PlayerControlsSO_OnCursor;
-
+        if (cooldownUIInstance != null)
+            Destroy(cooldownUIInstance);
     }
 
     private void Update()
@@ -251,7 +267,21 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (_throwCooldown > 0) _throwCooldown -= Time.deltaTime;
 
         if (_blindTimer > 0) _blindTimer -= Time.deltaTime;
-
+        
+        if (Keyboard.current.pKey.wasPressedThisFrame ) // input
+        {
+            Scene sceneAtual = SceneManager.GetActiveScene();
+            if (sceneAtual.name != "RASCUNHO"){
+                Debug.LogError(sceneAtual.name + " not found");
+                return;
+            }
+            NetworkClient.localPlayer.GetComponent<PlayerData>().ToggleReady();
+            
+            LeanTween.delayedCall(1f, () => {
+                if(MainMenu.instance == null) return;
+                MainMenu.instance.StartGame();
+            });
+        }
         float blindWeight = CustomMath.ConvertRange(_blindTimer, db.playerBlindDuration, 0);
         float blindRange = db.playerBlindCurve.Evaluate(blindWeight);
         HUDSO.SetBlindAlpha(blindRange);
@@ -570,7 +600,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public GameObject origin;
     public void PrefabFrameInstancer()
     {
-        Debug.LogError("PrefabFrameInstancer");
         // //Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
         Vector3 direction = _cam.forward;
         //
@@ -676,8 +705,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     }
     private void OnExtraFreezeChanged(bool oldVal, bool newVal)
     {
-
-        Debug.LogError(newVal + "FOI");
+        
     }
     #region Menu
     private void EventOnCelularMenu()
