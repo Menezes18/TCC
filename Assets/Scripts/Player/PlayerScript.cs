@@ -174,7 +174,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     private void Start()
     {
-        if (!this.isOwned) return;
         if (!isLocalPlayer) return;
 
         PlayerControlsSO.OnMove += PlayerControlsSO_OnMove;
@@ -207,7 +206,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         base.OnStartLocalPlayer();
 
         PlayerControlsSO.OnMenu += EventOnCelularMenu;
-
+        _cam = Camera.main.transform;
         // UI
         celularInstance = Instantiate(canvasCelularPrefab);
         mainMenu = celularInstance.GetComponentInChildren<MainMenu>(true);
@@ -587,7 +586,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public GameObject origin;
     public void PrefabFrameInstancer()
     {
-        Debug.LogError("PrefabFrameInstancer");
         // //Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
         Vector3 direction = _cam.forward;
         //
@@ -693,8 +691,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     }
     private void OnExtraFreezeChanged(bool oldVal, bool newVal)
     {
-
-        Debug.LogError(newVal + "FOI");
+        
     }
     #region Menu
     private void EventOnCelularMenu()

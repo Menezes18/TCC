@@ -16,13 +16,20 @@ public class StreetMinigameController : MinigameController, IObserver
     readonly Dictionary<ulong, float> _lastProgress = new();
     readonly Dictionary<ulong, float> _rawScore = new();
     readonly Dictionary<ulong, int> _scores = new();
-    readonly Dictionary<ulong, int> _finalScores = new();
+    Dictionary<ulong, int> _finalScores = new();
+    private readonly List<ulong> _finishOrder = new();
     private PlayerList playerList => PlayerList.singleton;
-
-    public override void OnStartServer()
+    
+    public void SetupMiniGame()
     {
         base.SetupMiniGame();
+        
+        
+    }
+    public override void OnStartServer()
+    {
         Adicionar(this);
+        Notifica();
     }
 
     [Server]
@@ -66,7 +73,7 @@ public class StreetMinigameController : MinigameController, IObserver
         Vector3 trackVec = finish - start;
         float trackSqr = trackVec.sqrMagnitude;
 
-        foreach (var p in PlayerList.singleton.players)
+        foreach (var p in playerList.players)
         {
             ulong id = p.playerInfo.steamId;
             Vector3 pos = p.transform.position;
@@ -74,54 +81,48 @@ public class StreetMinigameController : MinigameController, IObserver
             if (!_lastProgress.ContainsKey(id))
             {
                 _lastProgress[id] = 0f;
-                _rawScore [id] = 0f;
-                _scores [id] = 0;
+                _rawScore[id]   = 0f;
+                _scores[id]     = 0;
             }
 
-            float progress = Vector3.Dot(pos - start, trackVec) / trackSqr;
-            progress = Mathf.Clamp01(progress);
+            float progress = Mathf.Clamp01(Vector3.Dot(pos - start, trackVec) / trackSqr);
+            float delta    = progress - _lastProgress[id];
 
-            float delta = progress - _lastProgress[id];
             if (delta > 0f)
             {
                 _rawScore[id] += delta * settingsMiniGameData.maxPoints;
                 _lastProgress[id] = progress;
             }
 
-            _scores[id] = Mathf.FloorToInt(_rawScore[id]);
+            if (progress >= 1f && !_finishOrder.Contains(id))
+            {
+                _finishOrder.Add(id);
+                int place = _finishOrder.Count; // 1, 2, 3, …
 
+                int bonus =
+                    place == 1 ? settingsMiniGameData.firstPlaceBonus :
+                    place == 2 ? settingsMiniGameData.secondPlaceBonus :
+                    place == 3 ? settingsMiniGameData.thirdPlaceBonus :
+                    0;
+
+                _rawScore[id] += bonus;
+            }
+
+            _scores[id] = Mathf.FloorToInt(_rawScore[id]);
         }
+
+        Notifica();
     }
 
 
+    [Server]
     public override void AssignFinalPoints()
     {
-        _finalScores.Clear();
-        
-        var ranking = _scores
-            .OrderByDescending(kv => kv.Value)
-            .Select((kv, index) => new { SteamId = kv.Key, Score = kv.Value, Rank = index + 1 })
-            .ToList();
-        
-        var bonusByRank = new[]
-        {
-            0,
-            settingsMiniGameData.firstPlaceBonus,
-            settingsMiniGameData.secondPlaceBonus,
-            settingsMiniGameData.thirdPlaceBonus
-        };
-        
-        foreach (var entry  in ranking)
-        {
-            
-            int bonus = entry.Rank < bonusByRank.Length
-                ? bonusByRank[entry.Rank]
-                : 0;
-
-            int finalScore = entry.Score + bonus;
-            _finalScores[entry.SteamId] = finalScore;
-        }
+        Notifica();
     }
 
-    public override Dictionary<ulong, int> GetResults() => _finalScores;
+    // SIM essa porra vai ficar igual 
+    public override Dictionary<ulong, int> GetLiveScores() =>
+        _scores; 
+    public override Dictionary<ulong, int> GetResults() => _scores;
 }
