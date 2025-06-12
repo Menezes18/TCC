@@ -6,7 +6,7 @@ public class HUDManager : MonoBehaviour
 {
     [SerializeField] HUDSO HUDSO;
     
-    [SerializeField] TMP_Text _matchTimer, _freezeTimer, _respawnTimer;
+    [SerializeField] TMP_Text _matchTimer, _freezeTimer, _respawnTimer, _gameover;
 
     private void Start()
     {
@@ -14,10 +14,12 @@ public class HUDManager : MonoBehaviour
         HUDSO.EventOnPrepareTimerUpdated += HUDSOOnEventOnPrepareTimerUpdated;
         HUDSO.EventOnFreezeTimerUpdated += HUDSOOnEventOnFreezeTimerUpdated;
         HUDSO.EventOnRespawnTimerUpdated += HUDSOOnEventOnRespawnTimerUpdated;
+        HUDSO.EventOnGameOver += HUDSOOnEventOnGameOver;
         
         _matchTimer.text = "";
         _freezeTimer.text = "";
         _respawnTimer.text = "";
+        _gameover.text = "";
     }
 
     private void OnDestroy()
@@ -70,5 +72,9 @@ public class HUDManager : MonoBehaviour
             return;
         }
         _matchTimer.text = CustomMath.FormatTimer(obj);
+    }
+    private void HUDSOOnEventOnGameOver(string obj)
+    {
+        _gameover.text = obj;
     }
 }

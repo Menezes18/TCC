@@ -151,7 +151,7 @@ public class SumoMinigameController : MinigameController, IObserver
         
         for (int i = 0; i < eliminationOrder.Count; i++)
         {
-            int pts = 60 - (gameData.secondPlaceBonus * i);
+            int pts = gameData.secondPlaceBonus;
             var pd  = eliminationOrder[i];
             finalScores[pd.playerInfo.steamId] = pts;
         }
