@@ -11,11 +11,11 @@ GameObject:
   - component: {fileID: 2528288677069029290}
   - component: {fileID: 7915532063046545398}
   - component: {fileID: 816552949080882811}
-  - component: {fileID: 1713642322092256396}
   - component: {fileID: 8380826510748267802}
   - component: {fileID: 1038139466862374165}
   - component: {fileID: 4936187298908687069}
   - component: {fileID: 5704484529164203777}
+  - component: {fileID: 2450131699706377325}
   m_Layer: 3
   m_Name: ChaoCaindoGeloClaro
   m_TagString: Untagged
@@ -91,26 +91,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &1713642322092256396
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4937612180023503036}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5b19d308eb9df7841a68be4dff5a88df, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
-  _chaoTirado: 0
-  dataChao: {fileID: 11400000, guid: 4e96945eb35b14211b1e6d3f083d6c8c, type: 2}
-  posIncial: {x: 0, y: 0, z: 0}
-  tempoPraCair: 0.5
-  colisor: {fileID: 5704484529164203777}
 --- !u!114 &8380826510748267802
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -205,3 +185,26 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.0495012, y: 1.77, z: 1.03}
   m_Center: {x: 0, y: 0, z: -0.06751712}
+--- !u!114 &2450131699706377325
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4937612180023503036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1459385f346fe58478581e3172b34b55, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  _chaoTirado: 0
+  dataChao: {fileID: 11400000, guid: 4e96945eb35b14211b1e6d3f083d6c8c, type: 2}
+  posIncial: {x: 0, y: 0, z: 0}
+  chaoRenderer: {fileID: 0}
+  alphaCutoffPropertyName: _AlphaClip
+  taxaDerretimento: 0.2
+  tempoAteDerreter: 0.1
+  tempoParaSumirTotalmente: 1.3

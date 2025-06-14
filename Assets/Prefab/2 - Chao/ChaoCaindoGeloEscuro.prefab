@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 7163842753433567929}
   - component: {fileID: 7593900097256670279}
   - component: {fileID: 5165951980804229233}
-  - component: {fileID: 1201953790163204768}
+  - component: {fileID: 7062901578158951071}
   m_Layer: 3
   m_Name: ChaoCaindoGeloEscuro
   m_TagString: Untagged
@@ -185,7 +185,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.0495012, y: 1.77, z: 1.03}
   m_Center: {x: 0, y: 0, z: -0.0675133}
---- !u!114 &1201953790163204768
+--- !u!114 &7062901578158951071
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -194,7 +194,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 4387716239591625814}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eab2419b8af967b4380b2bcb307ed638, type: 3}
+  m_Script: {fileID: 11500000, guid: 1459385f346fe58478581e3172b34b55, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   syncDirection: 0
@@ -203,4 +203,8 @@ MonoBehaviour:
   _chaoTirado: 0
   dataChao: {fileID: 11400000, guid: 4e96945eb35b14211b1e6d3f083d6c8c, type: 2}
   posIncial: {x: 0, y: 0, z: 0}
-  estadosChao: []
+  chaoRenderer: {fileID: 0}
+  alphaCutoffPropertyName: _AlphaClip
+  taxaDerretimento: 0.2
+  tempoAteDerreter: 0.1
+  tempoParaSumirTotalmente: 1.3
