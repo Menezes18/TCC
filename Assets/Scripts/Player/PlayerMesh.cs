@@ -11,6 +11,7 @@ public class PlayerMesh : MonoBehaviour
     
     [SerializeField] Database db;
     [SerializeField] MeshMaterialTarget[] meshMaterial;
+    [SerializeField] SkinnedMeshRenderer[] bodySetVisibility;
 
     public void SetMaterialColor(int id)
     {
@@ -30,9 +31,9 @@ public class PlayerMesh : MonoBehaviour
     
     public void SetVisibility(bool logic)
     {
-        foreach (var skinmesh in meshMaterial)
+        foreach (var skinmesh in bodySetVisibility)
         {
-            skinmesh.renderer.enabled = logic;
+            skinmesh.enabled = logic;
         
         }
     }
