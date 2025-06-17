@@ -5,6 +5,7 @@ using UnityEngine;
 using Steamworks;
 using UnityEngine.Events;
 using Random = UnityEngine.Random;
+using UnityEngine.SceneManagement;
 
 [System.Serializable]
 public struct PlayerInfoData 

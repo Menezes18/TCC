@@ -85,19 +85,19 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     }
     public void RegisterNewPlayer(PlayerData pd)
     {
-        ulong id   = pd.playerInfo.steamId;
-        string name= pd.playerInfo.username;
+        ulong id = pd.playerInfo.steamId;
+        string name = pd.playerInfo.username;
 
         if (!pointsBoard.ContainsKey(id))
         {
             int assignedColor = PlayerList.singleton.RequestRandomColor();
             var dp = new DataPlayer {
-                steamID    = id,
+                steamID = id,
                 playerName = name,
-                points     = 0,
-                color      = assignedColor
+                points = 0,
+                color = assignedColor
             };
-            pointsBoard[id]        = dp;
+            pointsBoard[id] = dp;
             scoreboard.players.Add(dp);
 
             pd.color = assignedColor;

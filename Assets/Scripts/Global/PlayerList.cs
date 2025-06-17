@@ -143,6 +143,15 @@ public class PlayerList : NetworkBehaviour{
             }
         }
     }
+    public bool AllPlayersReady()
+    {
+        foreach (var p in players)
+        {
+            if (!p.IsReady)
+                return false;
+        }
+        return true;
+    }
     [Server]
     public int RequestRandomColor()
     {

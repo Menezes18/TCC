@@ -1,9 +1,11 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.Events;
 using Mirror;
+using System.Collections.Generic;
 
 public class BriefingManager : NetworkBehaviour
 {
@@ -35,17 +37,54 @@ public class BriefingManager : NetworkBehaviour
     [SyncVar] string syncTip;
     [SyncVar] int tipIndex;
     
-    private void Start()
+    
+    [Header("Slots de Jogadores")]
+    [SerializeField] private GameObject slotPrefab;
+    [SerializeField] private Transform slotsParent;
+    private Dictionary<ulong, GameObject> slotsById = new();
+
+
+    public void Init()
     {
-        
+        Debug.Log($"[BriefingManager] Init - Total de players: {PlayerList.singleton.players.Count}");
+
+        foreach (var pd in PlayerList.singleton.players)
+        {
+            Debug.Log($"[BriefingManager] Checando player: {pd.alias} | SteamID: {pd.playerInfo.steamId}");
+
+            if (pd.playerInfo.steamId == 0) continue;
+            if (slotsById.ContainsKey(pd.playerInfo.steamId)) continue;
+
+            GameObject go = Instantiate(slotPrefab, slotsParent);
+            slotsById[pd.playerInfo.steamId] = go;
+
+            AtualizarSlot(pd.playerInfo.steamId, pd.alias, pd.IsReady);
+        }
+    }
+    public void AtualizarSlot(ulong steamId, string alias, bool isReady)
+    {
+        if (!slotsById.TryGetValue(steamId, out var slot)) return;
+
+        TextMeshProUGUI nameText = slot.transform.Find("NameText").GetComponent<TextMeshProUGUI>();
+        GameObject readyIndicator = slot.transform.Find("ReadyIcon").gameObject;
+
+        nameText.text = alias;
+        readyIndicator.SetActive(isReady);
     }
     public override void OnStartClient()
     {
         base.OnStartClient();
         PlayerList.singleton.AtivarPlayer(true);
         canvasGroup.alpha = 1;
-        
+        StartCoroutine(DelayedInit());
     }
+
+    private IEnumerator DelayedInit()
+    {
+        yield return new WaitForSeconds(0.1f);
+        Init();
+    }
+    
     [Server]
     public void TriggerBriefing()
     {
@@ -58,7 +97,23 @@ public class BriefingManager : NetworkBehaviour
         CmdAtivarPlayersNoServer(true);
         ShowLocalBriefing();
     }
-    
+    public void CheckAllReady()
+    {
+        if (!isServer) return;
+
+        bool allReady = AllPlayersReady();
+
+        if (!allReady) return;
+        StartCoroutine(CloseAfterDelay());
+        
+    }
+    private bool AllPlayersReady() 
+    {
+        foreach (PlayerData client in ((MyNetworkManager)NetworkManager.singleton).allClients)
+            if (!client.IsReady)
+                return false;
+        return true;
+    }
     private void ShowLocalBriefing()
     {
         imageUI.sprite = data.image;
@@ -69,7 +124,6 @@ public class BriefingManager : NetworkBehaviour
 
         onBriefingStarted?.Invoke();
         StopAllCoroutines();
-        StartCoroutine(CloseAfterDelay());
     }
     
     [Command(requiresAuthority = false)]
