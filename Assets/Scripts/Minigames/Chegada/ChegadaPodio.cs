@@ -11,7 +11,7 @@ public class ChegadaPodio : MonoBehaviour, IObserver
     
     private void Awake()
     {
-        ContadorTempo contador = FindObjectOfType<ContadorTempo>();
+        ContadorTempo contador = FindFirstObjectByType<ContadorTempo>();
         if (contador != null)
         {
             contador.Adicionar(this);

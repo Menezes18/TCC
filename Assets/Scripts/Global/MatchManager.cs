@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Smooth;
 using Random = UnityEngine.Random;
+using UnityEngine.Events;
 public struct PlayerScoreEntry
 {
     public ulong steamId;
@@ -30,6 +31,7 @@ public class MatchManager : NetworkBehaviour
 
     PlayerList playerList => PlayerList.singleton;
     [SerializeField] Database db;
+    [SerializeField] SettingsMiniGameData settingsMiniGameData; 
     [SerializeField] HUDSO HUDSO;
     private List<PlayerScoreEntry> _temporaryRanking = new List<PlayerScoreEntry>();
     private HashSet<NetworkConnectionToClient> _readyConnections = new();
@@ -39,12 +41,15 @@ public class MatchManager : NetworkBehaviour
     
     [SyncVar (hook = nameof(HookOnFreezeTimerUpdated))] float _freezeTimer;
     [SyncVar (hook = nameof(HookOnMatchTimerUpdated))] float _matchTimer;
+    [SyncVar (hook = nameof(HookOnGameOver))] string _gameOver;
+    
     
     [SerializeField] List<Transform> _spawns;
     List<Transform> _excludedSpawns = new List<Transform>();
 
     List<PlayerData> _activePlayers = new List<PlayerData>();
     List<PlayerData> _winnerPlayers = new List<PlayerData>();
+    public GameObject acabarFreezeTime;
     
     
     private bool _matchHasStarted;
@@ -59,6 +64,7 @@ public class MatchManager : NetworkBehaviour
 
         _matchTimer = -1;
         _freezeTimer = -1;
+        _gameOver = string.Empty;
         
         LeanTween.delayedCall(2.0f, () =>
         { 
@@ -71,6 +77,13 @@ public class MatchManager : NetworkBehaviour
         (scoreRule as MinigameController)?.SetupMiniGame();
         //InternalStartMatch();
 
+    }
+
+    [ClientRpc]
+    void RpcAtivarAcabarFreezeTime()
+    {
+        if (acabarFreezeTime != null)
+            acabarFreezeTime.SetActive(false);
     }
     private void Update()
     {
@@ -92,8 +105,10 @@ public class MatchManager : NetworkBehaviour
             // mas é aqui 
             Debug.LogError("Acabou");
             (scoreRule as MinigameController)?.StartMatch();
-            _freezeTimer = -1;
             
+            _freezeTimer = -1;
+            if(acabarFreezeTime != null) RpcAtivarAcabarFreezeTime();
+
         }
         
         if(_freezeTimer >= 0) return;
@@ -119,7 +134,6 @@ public class MatchManager : NetworkBehaviour
         
         InternalPrepareMath();
     }
-    
     [Server]
     void InternalPrepareMath() 
     {
@@ -133,7 +147,7 @@ public class MatchManager : NetworkBehaviour
     public void InternalStartMatch() 
     {
         _freezeTimer = db.serverFreezeDuration;
-        _matchTimer = db.serverMatchDuration;
+        _matchTimer = settingsMiniGameData.miniGameDuration;
         _matchHasStarted = true;
     }
 
@@ -158,7 +172,7 @@ public class MatchManager : NetworkBehaviour
     }
 
     [Server]
-    void InternalEndMatch()
+    public void InternalEndMatch()
     {
         Debug.LogError("Acabou o endMatch");
         _matchHasStarted = false;
@@ -173,15 +187,21 @@ public class MatchManager : NetworkBehaviour
         {
             MyNetworkManager.manager.AddPoints(entry.steamId, entry.score);
         }
+        foreach (PlayerData pd in PlayerList.singleton.players)
+        {
+            PlayerScript ps = pd.transform.GetComponent<PlayerScript>();
+            ps.isFrozen = true;
+        }
         
+        _gameOver = "Acabou o Tempo!";
         LeanTween.delayedCall(2.0f, () =>
         {
-            
-            NetworkManager.singleton.ServerChangeScene("MainMenu");
-            
-            
             _activePlayers.Clear();
             _winnerPlayers .Clear();
+            
+            NetworkManager.singleton.ServerChangeScene("RASCUNHO");
+            
+            
         });
     }
 
@@ -251,6 +271,10 @@ public class MatchManager : NetworkBehaviour
     void HookOnMatchTimerUpdated(float oldValue, float newValue)
     {
         HUDSO.MatchTimerUpdate(newValue);
+    }
+    void HookOnGameOver(string oldValue, string newValue)
+    {
+        HUDSO.GameOver(newValue);
     }
     
 }

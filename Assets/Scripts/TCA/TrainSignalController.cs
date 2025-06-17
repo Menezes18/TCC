@@ -1,42 +1,44 @@
 using UnityEngine;
 using UnityEngine.Events;
+using Mirror;
 
-public class TrainSignalController : MonoBehaviour
+public class TrainSignalController : NetworkBehaviour
 {
     [Header("Signal Settings")]
+    [SyncVar(hook = nameof(OnSignalStateChanged))]
     [SerializeField] private bool isGreen = true;
-    [SerializeField] private float changeIntervalInit = 5f; // Tempo para alternar automaticamente
+    
+    [SerializeField] private float changeIntervalInit = 5f;
     [SerializeField] private float changeIntervalEnd = 8f;
-    [SerializeField] private bool autoChange = false; // Se deve alternar automaticamente
+    [SerializeField] private bool autoChange = false;
     
     [Header("Visual Components")]
-    [SerializeField] private Light signalLight; // Luz do sinal (opcional)
-    [SerializeField] private Renderer signalRenderer; // Renderer para mudar cor (opcional)
+    [SerializeField] private Light signalLight;
+    [SerializeField] private Renderer signalRenderer;
     [SerializeField] private Material greenMaterial;
     [SerializeField] private Material redMaterial;
     
     [Header("Train Lane References")]
-    [SerializeField] private VehicleLane[] trainLanes; // Array de lanes de trem para controlar
+    [SerializeField] private VehicleLane[] trainLanes;
     
     [Header("Events")]
-    public UnityEvent OnSignalGreen; // Evento quando sinal fica verde
-    public UnityEvent OnSignalRed;   // Evento quando sinal fica vermelho
+    public UnityEvent OnSignalGreen;
+    public UnityEvent OnSignalRed;
     
     private float timer;
 
     private void Start()
     {
-        // Conecta automaticamente as lanes de trem aos eventos
         ConnectTrainLanes();
-
-        // Define estado inicial
-        SetSignalState(isGreen);
         
+        // Atualiza visuais baseado no estado inicial
+        UpdateVisuals();
     }
     
     private void Update()
     {
-        if (autoChange)
+        // Apenas o servidor controla a lógica de mudança automática
+        if (isServer && autoChange)
         {
             timer += Time.deltaTime;
             if (timer >= changeIntervalInit)
@@ -50,13 +52,11 @@ public class TrainSignalController : MonoBehaviour
     
     private void ConnectTrainLanes()
     {
-        // Se não foram definidas lanes manualmente, encontra automaticamente
         if (trainLanes == null || trainLanes.Length == 0)
         {
             trainLanes = FindObjectsOfType<VehicleLane>();
         }
         
-        // Conecta os eventos às lanes
         foreach (var lane in trainLanes)
         {
             if (lane != null)
@@ -67,30 +67,13 @@ public class TrainSignalController : MonoBehaviour
         }
     }
     
-    public void ToggleSignal()
+    // Hook chamado quando o estado do sinal muda via SyncVar
+    private void OnSignalStateChanged(bool oldState, bool newState)
     {
-        SetSignalState(!isGreen);
-    }
-    
-    public void SetSignalGreen()
-    {
-        SetSignalState(true);
-    }
-    
-    public void SetSignalRed()
-    {
-        SetSignalState(false);
-    }
-    
-    private void SetSignalState(bool green)
-    {
-        isGreen = green;
-        
-        // Atualiza componentes visuais
         UpdateVisuals();
         
         // Dispara eventos
-        if (isGreen)
+        if (newState)
         {
             OnSignalGreen?.Invoke();
         }
@@ -100,15 +83,31 @@ public class TrainSignalController : MonoBehaviour
         }
     }
     
+    [Server]
+    public void ToggleSignal()
+    {
+        isGreen = !isGreen;
+    }
+    
+    [Server]
+    public void SetSignalGreen()
+    {
+        isGreen = true;
+    }
+    
+    [Server]
+    public void SetSignalRed()
+    {
+        isGreen = false;
+    }
+    
     private void UpdateVisuals()
     {
-        // Atualiza luz se existir
         if (signalLight != null)
         {
             signalLight.color = isGreen ? Color.green : Color.red;
         }
         
-        // Atualiza material se existir
         if (signalRenderer != null)
         {
             if (isGreen && greenMaterial != null)
@@ -118,12 +117,14 @@ public class TrainSignalController : MonoBehaviour
         }
     }
     
-    // Métodos para serem chamados por outros scripts ou animações
+    // Métodos para serem chamados por outros scripts (apenas server)
+    [Server]
     public void OnAnimationGreen()
     {
         SetSignalGreen();
     }
     
+    [Server]
     public void OnAnimationRed()
     {
         SetSignalRed();

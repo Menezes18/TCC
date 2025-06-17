@@ -27,8 +27,8 @@ public class LaneAtrribuition : MonoBehaviour
             vehicleLane.speed = 0f; // Trens começam parados
         }
 
-        SetupStartPoint();
-        SpawnVehicles();
+        //SetupStartPoint();
+        //SpawnVehicles();
         
         // Conecta ao controlador de sinal se for trilho de trem
         if (isTrainLane && signalController != null)
@@ -89,7 +89,7 @@ public class LaneAtrribuition : MonoBehaviour
         {
             Vector3 spawnPosition = startPoint.position + new Vector3(0, 0, spacing * i);
             GameObject clone = Instantiate(vehiclePrefab, spawnPosition, transform.rotation, transform);
-            clone.name = $"{vehiclePrefab.name}_Clone_{i}";
+            clone.name = $"{vehiclePrefab.name}Clone{i}";
             vehicleLane.vehicles.Add(clone.transform);
         }
     }

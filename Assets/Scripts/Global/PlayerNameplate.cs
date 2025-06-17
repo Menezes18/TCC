@@ -11,22 +11,11 @@ public class PlayerNameplate : MonoBehaviour
     [SerializeField] TMP_Text _nameplate;
     [SerializeField] Image _sprite;
 
-    [SerializeField] string nameTest;
-    private void Start()
-    {
-        nameTest = SteamFriends.GetPersonaName();
-        SetNameplate(null);
-    }
 
-    public void SetNameplate([CanBeNull] string playerName)
+    public void SetNameplate(string playerName)
     {
     
-        _nameplate.text = nameTest;
-    }
-
-    private void Update()
-    {
-        SteamAPI.RunCallbacks();
+        _nameplate.text = playerName;
     }
 
     public void SetColor(int color)

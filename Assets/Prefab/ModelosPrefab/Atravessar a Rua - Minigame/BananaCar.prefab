@@ -11,7 +11,8 @@ GameObject:
   - component: {fileID: 4911155333418343398}
   - component: {fileID: 2816706735936444148}
   - component: {fileID: 8581193220526083763}
-  m_Layer: 0
+  - component: {fileID: 2542767215095327027}
+  m_Layer: 10
   m_Name: BananaCar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -53,8 +54,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.1317661, y: 1.1277459, z: 2.721218}
-  m_Center: {x: 0.0064212084, y: 0.5963268, z: 0.15735674}
+  m_Size: {x: 1.1317661, y: 1.1277459, z: 2.0916092}
+  m_Center: {x: 0.0064212084, y: 0.5963268, z: -0.15744773}
 --- !u!114 &8581193220526083763
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -67,6 +68,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5af1df2b4afda948b3d792ba057f5ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!205 &2542767215095327027
+LODGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9093251760672424856}
+  serializedVersion: 2
+  m_LocalReferencePoint: {x: 0, y: 0, z: 0}
+  m_Size: 1
+  m_FadeMode: 1
+  m_AnimateCrossFading: 1
+  m_LastLODIsBillboard: 0
+  m_LODs:
+  - screenRelativeHeight: 0.017798819
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 1215195782128876817}
+  m_Enabled: 1
 --- !u!1001 &7704479250412424464
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2910,6 +2930,11 @@ PrefabInstance:
       propertyPath: 'm_Bones.Array.data[4]'
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: -1746944902637182237, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: -1588401688500333675, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
         type: 3}
       propertyPath: m_RootBone
@@ -3019,6 +3044,11 @@ PrefabInstance:
         type: 3}
       propertyPath: 'm_Bones.Array.data[9]'
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: -1239645074866564809, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -1195113961474480385, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
         type: 3}
@@ -4670,11 +4700,21 @@ PrefabInstance:
       propertyPath: 'm_Bones.Array.data[58]'
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 626537265448289417, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
         type: 3}
       propertyPath: m_Name
       value: BananaCar
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1035599416863389520, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
         type: 3}
       propertyPath: m_RootBone
@@ -4730,6 +4770,16 @@ PrefabInstance:
       propertyPath: 'm_Bones.Array.data[9]'
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 1894587301158286584, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3040267929931209249, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3383266160032141808, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
         type: 3}
       propertyPath: m_RootBone
@@ -4815,6 +4865,11 @@ PrefabInstance:
       propertyPath: 'm_Bones.Array.data[9]'
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 3962513854571713537, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4346596550877470858, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
         type: 3}
       propertyPath: m_RootBone
@@ -4924,6 +4979,11 @@ PrefabInstance:
         type: 3}
       propertyPath: 'm_Bones.Array.data[9]'
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 5512007012903531923, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6312488626415346909, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
         type: 3}
@@ -5575,6 +5635,11 @@ PrefabInstance:
       propertyPath: 'm_Bones.Array.data[9]'
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 6591780906739640787, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7017939886298795656, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
         type: 3}
       propertyPath: m_RootBone
@@ -6784,6 +6849,11 @@ PrefabInstance:
         type: 3}
       propertyPath: 'm_Bones.Array.data[117]'
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 8236744616372741113, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8461291395742510564, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
         type: 3}
@@ -7747,6 +7817,12 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 3512772073022888825}
   m_SourcePrefab: {fileID: 100100000, guid: d0b4956dcfe19a34eabcd1b432dfbb8a, type: 3}
+--- !u!137 &1215195782128876817 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -416880731413057535, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,
+    type: 3}
+  m_PrefabInstance: {fileID: 7704479250412424464}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &7361880017602506817 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: d0b4956dcfe19a34eabcd1b432dfbb8a,

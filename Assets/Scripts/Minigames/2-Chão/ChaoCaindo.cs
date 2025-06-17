@@ -5,10 +5,11 @@ using Mirror;
 public class ChaoCaindo : ChaoMae
 {
     public float tempoPraCair = 0.5f;
-    public BoxCollider colisor;
+    public Collider colisor;
+
     private void OnTriggerEnter(Collider other)
     {
-        if(other.CompareTag("Player") && !chaoTirado)
+        if (other.CompareTag("Player") && !chaoTirado)
         {
             CmdTentarCair();
         }
@@ -47,6 +48,6 @@ public class ChaoCaindo : ChaoMae
             yield return null;
         }
         yield return new WaitForSeconds(5f);
-        poeChao();
+        // poeChao();
     }
 }

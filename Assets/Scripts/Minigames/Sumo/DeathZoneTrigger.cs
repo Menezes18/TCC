@@ -8,7 +8,7 @@ using UnityEngine.Events;
 public class DeathZoneTrigger : NetworkBehaviour
 {
     public UnityEvent<PlayerData> onDeath;
-    
+    public bool spectate = false;
     public PlayerData players;
 
     [ServerCallback]
@@ -30,6 +30,6 @@ public class DeathZoneTrigger : NetworkBehaviour
         onDeath?.Invoke(pd);
         
         
-        pds.InternalDeath();
+        pds.InternalDeath(spectate);
     }
 }

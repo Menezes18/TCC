@@ -54,7 +54,7 @@ public class PlayerData : NetworkBehaviour{
    public override void OnStartLocalPlayer()
    {
       base.OnStartLocalPlayer();
-      CmdNetworkAlias();
+      StartCoroutine(InitializePlayerInfo());
    }
    private IEnumerator InitializePlayerInfo()
    {
@@ -75,7 +75,8 @@ public class PlayerData : NetworkBehaviour{
    {
 
       alias = steamName;
-      
+      playerInfo = new PlayerInfoData(steamName, steamIdValue);
+      MyNetworkManager.manager.RegisterNewPlayer(this);
 
    }
    private void Start()
