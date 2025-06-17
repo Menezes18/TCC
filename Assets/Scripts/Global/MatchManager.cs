@@ -41,6 +41,8 @@ public class MatchManager : NetworkBehaviour
     
     [SyncVar (hook = nameof(HookOnFreezeTimerUpdated))] float _freezeTimer;
     [SyncVar (hook = nameof(HookOnMatchTimerUpdated))] float _matchTimer;
+    [SyncVar (hook = nameof(HookOnGameOver))] string _gameOver;
+    
     
     [SerializeField] List<Transform> _spawns;
     List<Transform> _excludedSpawns = new List<Transform>();
@@ -62,6 +64,7 @@ public class MatchManager : NetworkBehaviour
 
         _matchTimer = -1;
         _freezeTimer = -1;
+        _gameOver = string.Empty;
         
         LeanTween.delayedCall(2.0f, () =>
         { 
@@ -184,7 +187,13 @@ public class MatchManager : NetworkBehaviour
         {
             MyNetworkManager.manager.AddPoints(entry.steamId, entry.score);
         }
+        foreach (PlayerData pd in PlayerList.singleton.players)
+        {
+            PlayerScript ps = pd.transform.GetComponent<PlayerScript>();
+            ps.isFrozen = true;
+        }
         
+        _gameOver = "Acabou o Tempo!";
         LeanTween.delayedCall(2.0f, () =>
         {
             _activePlayers.Clear();
@@ -262,6 +271,10 @@ public class MatchManager : NetworkBehaviour
     void HookOnMatchTimerUpdated(float oldValue, float newValue)
     {
         HUDSO.MatchTimerUpdate(newValue);
+    }
+    void HookOnGameOver(string oldValue, string newValue)
+    {
+        HUDSO.GameOver(newValue);
     }
     
 }

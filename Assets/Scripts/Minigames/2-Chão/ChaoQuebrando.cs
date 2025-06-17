@@ -66,8 +66,8 @@ public class ChaoQuebrando : ChaoMae
     private void RpcAtualizaEstado(int novoIndice)
     {
         if (isServer) return; // Evita que o servidor execute isso duas vezes
-
-        if (novoIndice < estadosChao.Length)
+        
+        if (novoIndice < estadosChao.Length && estadosChao[novoIndice] != null)
         {
             estadosChao[novoIndice].SetActive(true);
             estadosChao[novoIndice - 1].SetActive(false);
