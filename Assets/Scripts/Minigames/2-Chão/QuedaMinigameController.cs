@@ -86,7 +86,7 @@ public class QuedaMinigameController : MinigameController, IObserver
                 
         for (int i = 0; i < eliminationOrder.Count; i++)
         {
-            int pts = 60 - (settingsData.secondPlaceBonus * i);
+            int pts = settingsData.secondPlaceBonus;
             var pd  = eliminationOrder[i];
             finalScores[pd.playerInfo.steamId] = pts;
         }
