@@ -281,6 +281,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
                 });
             }
             else{
+                Debug.LogError("BriefingManager");
                 BriefingManager.singleton?.CheckAllReady();
             }
         }

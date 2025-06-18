@@ -44,10 +44,11 @@ public class BriefingManager : NetworkBehaviour
     private Dictionary<ulong, GameObject> slotsById = new();
 
 
+
     public void Init()
     {
         Debug.Log($"[BriefingManager] Init - Total de players: {PlayerList.singleton.players.Count}");
-
+        MyNetworkManager.manager.ResetAllPlayersReady();
         foreach (var pd in PlayerList.singleton.players)
         {
             Debug.Log($"[BriefingManager] Checando player: {pd.alias} | SteamID: {pd.playerInfo.steamId}");
@@ -65,26 +66,24 @@ public class BriefingManager : NetworkBehaviour
     {
         if (!slotsById.TryGetValue(steamId, out var slot)) return;
 
-        TextMeshProUGUI nameText = slot.transform.Find("NameText").GetComponent<TextMeshProUGUI>();
+        TextMeshProUGUI nameText = slot.transform.Find("NameText")
+            .GetComponent<TextMeshProUGUI>();
         GameObject readyIndicator = slot.transform.Find("ReadyIcon").gameObject;
 
         nameText.text = alias;
+        nameText.color = isReady ? Color.green : Color.red;
+
         readyIndicator.SetActive(isReady);
     }
     public override void OnStartClient()
     {
+        
+        Invoke("Init", 1);
         base.OnStartClient();
         PlayerList.singleton.AtivarPlayer(true);
         canvasGroup.alpha = 1;
-        StartCoroutine(DelayedInit());
     }
 
-    private IEnumerator DelayedInit()
-    {
-        yield return new WaitForSeconds(0.1f);
-        Init();
-    }
-    
     [Server]
     public void TriggerBriefing()
     {

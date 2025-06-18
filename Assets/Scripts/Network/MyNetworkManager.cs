@@ -282,7 +282,14 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         limparLista();
         listaAleatoria();
     }
-
+    [Server] 
+    public void ResetAllPlayersReady()
+    {
+        foreach (PlayerData pd in allClients)
+        {
+            pd.IsReady = false; 
+        }
+    }
     public void limparPontos()
     {
         for (int i = 0; i < scoreboard.players.Count; i++)
