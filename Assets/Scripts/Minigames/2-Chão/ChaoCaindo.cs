@@ -5,7 +5,7 @@ using Mirror;
 public class ChaoCaindo : ChaoMae
 {
     public float tempoPraCair = 0.5f;
-    public BoxCollider colisor;
+    public Collider colisor;
 
     private void OnTriggerEnter(Collider other)
     {
