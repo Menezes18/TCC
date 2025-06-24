@@ -8,9 +8,8 @@ public class SlotBriefing : MonoBehaviour
 {
     public Database db;
     public TextMeshProUGUI nameText;
-    public Image image;
+    public Image imageReady;
     public Image imageColor;
-    public Image imageBackground;
     ulong steamID;
     
     private void Awake()
@@ -25,6 +24,7 @@ public class SlotBriefing : MonoBehaviour
         string steamName = SteamFriends.GetFriendPersonaName(myId);
         ulong steamIdValue = myId.m_SteamID;
         steamID = steamIdValue;
+        imageReady.color = Color.red;
         InitSlot(steamIdValue, steamName,0, false);
     }
     
@@ -32,7 +32,7 @@ public class SlotBriefing : MonoBehaviour
     {
         nameText.text = alias;
         nameText.color = isReady ? Color.green : Color.red;
-        image.color = isReady ? Color.green : Color.red;
+        imageReady.color = isReady ? Color.green : Color.red;
         
         imageColor.color = db.GetColor(colorPlayer);
     }
@@ -40,6 +40,6 @@ public class SlotBriefing : MonoBehaviour
     public void UpdateSlotReady(bool isReady, ulong pdsteamId)
     {
         if(pdsteamId == steamID)
-            image.color = isReady ? Color.green : Color.red;
+            imageReady.color = isReady ? Color.green : Color.red;
     }
 }

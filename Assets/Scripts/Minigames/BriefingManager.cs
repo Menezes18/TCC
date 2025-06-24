@@ -142,6 +142,21 @@ public class BriefingManager : NetworkBehaviour
     {
         tipIndex = UnityEngine.Random.Range(0, data.tips.Length);
         briefingToggle = !briefingToggle;
+        RpcShowBriefing(data.title, data.tips[tipIndex]);
+    }
+    [ClientRpc]
+    private void RpcShowBriefing(string syncedTitle, string syncedTip)
+    {
+        // sincroniza UI
+        titleText.text = syncedTitle;
+        tipText.text   = syncedTip;
+        canvasGroup.alpha      = 1;
+        canvasGroup.interactable = true;
+        onBriefingStarted?.Invoke();
+
+        // opcional: já schedule o fechamento
+        StopAllCoroutines();
+        StartCoroutine(CloseAfterDelay());
     }
     #endregion
 
