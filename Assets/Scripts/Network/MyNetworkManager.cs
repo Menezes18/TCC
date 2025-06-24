@@ -80,8 +80,20 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     {
         if (conn.identity != null && allClients.Exists(c => c == conn.identity.GetComponent<PlayerData>()))
             return;
-
+        
         base.OnServerAddPlayer(conn);
+        if (BriefingManager.singleton != null)
+        {
+            Debug.LogError(BriefingManager.singleton);
+            Debug.LogError(BriefingManager.singleton.gameObject.name);
+            Invoke("Teste", 2f);
+
+        }
+    }
+
+    public void Teste()
+    {
+        BriefingManager.singleton.UpdateAllClientsSlots();
     }
     public void RegisterNewPlayer(PlayerData pd)
     {
@@ -290,6 +302,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             pd.IsReady = false; 
         }
     }
+
     public void limparPontos()
     {
         for (int i = 0; i < scoreboard.players.Count; i++)

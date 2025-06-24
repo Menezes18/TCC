@@ -241,7 +241,7 @@ public class PlayerData : NetworkBehaviour{
       IsReady = !IsReady;
       
       BriefingManager.singleton?.CheckAllReady();
-      BriefingManager.singleton?.AtualizarSlot(playerInfo.steamId, alias, IsReady);
+      BriefingManager.singleton?.UpdateAllClientsSlots();
    }
    #endregion
    

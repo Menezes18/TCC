@@ -74,4 +74,10 @@ public class Database : ScriptableObject{
     public float serverFreezeDuration;
     public float serverMatchDuration;
 
+
+    public Color GetColor(int index)
+    {
+        return playerColors[index].color;
+    }
+
 }
