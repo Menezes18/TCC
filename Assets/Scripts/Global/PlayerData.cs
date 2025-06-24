@@ -203,7 +203,7 @@ public class PlayerData : NetworkBehaviour{
    private void PlayerInfoUpdate(PlayerInfoData _, PlayerInfoData data)
    {
 
-      if (SteamManager.Initialized && !MyNetworkManager.manager.testMode)
+      if (SteamManager.Initialized)
       {
          SetIcon(new CSteamID(data.steamId));
       }
@@ -217,7 +217,7 @@ public class PlayerData : NetworkBehaviour{
    }
    private void OnAvatarImageLoaded(AvatarImageLoaded_t callback)
    {
-      if (!SteamManager.Initialized || MyNetworkManager.manager.testMode)
+      if (!SteamManager.Initialized)
          return;
       Debug.Log("Avatar loaded " + callback.m_steamID);
       if (callback.m_steamID.m_SteamID != playerInfo.steamId) return;

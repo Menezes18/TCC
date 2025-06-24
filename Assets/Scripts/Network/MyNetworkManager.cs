@@ -38,9 +38,8 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public PlayerScoreboard scoreboard = new PlayerScoreboard();
     public Dictionary<ulong, DataPlayer> pointsBoard = new Dictionary<ulong, DataPlayer>();
     public HSteamNetConnection steamConnection = HSteamNetConnection.Invalid;
-
-    [Header("Para funcionar sem a steam")]
-    public bool testMode = false;
+    public bool startGame = false;
+    
     static ulong nextFakeId = 1;
     public List<IObserverPontos> _observers = new List<IObserverPontos>();
     public event Action onClientsChanged;
@@ -177,7 +176,6 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
     public void StartDevHost()
     {
-        testMode = true;
 
         var fizzy = GetComponent<FizzySteamworks>();
         if (fizzy != null) Destroy(fizzy);
@@ -197,7 +195,6 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
     public void StartDevClient(string address = "localhost")
     {
-        testMode = true;
 
         var fizzy = GetComponent<FizzySteamworks>();
         if (fizzy != null) Destroy(fizzy);
@@ -290,6 +287,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
     public void ReiniciarJogo()
     {
+        startGame = false;
         limparPontos();
         limparLista();
         listaAleatoria();
@@ -302,7 +300,13 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             pd.IsReady = false; 
         }
     }
-
+    public bool AllPlayersReady() 
+    {
+        foreach (PlayerData client in allClients)
+            if (!client.IsReady)
+                return false;
+        return true;
+    }
     public void limparPontos()
     {
         for (int i = 0; i < scoreboard.players.Count; i++)

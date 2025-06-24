@@ -73,6 +73,7 @@ public class Database : ScriptableObject{
     public float serverPrepareDuration;
     public float serverFreezeDuration;
     public float serverMatchDuration;
+    public float serverStartMatchDuration;
 
 
     public Color GetColor(int index)

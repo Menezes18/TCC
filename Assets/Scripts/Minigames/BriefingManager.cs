@@ -50,23 +50,22 @@ public class BriefingManager : NetworkBehaviour
         PlayerList.singleton.AtivarPlayer(true);
         canvasGroup.alpha = 1;
     }
-    
+
+    private void Start()
+    {
+        MyNetworkManager.manager.ResetAllPlayersReady();
+    }
+
     public void CheckAllReady()
     {
         if (!isServer) return;
 
-        bool allReady = AllPlayersReady();
+        bool allReady = MyNetworkManager.manager.AllPlayersReady();
+       //bool allReady = false;
 
         if (!allReady) return;
         RpcCloseBriefing();
         
-    }
-    private bool AllPlayersReady() 
-    {
-        foreach (PlayerData client in ((MyNetworkManager)NetworkManager.singleton).allClients)
-            if (!client.IsReady)
-                return false;
-        return true;
     }
     private void ShowLocalBriefing()
     {
@@ -147,16 +146,13 @@ public class BriefingManager : NetworkBehaviour
     [ClientRpc]
     private void RpcShowBriefing(string syncedTitle, string syncedTip)
     {
-        // sincroniza UI
         titleText.text = syncedTitle;
         tipText.text   = syncedTip;
         canvasGroup.alpha      = 1;
         canvasGroup.interactable = true;
         onBriefingStarted?.Invoke();
-
-        // opcional: já schedule o fechamento
+        
         StopAllCoroutines();
-        StartCoroutine(CloseAfterDelay());
     }
     #endregion
 
