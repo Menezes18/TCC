@@ -173,8 +173,9 @@ public class CharacterSkinElement : MonoBehaviour
             Debug.Log("[Initialize] Atualizando celularTag do player local.");
             if (CharacterSkinHandler.instance?.celularTag != null)
             {
+                ulong id = client.playerInfo.steamId;
                 CharacterSkinHandler.instance.celularTag.UpdatePFP(icon);
-                CharacterSkinHandler.instance.celularTag.UpdateTagCelular(username, "4590");
+                CharacterSkinHandler.instance.celularTag.UpdateTagCelular(username, "");
                 Debug.Log("[Initialize] celularTag atualizado para player local.");
             }
             else

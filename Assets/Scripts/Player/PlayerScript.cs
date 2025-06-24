@@ -270,17 +270,20 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         
         if (Keyboard.current.pKey.wasPressedThisFrame ) // input
         {
-            Scene sceneAtual = SceneManager.GetActiveScene();
-            if (sceneAtual.name != "RASCUNHO"){
-                Debug.LogError(sceneAtual.name + " not found");
-                return;
-            }
             NetworkClient.localPlayer.GetComponent<PlayerData>().ToggleReady();
             
-            LeanTween.delayedCall(1f, () => {
-                if(MainMenu.instance == null) return;
-                MainMenu.instance.StartGame();
-            });
+            Scene sceneAtual = SceneManager.GetActiveScene();
+            if (sceneAtual.name == "RASCUNHO"){
+                
+                LeanTween.delayedCall(1f, () => {
+                    if(MainMenu.instance == null) return;
+                    MainMenu.instance.StartGame();
+                });
+            }
+            else{
+                Debug.LogError("BriefingManager");
+                BriefingManager.singleton?.CheckAllReady();
+            }
         }
         float blindWeight = CustomMath.ConvertRange(_blindTimer, db.playerBlindDuration, 0);
         float blindRange = db.playerBlindCurve.Evaluate(blindWeight);

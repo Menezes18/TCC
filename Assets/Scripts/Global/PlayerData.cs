@@ -5,6 +5,7 @@ using UnityEngine;
 using Steamworks;
 using UnityEngine.Events;
 using Random = UnityEngine.Random;
+using UnityEngine.SceneManagement;
 
 [System.Serializable]
 public struct PlayerInfoData 
@@ -202,7 +203,7 @@ public class PlayerData : NetworkBehaviour{
    private void PlayerInfoUpdate(PlayerInfoData _, PlayerInfoData data)
    {
 
-      if (SteamManager.Initialized && !MyNetworkManager.manager.testMode)
+      if (SteamManager.Initialized)
       {
          SetIcon(new CSteamID(data.steamId));
       }
@@ -216,7 +217,7 @@ public class PlayerData : NetworkBehaviour{
    }
    private void OnAvatarImageLoaded(AvatarImageLoaded_t callback)
    {
-      if (!SteamManager.Initialized || MyNetworkManager.manager.testMode)
+      if (!SteamManager.Initialized)
          return;
       Debug.Log("Avatar loaded " + callback.m_steamID);
       if (callback.m_steamID.m_SteamID != playerInfo.steamId) return;
@@ -238,6 +239,9 @@ public class PlayerData : NetworkBehaviour{
    private void Cmd_ToggleReady() 
    {
       IsReady = !IsReady;
+      
+      BriefingManager.singleton?.CheckAllReady();
+      BriefingManager.singleton?.UpdateAllClientsSlots();
    }
    #endregion
    

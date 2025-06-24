@@ -19,6 +19,7 @@ public class LobbyController : NetworkBehaviour
     #endregion
 
     [SyncVar(hook = nameof(HookOnPrepareTimerUpdated))] float _prepareTimer;
+    [SyncVar(hook = nameof(HookOnPrepareTimerUpdated))] float _startTimer;
     [SerializeField] Database db;
     [SerializeField] HUDSO HUDSO;
 
@@ -32,15 +33,23 @@ public class LobbyController : NetworkBehaviour
     private void Start()
     {
         _prepareTimer = -1;
-
+        _startTimer = -1;
+        Invoke("StartGameWithParty", 0.5f );
     }
 
     private void Update()
     {
-
+        
         if (_prepareTimer > 0)
             _prepareTimer -= Time.deltaTime;
-
+        if(_startTimer > 0)
+            _startTimer -= Time.deltaTime;
+        if (_startTimer <= 0 && _startTimer != -1){
+            
+            ChangeToRandomMinigame();
+            
+            _startTimer = -1;
+        }
         if (_prepareTimer <= 0 && _prepareTimer != -1){
             
             ChangeToRandomMinigame();
@@ -51,23 +60,34 @@ public class LobbyController : NetworkBehaviour
 
     public void StartGameWithParty() 
     {
-        if (AllPlayersReady()){
+        Debug.LogError(MyNetworkManager.manager.AllPlayersReady());
+        if(MyNetworkManager.manager.startGame){
+            CmdStartMath();
+            return;
+        }
+        if (MyNetworkManager.manager.AllPlayersReady()){
+            
             CmdPrepareMath();
-            startgame = false;
+            MyNetworkManager.manager.startGame = true;
+            Debug.LogError("Game started");
         }
-        else
-        {
-            Debug.LogError("N esta pronto");
-        }
+        
     }
 
     [Command(requiresAuthority = false)]
     public void CmdPrepareMath() {
         
         if(_prepareTimer > 0) return;
-        
+        if(_startTimer > 0) return;
         
         InternalPrepareMath();
+    }
+    [Command(requiresAuthority = false)]
+    public void CmdStartMath() {
+        
+        if(_startTimer > 0) return;
+        
+        InternalStartGame();
     }
     [Server]
     void InternalPrepareMath() 
@@ -75,6 +95,13 @@ public class LobbyController : NetworkBehaviour
         _prepareTimer = db.serverPrepareDuration;
 
     }
+    [Server]
+    void InternalStartGame()
+    {
+        _startTimer = db.serverStartMatchDuration;
+    }
+    
+    
     public void StartGameSolo()
     {
         StartCoroutine(StartSinglePlayer());
@@ -101,11 +128,4 @@ public class LobbyController : NetworkBehaviour
         //MyNetworkManager.manager.ChangeScenePlayer(PlayerList.singleton.players[0],sceneToLoad);
     }
     
-    private bool AllPlayersReady() 
-    {
-        foreach (PlayerData client in ((MyNetworkManager)NetworkManager.singleton).allClients)
-            if (!client.IsReady)
-                return false;
-        return true;
-    }
 }

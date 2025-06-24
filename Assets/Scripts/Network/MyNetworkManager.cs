@@ -38,9 +38,8 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public PlayerScoreboard scoreboard = new PlayerScoreboard();
     public Dictionary<ulong, DataPlayer> pointsBoard = new Dictionary<ulong, DataPlayer>();
     public HSteamNetConnection steamConnection = HSteamNetConnection.Invalid;
-
-    [Header("Para funcionar sem a steam")]
-    public bool testMode = false;
+    public bool startGame = false;
+    
     static ulong nextFakeId = 1;
     public List<IObserverPontos> _observers = new List<IObserverPontos>();
     public event Action onClientsChanged;
@@ -80,24 +79,36 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     {
         if (conn.identity != null && allClients.Exists(c => c == conn.identity.GetComponent<PlayerData>()))
             return;
-
+        
         base.OnServerAddPlayer(conn);
+        if (BriefingManager.singleton != null)
+        {
+            Debug.LogError(BriefingManager.singleton);
+            Debug.LogError(BriefingManager.singleton.gameObject.name);
+            Invoke("Teste", 2f);
+
+        }
+    }
+
+    public void Teste()
+    {
+        BriefingManager.singleton.UpdateAllClientsSlots();
     }
     public void RegisterNewPlayer(PlayerData pd)
     {
-        ulong id   = pd.playerInfo.steamId;
-        string name= pd.playerInfo.username;
+        ulong id = pd.playerInfo.steamId;
+        string name = pd.playerInfo.username;
 
         if (!pointsBoard.ContainsKey(id))
         {
             int assignedColor = PlayerList.singleton.RequestRandomColor();
             var dp = new DataPlayer {
-                steamID    = id,
+                steamID = id,
                 playerName = name,
-                points     = 0,
-                color      = assignedColor
+                points = 0,
+                color = assignedColor
             };
-            pointsBoard[id]        = dp;
+            pointsBoard[id] = dp;
             scoreboard.players.Add(dp);
 
             pd.color = assignedColor;
@@ -165,7 +176,6 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
     public void StartDevHost()
     {
-        testMode = true;
 
         var fizzy = GetComponent<FizzySteamworks>();
         if (fizzy != null) Destroy(fizzy);
@@ -185,7 +195,6 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
     public void StartDevClient(string address = "localhost")
     {
-        testMode = true;
 
         var fizzy = GetComponent<FizzySteamworks>();
         if (fizzy != null) Destroy(fizzy);
@@ -278,11 +287,26 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
     public void ReiniciarJogo()
     {
+        startGame = false;
         limparPontos();
         limparLista();
         listaAleatoria();
     }
-
+    [Server] 
+    public void ResetAllPlayersReady()
+    {
+        foreach (PlayerData pd in allClients)
+        {
+            pd.IsReady = false; 
+        }
+    }
+    public bool AllPlayersReady() 
+    {
+        foreach (PlayerData client in allClients)
+            if (!client.IsReady)
+                return false;
+        return true;
+    }
     public void limparPontos()
     {
         for (int i = 0; i < scoreboard.players.Count; i++)
