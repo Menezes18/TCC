@@ -205,4 +205,10 @@ public class BallPhysics : NetworkBehaviour, IDamageable
         Gizmos.color = new Color(1f, 0.5f, 0f, 0.5f);
         Gizmos.DrawWireSphere(origin, radius + groundPadding);
     }
+    [Server]
+    public void ResetBall(Vector3 position)
+    {
+        _velocity = Vector3.zero;
+        _cachedTransform.position = position;
+    }
 }

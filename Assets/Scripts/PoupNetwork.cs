@@ -37,15 +37,7 @@ public class PoupNetwork : MonoBehaviour
         Application.Quit();
     }
 
-    private void OnDestroy()
-    {
-        if (SteamAPI.IsSteamRunning())
-            SteamAPI.Shutdown();
-    }
 
-    private void Update()
-    {
-        if (SteamAPI.IsSteamRunning())
-            SteamAPI.RunCallbacks();
-    }
+
+
 }
