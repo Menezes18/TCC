@@ -36,7 +36,7 @@ public class BriefingManager : NetworkBehaviour
     [SyncVar] string syncTitle;
     [SyncVar] string syncTip;
     [SyncVar] int tipIndex;
-    
+    [SyncVar] bool briefingStarted = false;
     
     [Header("Slots de Jogadores")]
     [SerializeField] private GameObject slotPrefab;
@@ -59,13 +59,14 @@ public class BriefingManager : NetworkBehaviour
     public void CheckAllReady()
     {
         if (!isServer) return;
-
+        if (briefingStarted) return;
+        
         bool allReady = MyNetworkManager.manager.AllPlayersReady();
        //bool allReady = false;
-
+       
         if (!allReady) return;
+        CmdFinishBriefing();
         RpcCloseBriefing();
-        
     }
     private void ShowLocalBriefing()
     {
@@ -106,7 +107,12 @@ public class BriefingManager : NetworkBehaviour
         cameraBriefing.SetActive(true);
         onBriefingEnded?.Invoke();
     }
-
+    [Command(requiresAuthority = false)]
+    private void CmdFinishBriefing()
+    {
+        if (!briefingStarted)
+            briefingStarted = true;
+    }
     #region Server && Comand 
     
     [Command(requiresAuthority = false)]
@@ -154,6 +160,7 @@ public class BriefingManager : NetworkBehaviour
         
         StopAllCoroutines();
     }
+    
     #endregion
 
     #region ClientRPC

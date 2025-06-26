@@ -85,12 +85,12 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         {
             Debug.LogError(BriefingManager.singleton);
             Debug.LogError(BriefingManager.singleton.gameObject.name);
-            Invoke("Teste", 2f);
+            Invoke("UpdateSlots", 0.8f);
 
         }
     }
 
-    public void Teste()
+    public void UpdateSlots()
     {
         BriefingManager.singleton.UpdateAllClientsSlots();
     }
