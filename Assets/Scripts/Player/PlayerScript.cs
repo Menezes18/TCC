@@ -671,7 +671,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
 
         Vector3 horizontal = new Vector3(_move.x, 0, _move.z);
-        Vector3 final = horizontal + dir * db.playerPushStrength;
+        Vector3 final = dir.normalized * db.playerPushStrength;
         _inertia = final;
         InertiaCap = final.magnitude;
         _move.y = db.playerStaggerHeight;
