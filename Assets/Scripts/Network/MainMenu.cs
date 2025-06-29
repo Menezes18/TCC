@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using DG.Tweening;
+using UnityEngine.Rendering;
 
 public enum MenuState { Home, InParty }
 
@@ -47,7 +48,8 @@ public class MainMenu : MonoBehaviour
     {
         if (startCelular){
             if (state == MenuState.InParty){
-                //ToggleCelular();
+                menuCelular = false;
+                Debug.LogError("AAAAAAAA");
             }
             startCelular = false;
         }
@@ -145,6 +147,8 @@ public class MainMenu : MonoBehaviour
 
         animando = true;
         celularGameObject.SetActive(false);
+        celularAberto = false;
+        animando = false;
         
     }
 
