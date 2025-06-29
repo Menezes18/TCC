@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 [System.Serializable]
@@ -161,6 +162,7 @@ public class SteamLobby : MonoBehaviour
         PopupManager.instance.Popup_Show("Leave Party", false, true);
         StartCoroutine(DelayAction(_delaySeconds, () => {
             SteamMatchmaking.LeaveLobby(LobbyID);
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }));
     }
 

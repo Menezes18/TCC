@@ -285,6 +285,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
                 BriefingManager.singleton?.CheckAllReady();
             }
         }
+        if (Keyboard.current.oKey.wasPressedThisFrame )
+        {
+            HUDSO.ShowColorChangePanel(); 
+        }
         float blindWeight = CustomMath.ConvertRange(_blindTimer, db.playerBlindDuration, 0);
         float blindRange = db.playerBlindCurve.Evaluate(blindWeight);
         HUDSO.SetBlindAlpha(blindRange);
@@ -721,7 +725,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         mainMenu.ToggleCelular();
     }
 
-
+    
     #endregion
     #region Sensibilidade
 

@@ -5,7 +5,6 @@ using Mirror;
 public class CooldownUI : MonoBehaviour
 {
     [SerializeField] private Image pushFillImage;
-    [SerializeField] private Image throwFillImage;
 
     public PlayerScript player;
 
@@ -28,7 +27,7 @@ public class CooldownUI : MonoBehaviour
         if (pushFillImage != null)
             pushFillImage.fillAmount = player.PushCooldownNormalized;
 
-        if (throwFillImage != null)
-            throwFillImage.fillAmount = player.ThrowCooldownNormalized;
+        // if (throwFillImage != null)
+        //     throwFillImage.fillAmount = player.ThrowCooldownNormalized;
     }
 }
