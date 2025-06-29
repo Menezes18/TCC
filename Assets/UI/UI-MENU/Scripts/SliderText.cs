@@ -1,31 +1,38 @@
-using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
-
-//This script handles slider.
 
 public class SliderText : MonoBehaviour
 {
-
-    public TextMeshProUGUI sliderValue;
+    [SerializeField] TMP_Text sliderValue;
     public Slider slider;
 
-    public void Awake()
+    void Awake()
     {
 
+        slider.minValue = 0;
+        slider.maxValue = 10;
+        slider.wholeNumbers = true;
+
+        slider.onValueChanged.AddListener(OnSliderChanged);
     }
-    public void Update()
+
+    void Start()
     {
-
-        sliderValue.text = slider.value.ToString("0");
-
-        if (slider.value >= (slider.maxValue - 0.05f) || slider.value <= slider.minValue + 0.05f)
-        {
-            sliderValue.text = slider.value.ToString("0");
-        }
-
+        slider.SetValueWithoutNotify(AudioManager.Instance.Volume);
+        AtualizarUI(AudioManager.Instance.Volume);
     }
 
+    void OnSliderChanged(float v)
+    {
+        Debug.LogError(v);
+        AtualizarUI(v);
+        AudioManager.Instance.SetVolume(v);
+    }
+
+    void AtualizarUI(float v)
+    {
+        sliderValue.text = v.ToString("F2");
+    }
 }

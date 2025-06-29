@@ -18,7 +18,7 @@ public class AudioManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        _volume = PlayerPrefs.GetFloat(KEY_MUSIC, 0.7f);
+        _volume = PlayerPrefs.GetFloat(KEY_MUSIC, 10f);
         
         ApplyVolume(_volume);
     }
@@ -27,7 +27,7 @@ public class AudioManager : MonoBehaviour
 
     public void SetVolume(float value)
     {
-        _volume = Mathf.Clamp01(value);
+        _volume = value;
         ApplyVolume(_volume);
         PlayerPrefs.SetFloat(KEY_MUSIC, _volume);
     }
@@ -44,9 +44,7 @@ public class AudioManager : MonoBehaviour
 
     void ApplyVolume(float v)
     {
-        if (mixer)
-            mixer.SetFloat(exposedParam, Mathf.Lerp(-80f, 0f, v <= .0001f ? 0f : v));
-        else
-            musicSource.volume = v;
+        v = v / 100f;
+        musicSource.volume = v;
     }
 }
