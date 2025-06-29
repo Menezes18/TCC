@@ -11,7 +11,7 @@ public class CreditsGenerator : MonoBehaviour
     public RectTransform content;
     
     public List<CreditEntry> entries;
-
+    public float lastCreditY;
     void Start()
     {
         Generate();

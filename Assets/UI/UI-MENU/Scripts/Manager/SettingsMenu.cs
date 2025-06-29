@@ -81,7 +81,10 @@ public class SettingsMenu : MonoBehaviour
                 Debug.Log($"Resolução: {w}×{h} • Fullscreen: {full}");
             }
         );
-
+        
+        bool fullOn = PlayerPrefs.GetInt(KEY_FULLSCREEN, 0) == 1;
+        fullscreenToggle.isOn = fullOn;
+        fullscreenToggle.onValueChanged.Invoke(fullOn);
 
         //Resolução
         InitSelector(resolutionSelector, KEY_RES, ApplyResolution);

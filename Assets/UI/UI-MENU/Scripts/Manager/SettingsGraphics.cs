@@ -30,7 +30,7 @@ public class SettingsGraphics : MonoBehaviour
     public Toggle bloomToggle;
     public Toggle motionBlurToggle;
 
-    private Volume globalVolume;
+    public Volume globalVolume;
     private DepthOfField dofOverride;
     private Bloom bloomOverride;
     private MotionBlur motionBlurOverride;
@@ -56,7 +56,7 @@ public class SettingsGraphics : MonoBehaviour
         
 
         ForceToggleOn(KEY_TESSELL, tessellationToggle, on => Shader.SetGlobalFloat("_TessellationEnabled", on ? 1f : 0f));
-        ForceToggleOn(KEY_BLOOM, bloomToggle, on => bloomOverride.active = on);
+        //ForceToggleOn(KEY_BLOOM, bloomToggle, on => bloomOverride.active = on);
         ForceToggleOn(KEY_MBLUR, motionBlurToggle, on => motionBlurOverride.active = on);
     }
 
