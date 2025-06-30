@@ -93,7 +93,7 @@ public class SteamLobby : MonoBehaviour
     private readonly float _delaySeconds = 2.0f;
     public void CreateLobby()
     {
-        PopupManager.instance.Popup_Show("Create Party", false, true);
+        PopupManager.instance.Popup_Show("Criar Partida", false, true);
         StartCoroutine(DelayAction(_delaySeconds, () => {
         SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypePublic, ((MyNetworkManager)NetworkManager.singleton).maxConnections);
         MainMenu.instance.gameObject.SetActive(false);
@@ -128,7 +128,7 @@ public class SteamLobby : MonoBehaviour
 
     private void OnJoinRequest(GameLobbyJoinRequested_t callback)
     {
-        PopupManager.instance.Popup_Show("Joining Party", false, true);
+        PopupManager.instance.Popup_Show("Entrando na Partida", false, true);
         StartCoroutine(DelayAction(_delaySeconds, () => {
         SteamMatchmaking.JoinLobby(callback.m_steamIDLobby);
         }));
@@ -159,7 +159,7 @@ public class SteamLobby : MonoBehaviour
 
     public void Leave()
     {
-        PopupManager.instance.Popup_Show("Leave Party", false, true);
+        PopupManager.instance.Popup_Show("Saindo da Partida", false, true);
         StartCoroutine(DelayAction(_delaySeconds, () => {
             SteamMatchmaking.LeaveLobby(LobbyID);
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
@@ -181,7 +181,7 @@ public class SteamLobby : MonoBehaviour
 
     IEnumerator FindMatchRoutine()
     {
-        PopupManager.instance.Popup_Show("Finding Match...", false, true);
+        PopupManager.instance.Popup_Show("Procurando Partida...", false, true);
         bool foundMatch = false;
         float elapsedTime = 0f;
         float maxTime = 3f;
