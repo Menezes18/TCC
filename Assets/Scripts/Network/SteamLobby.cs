@@ -93,7 +93,7 @@ public class SteamLobby : MonoBehaviour
     private readonly float _delaySeconds = 2.0f;
     public void CreateLobby()
     {
-        PopupManager.instance.Popup_Show("Criar Partida", false, true);
+        PopupManager.instance.Popup_Show("Criando Partida", false, true);
         StartCoroutine(DelayAction(_delaySeconds, () => {
         SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypePublic, ((MyNetworkManager)NetworkManager.singleton).maxConnections);
         MainMenu.instance.gameObject.SetActive(false);
