@@ -154,7 +154,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SyncVar(hook = nameof(OnStaggerChanged))]
     private bool isStaggered;
 
-    public bool _menuOpen;
+    private bool _menuOpen = false;
     public bool panel = false;
 
     [SerializeField] private float sensibilidade = 1;
@@ -214,6 +214,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         // UI
         celularInstance = Instantiate(canvasCelularPrefab);
         mainMenu = celularInstance.GetComponentInChildren<MainMenu>(true);
+        celularInstance.SetActive(false);
         if (cooldownUIPrefab != null)
         {
             cooldownUIInstance = Instantiate(cooldownUIPrefab);
@@ -719,10 +720,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if (base.isOwned == false) return;
         _menuOpen = !_menuOpen;
-        if(_menuOpen)
-            mainMenu.ToggleCelular(_menuOpen);
-        else
-            mainMenu.ToggleCelular(_menuOpen);
+        
+        celularInstance.SetActive(_menuOpen);
+        
         if (panel) {
             HUDSO.HideColorChangePanel();
             return;
