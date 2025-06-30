@@ -721,8 +721,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             HUDSO.HideColorChangePanel();
             return;
         }
-        //_menuOpen = !_menuOpen;
-        mainMenu.ToggleCelular();
+        _menuOpen = !_menuOpen;
+        if(_menuOpen)
+            mainMenu.ToggleCelular(_menuOpen);
+        else
+            mainMenu.ToggleCelular(_menuOpen);
     }
 
     

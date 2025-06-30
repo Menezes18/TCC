@@ -33,7 +33,7 @@ public class MainMenu : MonoBehaviour
     {
         instance = this;
         celularAberto = true;
-        ToggleCelular();
+        //ToggleCelular();
 
     }
 
@@ -134,43 +134,22 @@ public class MainMenu : MonoBehaviour
         readyButton_Text.text = value ? "Ready" : "Not Ready";
         readyButton_Image.color = value ? readyColor : notReadyColor;
     }
-    public void ShowCelularUI()
-    {
-        if (celularAberto) return;
-
-        animando = true;
-        celularGameObject.SetActive(true);
-
-        
-    }
 
 
-    public void HideCelularUI()
-    {
-        if (!celularAberto) return;
+    
 
-        animando = true;
-        celularGameObject.SetActive(false);
-        celularAberto = false;
-        animando = false;
-        
-    }
-
-    public void ToggleCelular()
+    public void ToggleCelular(bool value)
     {
         if (state != MenuState.InParty)
             return;
 
-        celularAberto = !celularAberto;
-        celularGameObject.SetActive(celularAberto);
+        //celularAberto = !celularAberto;
+        celularGameObject.SetActive(value);
         // if (celularAberto)
         //     HideCelularUI();
         // else
         //     ShowCelularUI();
     }
 
-    public void OnCelularButtonPressed()
-    {
-        ToggleCelular();
-    }
+    
 }
