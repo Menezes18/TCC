@@ -46,10 +46,10 @@ public class MainMenu : MonoBehaviour
     public bool startCelular = true;
     private void Update()
     {
-        if (state == MenuState.InParty){
-            menuCelular = false;
-            Debug.LogError("AAAAAAAA");
-        }
+        // if (state == MenuState.InParty){
+        //     menuCelular = false;
+        //     Debug.LogError("AAAAAAAA");
+        // }
         // if (startCelular){
         //     if (state == MenuState.InParty){
         //         menuCelular = false;
@@ -162,7 +162,7 @@ public class MainMenu : MonoBehaviour
             return;
 
         celularAberto = !celularAberto;
-        celularGameObject.SetActive(!celularGameObject.activeSelf);
+        celularGameObject.SetActive(celularAberto);
         // if (celularAberto)
         //     HideCelularUI();
         // else
