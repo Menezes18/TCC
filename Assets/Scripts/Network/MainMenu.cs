@@ -57,12 +57,12 @@ public class MainMenu : MonoBehaviour
         //     }
         //     startCelular = false;
         // }
-        if (toggleCelular != previousToggle)
-        {
-            previousToggle = toggleCelular;
-
-            ToggleCelular();
-        }
+        // if (toggleCelular != previousToggle)
+        // {
+        //     previousToggle = toggleCelular;
+        //
+        //     ToggleCelular();
+        // }
     }
 
     public void SetMenuState(MenuState state)
