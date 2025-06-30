@@ -140,8 +140,8 @@ public class MainMenu : MonoBehaviour
 
     public void ToggleCelular(bool value)
     {
-        // if (state != MenuState.InParty)
-        //     return;
+        if (state != MenuState.InParty)
+            return;
 
         //celularAberto = !celularAberto;
         celularGameObject.SetActive(value);
