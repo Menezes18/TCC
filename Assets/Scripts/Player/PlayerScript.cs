@@ -208,7 +208,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public override void OnStartLocalPlayer()
     {
         base.OnStartLocalPlayer();
-
+        if (base.isOwned == false) return;
         PlayerControlsSO.OnMenu += EventOnCelularMenu;
         _cam = Camera.main.transform;
         // UI
@@ -717,15 +717,16 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     #region Menu
     private void EventOnCelularMenu()
     {
-        if (panel) {
-            HUDSO.HideColorChangePanel();
-            return;
-        }
+        if (base.isOwned == false) return;
         _menuOpen = !_menuOpen;
         if(_menuOpen)
             mainMenu.ToggleCelular(_menuOpen);
         else
             mainMenu.ToggleCelular(_menuOpen);
+        if (panel) {
+            HUDSO.HideColorChangePanel();
+            return;
+        }
     }
 
     
