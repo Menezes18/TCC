@@ -159,7 +159,8 @@ public class MainMenu : MonoBehaviour
     public void ToggleCelular()
     {
         if(menuCelular) return;
-            celularGameObject.SetActive(!celularGameObject.activeSelf);
+        celularAberto = !celularAberto;
+        celularGameObject.SetActive(!celularGameObject.activeSelf);
         // if (celularAberto)
         //     HideCelularUI();
         // else
