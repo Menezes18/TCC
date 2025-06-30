@@ -28,7 +28,7 @@ public class MainMenu : MonoBehaviour
 
     private bool celularAberto = false;
     private bool animando = false;
-    public bool menuCelular = false;
+    public bool menuCelular = true;
     private void Awake()
     {
         instance = this;
@@ -46,13 +46,17 @@ public class MainMenu : MonoBehaviour
     public bool startCelular = true;
     private void Update()
     {
-        if (startCelular){
-            if (state == MenuState.InParty){
-                menuCelular = false;
-                Debug.LogError("AAAAAAAA");
-            }
-            startCelular = false;
+        if (state == MenuState.InParty){
+            menuCelular = false;
+            Debug.LogError("AAAAAAAA");
         }
+        // if (startCelular){
+        //     if (state == MenuState.InParty){
+        //         menuCelular = false;
+        //         Debug.LogError("AAAAAAAA");
+        //     }
+        //     startCelular = false;
+        // }
         if (toggleCelular != previousToggle)
         {
             previousToggle = toggleCelular;
@@ -66,7 +70,7 @@ public class MainMenu : MonoBehaviour
         this.state = state;
         homeUI.SetActive(state == MenuState.Home);
         partyUI.SetActive(state == MenuState.InParty);
-        if(state == MenuState.InParty) ToggleCelular();
+       // if(state == MenuState.InParty) ToggleCelular();
     }
 
     public void CreateParty()
