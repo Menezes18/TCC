@@ -318,6 +318,11 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public void limparLista()
     {
         indexScene = 0;
+        minigames.Clear();
+        minigames.Add("MN_Rua");
+        minigames.Add("MN_Queda");
+        minigames.Add("MN_Sumo");
+        minigames.Add("Vitoria");
         minigames.RemoveAt(minigames.Count - 1);
     }
 
