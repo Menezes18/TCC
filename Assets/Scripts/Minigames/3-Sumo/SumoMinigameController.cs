@@ -12,7 +12,7 @@ public class HideStep
     public GameObject[] disableTargets;
 }
 
-public class SumoMinigameController : MinigameController, IObserver
+public class SumoMiniGameController : MinigameController, IObserver
 {
     public UnityEvent finalizar;
     public SettingsMiniGameData gameData;
