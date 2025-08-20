@@ -417,7 +417,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
         if (playersReadyInScene >= minJogadores)
         {
-            RpcHideLoadingUI();
+            BriefingManager.singleton?.RpcHideLoadingUI();
             BeginBriefing("min_players");
         }
 
@@ -435,7 +435,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             yield return null;
         }
         string reason = playersReadyInScene >= minJogadores ? "min_players" : "timeout";
-        RpcHideLoadingUI();
+        BriefingManager.singleton?.RpcHideLoadingUI();
         BeginBriefing(reason);
     }
 
@@ -448,7 +448,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         playersReadyInScene = 0;
 
         // guarantee loading UI is hidden even if BriefingManager is missing
-        RpcHideLoadingUI();
+        BriefingManager.singleton?.RpcHideLoadingUI();
         // dispara o briefing; a UI de loading tambem e ocultada no RpcShowBriefing
         // dispara o briefing; a UI de loading será ocultada no RpcShowBriefing
         BriefingManager.singleton?.TriggerBriefing();
@@ -484,3 +484,4 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         LoadingScreenUI.Instance?.Hide();
     }
 }
+
