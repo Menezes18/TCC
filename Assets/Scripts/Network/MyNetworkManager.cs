@@ -39,7 +39,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public Dictionary<ulong, DataPlayer> pointsBoard = new Dictionary<ulong, DataPlayer>();
     public HSteamNetConnection steamConnection = HSteamNetConnection.Invalid;
     public bool startGame = false;
-    
+
     static ulong nextFakeId = 1;
     public List<IObserverPontos> _observers = new List<IObserverPontos>();
     public event Action onClientsChanged;
@@ -79,18 +79,18 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     {
         if (conn.identity != null && allClients.Exists(c => c == conn.identity.GetComponent<PlayerData>()))
             return;
-        
+
         base.OnServerAddPlayer(conn);
         if (BriefingManager.singleton != null)
         {
             Debug.LogError(BriefingManager.singleton);
             Debug.LogError(BriefingManager.singleton.gameObject.name);
-            Invoke("Teste", 2f);
+            Invoke("UpdateSlots", 0.8f);
 
         }
     }
 
-    public void Teste()
+    public void UpdateSlots()
     {
         BriefingManager.singleton.UpdateAllClientsSlots();
     }
@@ -102,7 +102,8 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         if (!pointsBoard.ContainsKey(id))
         {
             int assignedColor = PlayerList.singleton.RequestRandomColor();
-            var dp = new DataPlayer {
+            var dp = new DataPlayer
+            {
                 steamID = id,
                 playerName = name,
                 points = 0,
@@ -292,15 +293,15 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         limparLista();
         listaAleatoria();
     }
-    [Server] 
+    [Server]
     public void ResetAllPlayersReady()
     {
         foreach (PlayerData pd in allClients)
         {
-            pd.IsReady = false; 
+            pd.IsReady = false;
         }
     }
-    public bool AllPlayersReady() 
+    public bool AllPlayersReady()
     {
         foreach (PlayerData client in allClients)
             if (!client.IsReady)
@@ -317,7 +318,26 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public void limparLista()
     {
         indexScene = 0;
+        minigames.Clear();
+        minigames.Add("MN_Rua");
+        minigames.Add("MN_Queda");
+        minigames.Add("MN_Sumo");
+        minigames.Add("Vitoria");
         minigames.RemoveAt(minigames.Count - 1);
+    }
+
+    public void tirarMiniGames(string minigame)
+    {
+        Debug.Log(minigame);
+        minigames.Remove(minigame);
+        minigames.RemoveAt(minigames.Count - 1);
+        listaAleatoria();
+    }
+    public void AdicionarMiniGames(string minigame)
+    {
+        minigames.Add(minigame);
+        minigames.Remove("Vitoria");
+        listaAleatoria();
     }
     
 }

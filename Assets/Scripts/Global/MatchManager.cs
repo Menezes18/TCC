@@ -193,7 +193,7 @@ public class MatchManager : NetworkBehaviour
             ps.isFrozen = true;
         }
         
-        _gameOver = "Acabou o Tempo!";
+        _gameOver = "Acabou!";
         LeanTween.delayedCall(2.0f, () =>
         {
             _activePlayers.Clear();

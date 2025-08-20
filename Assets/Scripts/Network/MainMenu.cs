@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using DG.Tweening;
+using UnityEngine.Rendering;
 
 public enum MenuState { Home, InParty }
 
@@ -18,10 +19,7 @@ public class MainMenu : MonoBehaviour
     [SerializeField] private Image readyButton_Image;
     [SerializeField] private TMP_Text readyButton_Text;
     public Color readyColor, notReadyColor;
-
-    [Header("Celular UI")]
-    [SerializeField] private RectTransform celularUI;
-    [SerializeField] private CanvasGroup celularCanvasGroup;
+    
     [SerializeField] private GameObject celularGameObject;
 
     [Header("DEBUG ANIMAÇÃO")]
@@ -30,36 +28,41 @@ public class MainMenu : MonoBehaviour
 
     private bool celularAberto = false;
     private bool animando = false;
-
+    public bool menuCelular = true;
     private void Awake()
     {
         instance = this;
-        celularCanvasGroup.alpha = 0;
         celularAberto = true;
-        ToggleCelular();
+        //ToggleCelular();
+
     }
 
     private void Start()
     {
-        if(state == MenuState.Home)
-            Invoke("ToggleCelular", 0.5f);
+        // if(state == MenuState.Home)
+        //     Invoke("ToggleCelular", 0.5f);
     }
 
     public bool startCelular = true;
     private void Update()
     {
-        if (startCelular){
-            if (state == MenuState.InParty){
-                ToggleCelular();
-            }
-            startCelular = false;
-        }
-        if (toggleCelular != previousToggle)
-        {
-            previousToggle = toggleCelular;
-
-            ToggleCelular();
-        }
+        // if (state == MenuState.InParty){
+        //     menuCelular = false;
+        //     Debug.LogError("AAAAAAAA");
+        // }
+        // if (startCelular){
+        //     if (state == MenuState.InParty){
+        //         menuCelular = false;
+        //         Debug.LogError("AAAAAAAA");
+        //     }
+        //     startCelular = false;
+        // }
+        // if (toggleCelular != previousToggle)
+        // {
+        //     previousToggle = toggleCelular;
+        //
+        //     ToggleCelular();
+        // }
     }
 
     public void SetMenuState(MenuState state)
@@ -67,7 +70,7 @@ public class MainMenu : MonoBehaviour
         this.state = state;
         homeUI.SetActive(state == MenuState.Home);
         partyUI.SetActive(state == MenuState.InParty);
-        if(state == MenuState.InParty) ToggleCelular();
+       // if(state == MenuState.InParty) ToggleCelular();
     }
 
     public void CreateParty()
@@ -92,7 +95,10 @@ public class MainMenu : MonoBehaviour
         else
             NetworkManager.singleton.StopClient();
 
+        NetworkClient.Shutdown();
+        NetworkManager.ResetStatics();
         SteamLobby.instance.Leave();
+        Application.Quit();
     }
 
     public void FindMatch()
@@ -128,57 +134,22 @@ public class MainMenu : MonoBehaviour
         readyButton_Text.text = value ? "Ready" : "Not Ready";
         readyButton_Image.color = value ? readyColor : notReadyColor;
     }
-    public void ShowCelularUI()
+
+
+    
+
+    public void ToggleCelular(bool value)
     {
-        if (celularAberto || animando) return;
+        if (state != MenuState.InParty)
+            return;
 
-        animando = true;
-
-        celularCanvasGroup.alpha = 1;
-        celularUI.gameObject.SetActive(true);
-
-        celularUI.anchoredPosition = new Vector2(0, -Screen.height);
-        celularUI.localScale = new Vector3(0.85f, 0.85f, 1f);
-
-        Sequence seq = DOTween.Sequence();
-        seq.Append(celularUI.DOAnchorPosY(0f, 0.6f).SetEase(Ease.OutBack));
-        seq.Join(celularUI.DOScale(Vector3.one, 0.5f).SetEase(Ease.OutQuad));
-        seq.OnComplete(() =>
-        {
-            celularAberto = true;
-            animando = false;
-        });
+        //celularAberto = !celularAberto;
+        celularGameObject.SetActive(value);
+        // if (celularAberto)
+        //     HideCelularUI();
+        // else
+        //     ShowCelularUI();
     }
 
-
-    public void HideCelularUI()
-    {
-        if (!celularAberto || animando) return;
-
-        animando = true;
-
-        Sequence seq = DOTween.Sequence();
-        seq.Append(celularUI.DOAnchorPosY(-Screen.height, 0.4f).SetEase(Ease.InBack));
-        seq.Join(celularUI.DOScale(new Vector3(0.8f, 0.8f, 1f), 0.3f).SetEase(Ease.InSine));
-        seq.OnComplete(() =>
-        {
-            celularCanvasGroup.alpha = 0;
-            celularUI.gameObject.SetActive(false);
-            celularAberto = false;
-            animando = false;
-        });
-    }
-
-    public void ToggleCelular()
-    {
-        if (celularAberto)
-            HideCelularUI();
-        else
-            ShowCelularUI();
-    }
-
-    public void OnCelularButtonPressed()
-    {
-        ToggleCelular();
-    }
+    
 }

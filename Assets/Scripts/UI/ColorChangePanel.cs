@@ -1,6 +1,9 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
+using UnityEngine.Scripting;
 
 public class ColorChangePanel : MonoBehaviour{
     private PlayerList playerList => PlayerList.singleton;
@@ -13,15 +16,27 @@ public class ColorChangePanel : MonoBehaviour{
     [SerializeField] Transform _customButtonPrefab;
     [SerializeField] private List<CustomButton> buttons = new List<CustomButton>();
 
-    private void Start()
+    private void Awake()
     {
-        //
-        playerList.players.Callback += PlayersOnCallback;
-        
+        Debug.LogError(db);
+        Debug.LogError($"DB tem {db.playerColors.Count} cores");
+        CreateButtons();
+    }
+
+    private IEnumerator Start()
+    {
+        // espera o Mirror spawnar o PlayerList
+        while (PlayerList.singleton == null || PlayerList.singleton.players == null)
+            yield return null;
+
+        PlayerList pl = PlayerList.singleton;           // agora já existe
+        pl.players.Callback += PlayersOnCallback;
+
         HUDSO.EventOnShowColorChangePanel += HUDSOOnEventOnShowColorChangePanel;
         HUDSO.EventOnHideColorChangePanel += HUDSOOnEventOnHideColorChangePanel;
-        
-        //
+    }
+    public void CreateButtons()
+    {
         for (int i = 0; i < db.playerColors.Count; i++)
         {
             Transform instance = Instantiate(_customButtonPrefab, _gridRoot);
@@ -30,11 +45,7 @@ public class ColorChangePanel : MonoBehaviour{
             cb.Sprite.color = db.playerColors[i].color;
             buttons.Add(cb);
         }
-        
-        //
-        playerList.players.Callback += PlayersOnCallback;
     }
-
 
     private void OnDestroy()
     {
@@ -64,11 +75,13 @@ public class ColorChangePanel : MonoBehaviour{
     private void HUDSOOnEventOnShowColorChangePanel()
     {
         _mainContainer.SetActive(true);
+        Refresh();
     }
     
     private void HUDSOOnEventOnHideColorChangePanel()
     {
         _mainContainer.SetActive(false);
+        Refresh();
     }
 
 

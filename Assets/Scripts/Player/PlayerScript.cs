@@ -154,7 +154,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SyncVar(hook = nameof(OnStaggerChanged))]
     private bool isStaggered;
 
-    public bool _menuOpen;
+    private bool _menuOpen = false;
     public bool panel = false;
 
     [SerializeField] private float sensibilidade = 1;
@@ -208,12 +208,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public override void OnStartLocalPlayer()
     {
         base.OnStartLocalPlayer();
-
+        if (base.isOwned == false) return;
         PlayerControlsSO.OnMenu += EventOnCelularMenu;
         _cam = Camera.main.transform;
         // UI
         celularInstance = Instantiate(canvasCelularPrefab);
         mainMenu = celularInstance.GetComponentInChildren<MainMenu>(true);
+        celularInstance.SetActive(false);
         if (cooldownUIPrefab != null)
         {
             cooldownUIInstance = Instantiate(cooldownUIPrefab);
@@ -284,6 +285,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
                 Debug.LogError("BriefingManager");
                 BriefingManager.singleton?.CheckAllReady();
             }
+        }
+        if (Keyboard.current.oKey.wasPressedThisFrame )
+        {
+            HUDSO.ShowColorChangePanel(); 
         }
         float blindWeight = CustomMath.ConvertRange(_blindTimer, db.playerBlindDuration, 0);
         float blindRange = db.playerBlindCurve.Evaluate(blindWeight);
@@ -671,7 +676,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
 
         Vector3 horizontal = new Vector3(_move.x, 0, _move.z);
-        Vector3 final = horizontal + dir * db.playerPushStrength;
+        Vector3 final = dir.normalized * db.playerPushStrength;
         _inertia = final;
         InertiaCap = final.magnitude;
         _move.y = db.playerStaggerHeight;
@@ -713,15 +718,18 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     #region Menu
     private void EventOnCelularMenu()
     {
+        if (base.isOwned == false) return;
+        _menuOpen = !_menuOpen;
+        
+        celularInstance.SetActive(_menuOpen);
+        
         if (panel) {
             HUDSO.HideColorChangePanel();
             return;
         }
-        _menuOpen = !_menuOpen;
-        mainMenu.ToggleCelular();
     }
 
-
+    
     #endregion
     #region Sensibilidade
 
