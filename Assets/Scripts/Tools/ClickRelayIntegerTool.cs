@@ -11,10 +11,13 @@ public class ClickRelayIntegerTool : MonoBehaviour
     
     public void SendClickRelay()
     {
-        if (_sendChildPosAsParameter){
+        var parent = transform.parent;
+        var grandParent = parent ? parent.parent : null;
 
-            int siblingIndex = transform.GetSiblingIndex();
-            this.ClickRelay?.Invoke(siblingIndex);
+        if (parent != null && grandParent != null)
+        {
+            int parentSiblingIndex = parent.GetSiblingIndex(); // posição do PAI dentro do AVO
+            ClickRelay?.Invoke(parentSiblingIndex);
             return;
         }
         
