@@ -416,7 +416,10 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         }
 
         if (playersReadyInScene >= minJogadores)
+        {
+            RpcHideLoadingUI();
             BeginBriefing("min_players");
+        }
 
         if (telemetryLogs)
             Debug.Log($"📊 [TELEMETRY] server_player_ready | ready={playersReadyInScene} min={minJogadores} total={allClients.Count}");
@@ -432,6 +435,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             yield return null;
         }
         string reason = playersReadyInScene >= minJogadores ? "min_players" : "timeout";
+        RpcHideLoadingUI();
         BeginBriefing(reason);
     }
 
@@ -443,6 +447,9 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         briefingPending = false;
         playersReadyInScene = 0;
 
+        // guarantee loading UI is hidden even if BriefingManager is missing
+        RpcHideLoadingUI();
+        // dispara o briefing; a UI de loading tambem e ocultada no RpcShowBriefing
         // dispara o briefing; a UI de loading será ocultada no RpcShowBriefing
         BriefingManager.singleton?.TriggerBriefing();
     }
@@ -471,8 +478,9 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         clientWaitingStartTime = -1f;
     }
 
-
+    [ClientRpc]
+    private void RpcHideLoadingUI()
+    {
+        LoadingScreenUI.Instance?.Hide();
+    }
 }
-
-
-
