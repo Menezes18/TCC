@@ -27,7 +27,6 @@ using UnityEngine.InputSystem;
             PlayerInputSO.OnJump += PlayerInputSO_OnJump;
             PlayerInputSO.OnPush += PlayerInputSO_OnPush;
             PlayerInputSO.OnThrow += PlayerInputSO_OnThrow;
-            PlayerInputSO.OnMenuCelular += PlayerInputSO_OnMenuCelular;
             PlayerInputSO.OnRoll += PlayerInputSO_OnRoll;
             PlayerInputSO.OnDebug += PlayerInputSOOnOnDebug;
 
@@ -44,7 +43,6 @@ using UnityEngine.InputSystem;
                 PlayerInputSO.OnPush  -= PlayerInputSO_OnPush;
                 PlayerInputSO.OnThrow -= PlayerInputSO_OnThrow;
                 PlayerInputSO.OnRoll  -= PlayerInputSO_OnRoll;
-                PlayerInputSO.OnMenuCelular -= PlayerInputSO_OnMenuCelular;
             }
         }
         
@@ -119,13 +117,7 @@ using UnityEngine.InputSystem;
             if(obj.performed)
                 PlayerControlsSO.Roll();
         }
-
-        private void PlayerInputSO_OnMenuCelular(CallbackContext obj)
-        {
-            if(obj.performed){
-                PlayerControlsSO.MenuCelular();
-            }
-        }
+        
        
         private void PlayerInputSOOnOnDebug(CallbackContext obj)
         {

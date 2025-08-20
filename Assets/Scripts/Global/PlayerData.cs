@@ -57,6 +57,13 @@ public class PlayerData : NetworkBehaviour{
       base.OnStartLocalPlayer();
       StartCoroutine(InitializePlayerInfo());
    }
+   public override void OnStartServer()
+   {
+      base.OnStartServer();
+      if (color < 0 && PlayerList.singleton != null)
+         color = PlayerList.singleton.RequestRandomColor(); // já ocupa no pool
+   }
+
    private IEnumerator InitializePlayerInfo()
    {
       yield return new WaitForEndOfFrame();
@@ -175,21 +182,27 @@ public class PlayerData : NetworkBehaviour{
 
    void HookOnColorUpdated(int oldVal, int newVal)
    {
-      this.OnColorUpdated?.Invoke(newVal);
+      OnColorUpdated?.Invoke(newVal);
+
       if (isServer)
       {
+         if (oldVal >= 0)
+            PlayerList.singleton.ReturnColor(oldVal);
+
+         if (newVal >= 0 && PlayerList.singleton.ColorsAvailable.Contains(newVal))
+            PlayerList.singleton.ColorsAvailable.Remove(newVal);
+         
          var steamId = playerInfo.steamId;
          if (MyNetworkManager.manager.pointsBoard.TryGetValue(steamId, out var dp))
          {
             dp.color = newVal;
             MyNetworkManager.manager.pointsBoard[steamId] = dp;
-            // e no scoreboard sincronizado também
-            var plr = MyNetworkManager.manager.scoreboard.players
-               .Find(p => p.steamID == steamId);
-            if (plr != null) plr.color = newVal;
+            var pl = MyNetworkManager.manager.scoreboard.players.Find(p => p.steamID == steamId);
+            if (pl != null) pl.color = newVal;
          }
       }
    }
+
    void PlayerDataSOOnEventOnColorRequest(int obj)
    {
       if(!isOwned) return;

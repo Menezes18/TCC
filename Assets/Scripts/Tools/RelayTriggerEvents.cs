@@ -6,6 +6,8 @@ using Mirror;
 
 [Serializable]
 public class ColliderEvent : UnityEvent<Collider> { }
+[Serializable]
+public class TransformEvent : UnityEvent<Transform> { }
 public class RelayTriggerEvents : MonoBehaviour
 {
     
