@@ -4,9 +4,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "Database", menuName = "Player/HUDSO")]
 public class HUDSO : ScriptableObject{
 
-    public event Action EventOnShowPanel;
-
-    public void ShowPanel() => EventOnShowPanel?.Invoke();
     public event Action EventOnShowColorChangePanel;
 
     public void ShowColorChangePanel()

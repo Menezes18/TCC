@@ -6,7 +6,6 @@ using Random = UnityEngine.Random;
 using UnityEngine.SceneManagement;
 
 using System.Collections;
-using System.Collections.Generic;
 
 
 public class PlayerList : NetworkBehaviour{
@@ -50,50 +49,30 @@ public class PlayerList : NetworkBehaviour{
     public override void OnStartServer()
     {
         base.OnStartServer();
-        RebuildColorPool(); 
-        SceneManager.sceneLoaded += OnSceneLoadedServer;
-        // if (ColorsAvailable.Count == 0)
-        // {
-        //     for (int i = 0; i < db.playerColors.Count; i++)
-        //         ColorsAvailable.Add(i);
-        // }
-        //
-        // foreach (var pd in FindObjectsOfType<PlayerData>())
-        // {
-        //     AddToList(pd);
-        // }
-        //
-        //
-        // SceneManager.sceneLoaded += (_, __) =>
-        // {
-        //     foreach (var pd in FindObjectsOfType<PlayerData>())
-        //         AddToList(pd);
-        // };
+        if (ColorsAvailable.Count == 0)
+        {
+            for (int i = 0; i < db.playerColors.Count; i++)
+                ColorsAvailable.Add(i);
+        }
+        
+        foreach (var pd in FindObjectsOfType<PlayerData>())
+        {
+            AddToList(pd);
+        }
+
+        
+        SceneManager.sceneLoaded += (_, __) =>
+        {
+            foreach (var pd in FindObjectsOfType<PlayerData>())
+                AddToList(pd);
+        };
     }
     
     private void OnDestroy()
     {
         ColorsAvailable.Callback -= ColorsAvailable_Callback;
     }
-    [Server]
-    private void RebuildColorPool()
-    {
-        ColorsAvailable.Clear();
 
-        var used = new HashSet<int>();
-        foreach (var kv in MyNetworkManager.manager.pointsBoard)
-            if (kv.Value.color >= 0) used.Add(kv.Value.color);
-
-        // reconstroi pool com TODAS as cores do Database menos as usadas
-        for (int i = 0; i < db.playerColors.Count; i++)
-            if (!used.Contains(i))
-                ColorsAvailable.Add(i);
-    }
-    [Server]
-    private void OnSceneLoadedServer(Scene _, LoadSceneMode __)
-    {
-        RebuildColorPool();
-    }
     [Server]
     public void AddToList(PlayerData data)
     {

@@ -28,7 +28,7 @@ public class PlayerControlsSO : ScriptableObject {
     public void Throw() { OnThrow?.Invoke(); }
     public void Roll() { OnRoll?.Invoke(); }
     public void ThrowCancel() { OnThrowCancel?.Invoke(); }
-    
+    public void MenuCelular() { OnMenu?.Invoke(); }
     // public void Cursor() { OnCursor?.Invoke(); }
     
     public void Debug() { OnDebug?.Invoke(); }

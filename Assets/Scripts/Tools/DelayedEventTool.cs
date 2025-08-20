@@ -10,7 +10,6 @@ public class DelayedEventTool : MonoBehaviour
 
     public void TriggerDelayedEvent(float delay)
     {
-        
         LeanTween.delayedCall(delay,() => {
             this.DelayedEvent.Invoke();
         });

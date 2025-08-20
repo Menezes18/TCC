@@ -2,7 +2,7 @@ using System;
 using Mirror;
 using UnityEngine;
 using UnityEngine.Events;
-using Random = UnityEngine.Random;
+
 public class PlayerRespawn : NetworkBehaviour
 {
 
@@ -35,28 +35,13 @@ public class PlayerRespawn : NetworkBehaviour
             PlayerScript ps = transform.GetComponent<PlayerScript>();
             NetworkConnection conn = transform.GetComponent<NetworkIdentity>().connectionToClient;
 
-            // if (MatchManager.singleton != null){
-            //     Transform random = MatchManager.singleton.GetRandomSpawnPoint();
-            //     ps.TargetRpcTeleport(conn, random.position, random.rotation);
-            // }
-            // else
-            {
-                var spot = FindRandomStart();
-                ps.TargetRpcTeleport(conn,
-                    spot ? spot.position : Vector3.zero,
-                    spot ? spot.rotation : Quaternion.identity);
-            }
+            Transform random = MatchManager.singleton.GetRandomSpawnPoint();
 
-            
-            
+            ps.TargetRpcTeleport(conn, random.position, random.rotation);
         }
         
     }
-    public static Transform FindRandomStart()
-    {
-        var starts = UnityEngine.Object.FindObjectsOfType<NetworkStartPosition>(true);
-        return starts.Length > 0 ? starts[Random.Range(0, starts.Length)].transform : null;
-    }
+
     [Server]
     public void ServerSetRespawnTimer()
     {
