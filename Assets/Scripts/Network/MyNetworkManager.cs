@@ -43,6 +43,10 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     static ulong nextFakeId = 1;
     public List<IObserverPontos> _observers = new List<IObserverPontos>();
     public event Action onClientsChanged;
+
+    [SerializeField] private float waitPlayersTimeout = 20f;
+    private int playersReadyInScene = 0;
+    private bool briefingPending = false;
     private void Awake()
     {
         MyNetworkManager[] managers = FindObjectsOfType<MyNetworkManager>();
@@ -339,5 +343,79 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         minigames.Remove("Vitoria");
         listaAleatoria();
     }
-    
+
+    public override void OnClientChangeScene(string newSceneName, SceneOperation sceneOperation, bool customHandling)
+    {
+        // NÃO use customHandling=true aqui; deixe o Mirror tocar o load.
+        base.OnClientChangeScene(newSceneName, sceneOperation, customHandling);
+
+        if (LoadingScreenUI.Instance != null)
+            StartCoroutine(ShowLoadingScreen());
+    }
+
+    private IEnumerator ShowLoadingScreen()
+    {
+        // espera o Mirror inicializar a AsyncOperation
+        while (NetworkManager.loadingSceneAsync == null)
+            yield return null;
+
+        // entrega a AsyncOperation do Mirror para a UI
+        LoadingScreenUI.Instance.Show(NetworkManager.loadingSceneAsync);
+    }
+
+    public override void OnClientSceneChanged()
+    {
+        base.OnClientSceneChanged();
+        // Cena já carregada no cliente: troca barra por “Aguardando jogadores…”
+        LoadingScreenUI.Instance?.ShowWaiting();
+    }
+
+    public override void OnServerSceneChanged(string sceneName)
+    {
+        base.OnServerSceneChanged(sceneName);
+        playersReadyInScene = 0;
+        briefingPending = false;
+    }
+
+    public override void OnServerReady(NetworkConnectionToClient conn)
+    {
+        base.OnServerReady(conn);
+
+        playersReadyInScene++;
+
+        if (!briefingPending)
+        {
+            briefingPending = true;
+            StartCoroutine(ServerWaitForPlayers());
+        }
+
+        if (playersReadyInScene >= minJogadores)
+            BeginBriefing();
+    }
+
+    [Server]
+    private IEnumerator ServerWaitForPlayers()
+    {
+        float elapsed = 0f;
+        while (elapsed < waitPlayersTimeout && playersReadyInScene < minJogadores)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        BeginBriefing();
+    }
+
+    [Server]
+    private void BeginBriefing()
+    {
+        if (!briefingPending) return;
+
+        briefingPending = false;
+        playersReadyInScene = 0;
+
+        // dispara o briefing; a UI de loading será ocultada no RpcShowBriefing
+        BriefingManager.singleton?.TriggerBriefing();
+    }
+
+
 }

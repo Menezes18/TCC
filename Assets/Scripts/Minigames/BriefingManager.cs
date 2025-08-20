@@ -152,6 +152,8 @@ public class BriefingManager : NetworkBehaviour
     [ClientRpc]
     private void RpcShowBriefing(string syncedTitle, string syncedTip)
     {
+        LoadingScreenUI.Instance?.Hide();
+
         titleText.text = syncedTitle;
         tipText.text   = syncedTip;
         canvasGroup.alpha      = 1;

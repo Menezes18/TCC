@@ -9,7 +9,7 @@ public class LoadingScreenUI : MonoBehaviour
     public static LoadingScreenUI Instance { get; private set; }
 
     [Header("Referências de UI")]
-    [SerializeField] private GameObject panel;   
+    [SerializeField] private GameObject panel;
     [SerializeField] private Slider progressBar;
     [SerializeField] private TextMeshProUGUI progressText;
 
@@ -23,7 +23,7 @@ public class LoadingScreenUI : MonoBehaviour
             Instance = this;
             // 1) Garante que este objeto persista entre cenas
             DontDestroyOnLoad(gameObject);
-            
+
             // 2) Destaca o painel (que por padrão está na hierarquia da cena)
             if (panel != null)
             {
@@ -76,12 +76,53 @@ public class LoadingScreenUI : MonoBehaviour
         // 4) Finalmente permite que a Unity faça a troca
         op.allowSceneActivation = true;
     }
+    
+    /// <summary>
+    /// Exibe a tela de carregamento acompanhando uma AsyncOperation externa (ex.: Mirror).
+    /// </summary>
+    public void Show(AsyncOperation externalOp)
+    {
+        if (panel != null) panel.SetActive(true);
+        StartCoroutine(TrackExternalOperation(externalOp));
+    }
+
+    private IEnumerator TrackExternalOperation(AsyncOperation externalOp)
+    {
+        if (externalOp == null) yield break;
+
+        while (!externalOp.isDone)
+        {
+            float prog = Mathf.Clamp01(externalOp.progress / 0.9f);
+            if (progressBar != null) progressBar.value = prog;
+            if (progressText != null) progressText.text = $"{(int)(prog * 100)}%";
+            yield return null;
+        }
+
+        if (progressBar != null) progressBar.value = 1f;
+        if (progressText != null) progressText.text = "Carregado. Aguardando jogadores...";
+    }
 
     /// <summary>
-    /// Caso você queira esconder manualmente em outro ponto.
+    /// Mostra estado de espera por jogadores (oculta a barra).
+    /// </summary>
+    public void ShowWaiting()
+    {
+        if (panel != null) panel.SetActive(true);
+        if (progressBar != null) progressBar.gameObject.SetActive(false);
+        if (progressText != null) progressText.text = "Aguardando jogadores...";
+    }
+
+    /// <summary>
+    /// Esconde e reseta a UI para o próximo uso.
     /// </summary>
     public void Hide()
     {
         if (panel != null) panel.SetActive(false);
+        if (progressBar != null)
+        {
+            progressBar.gameObject.SetActive(true);
+            progressBar.value = 0f;
+        }
+        if (progressText != null) progressText.text = string.Empty;
     }
 }
