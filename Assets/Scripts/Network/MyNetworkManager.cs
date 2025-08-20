@@ -44,6 +44,15 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public List<IObserverPontos> _observers = new List<IObserverPontos>();
     public event Action onClientsChanged;
 
+    // Telemetry
+    [Header("Telemetry")]
+    [SerializeField] private bool telemetryLogs = true;
+    private float clientLoadStartTime = -1f;
+    private string clientTargetScene = null;
+    private float clientWaitingStartTime = -1f;
+    private float serverWaitStartTime = -1f;
+    private string serverSceneName = null;
+
     [SerializeField] private float waitPlayersTimeout = 20f;
     private int playersReadyInScene = 0;
     private bool briefingPending = false;
@@ -87,8 +96,8 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         base.OnServerAddPlayer(conn);
         if (BriefingManager.singleton != null)
         {
-            Debug.LogError(BriefingManager.singleton);
-            Debug.LogError(BriefingManager.singleton.gameObject.name);
+            Debug.Log($"🧭 [BRIEFING] Singleton = {BriefingManager.singleton}");
+            Debug.Log($"🧭 [BRIEFING] GameObject = {BriefingManager.singleton.gameObject.name}");
             Invoke("UpdateSlots", 0.8f);
 
         }
@@ -148,7 +157,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         }
         else
         {
-            Debug.LogWarning($"Jogador (SteamID: {steamID}) não consta no pointsBoard.");
+            Debug.LogWarning($"⚠️ [POINTS] Jogador SteamID={steamID} não consta no pointsBoard.");
         }
         Notifica();
     }
@@ -332,7 +341,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
     public void tirarMiniGames(string minigame)
     {
-        Debug.Log(minigame);
+        Debug.Log($"🎮 [MINIGAME] {minigame}");
         minigames.Remove(minigame);
         minigames.RemoveAt(minigames.Count - 1);
         listaAleatoria();
@@ -348,6 +357,11 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     {
         // NÃO use customHandling=true aqui; deixe o Mirror tocar o load.
         base.OnClientChangeScene(newSceneName, sceneOperation, customHandling);
+
+        clientLoadStartTime = Time.realtimeSinceStartup;
+        clientTargetScene = newSceneName;
+        if (telemetryLogs)
+            Debug.Log($"📊 [TELEMETRY] client_scene_change | scene={newSceneName} op={sceneOperation}");
 
         if (LoadingScreenUI.Instance != null)
             StartCoroutine(ShowLoadingScreen());
@@ -368,6 +382,13 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         base.OnClientSceneChanged();
         // Cena já carregada no cliente: troca barra por “Aguardando jogadores…”
         LoadingScreenUI.Instance?.ShowWaiting();
+
+        if (telemetryLogs && clientLoadStartTime >= 0f)
+        {
+            float duration = Time.realtimeSinceStartup - clientLoadStartTime;
+            Debug.Log($"📊 [TELEMETRY] client_scene_loaded | scene={clientTargetScene} dur_ms={(int)(duration*1000f)}");
+        }
+        clientWaitingStartTime = Time.realtimeSinceStartup;
     }
 
     public override void OnServerSceneChanged(string sceneName)
@@ -375,6 +396,11 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         base.OnServerSceneChanged(sceneName);
         playersReadyInScene = 0;
         briefingPending = false;
+
+        serverWaitStartTime = Time.time;
+        serverSceneName = sceneName;
+        if (telemetryLogs)
+            Debug.Log($"📊 [TELEMETRY] server_scene_changed | scene={sceneName}");
     }
 
     public override void OnServerReady(NetworkConnectionToClient conn)
@@ -390,7 +416,10 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         }
 
         if (playersReadyInScene >= minJogadores)
-            BeginBriefing();
+            BeginBriefing("min_players");
+
+        if (telemetryLogs)
+            Debug.Log($"📊 [TELEMETRY] server_player_ready | ready={playersReadyInScene} min={minJogadores} total={allClients.Count}");
     }
 
     [Server]
@@ -402,7 +431,8 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             elapsed += Time.deltaTime;
             yield return null;
         }
-        BeginBriefing();
+        string reason = playersReadyInScene >= minJogadores ? "min_players" : "timeout";
+        BeginBriefing(reason);
     }
 
     [Server]
@@ -415,6 +445,30 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
         // dispara o briefing; a UI de loading será ocultada no RpcShowBriefing
         BriefingManager.singleton?.TriggerBriefing();
+    }
+
+    [Server]
+    private void BeginBriefing(string reason)
+    {
+        if (!briefingPending) return;
+
+        if (telemetryLogs)
+        {
+            float waitMs = serverWaitStartTime > 0f ? (Time.time - serverWaitStartTime) * 1000f : -1f;
+            Debug.Log($"📊 [TELEMETRY] briefing_trigger | scene={serverSceneName} reason={reason} wait_ms={(int)waitMs} min={minJogadores}");
+        }
+
+        BeginBriefing();
+    }
+
+    // Client-side log when briefing becomes visible
+    [Client]
+    public void RecordClientBriefingShown()
+    {
+        if (!telemetryLogs) return;
+        float waitDur = clientWaitingStartTime > 0f ? (Time.realtimeSinceStartup - clientWaitingStartTime) : -1f;
+        Debug.Log($"📊 [TELEMETRY] client_wait_over | scene={clientTargetScene} wait_ms={(int)(waitDur*1000f)}");
+        clientWaitingStartTime = -1f;
     }
 
 

@@ -40,7 +40,7 @@ public class SettingsGraphics : MonoBehaviour
         globalVolume = FindObjectOfType<Volume>();
         if (globalVolume == null)
         {
-            Debug.LogError("[SettingsGraphics] nenhum Volume encontrado na cena!");
+            Debug.LogError("⚠️ [SETTINGS] Nenhum Volume encontrado na cena!");
             return;
         }
 
@@ -85,7 +85,7 @@ public class SettingsGraphics : MonoBehaviour
     void ApplyTextureQuality(int idx)
     {
         QualitySettings.globalTextureMipmapLimit = idx;
-        Debug.Log($"[Graf] TextureQuality limit = {idx}");
+        Debug.Log($"🎨 [GRAPHICS] TextureQuality limit = {idx}");
     }
 
     void ApplyTextureFiltering(int idx)
@@ -102,7 +102,7 @@ public class SettingsGraphics : MonoBehaviour
                 QualitySettings.anisotropicFiltering = AnisotropicFiltering.ForceEnable;
                 break;
         }
-        Debug.Log($"[Graf] AnisotropicFiltering = {QualitySettings.anisotropicFiltering}");
+        Debug.Log($"🎨 [GRAPHICS] AnisotropicFiltering = {QualitySettings.anisotropicFiltering}");
     }
 
     void ApplyShadowQuality(int idx)
@@ -119,7 +119,7 @@ public class SettingsGraphics : MonoBehaviour
                 QualitySettings.shadows = ShadowQuality.All;
                 break;
         }
-        Debug.Log($"[Graf] ShadowQuality = {QualitySettings.shadows}");
+        Debug.Log($"🎨 [GRAPHICS] ShadowQuality = {QualitySettings.shadows}");
     }
     
 
@@ -129,7 +129,7 @@ public class SettingsGraphics : MonoBehaviour
         {
             dofOverride.active = idx > 0;
             dofOverride.focusDistance.value = 1f + idx * 2f;
-            Debug.Log($"[Graf] DoF focusDistance = {dofOverride.focusDistance.value}");
+            Debug.Log($"🎨 [GRAPHICS] DoF focusDistance = {dofOverride.focusDistance.value}");
         }
     }
 
@@ -137,6 +137,6 @@ public class SettingsGraphics : MonoBehaviour
     {
         float[] biases = { 0.5f, 1f, 2f, 4f };
         QualitySettings.lodBias = biases[Mathf.Clamp(idx, 0, biases.Length - 1)];
-        Debug.Log($"[Graf] LOD Bias = {QualitySettings.lodBias}");
+        Debug.Log($"🎨 [GRAPHICS] LOD Bias = {QualitySettings.lodBias}");
     }
 }

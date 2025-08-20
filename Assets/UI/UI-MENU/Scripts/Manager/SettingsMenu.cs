@@ -39,19 +39,19 @@ public class SettingsMenu : MonoBehaviour
         {
             globalVolume = FindObjectOfType<Volume>();
             if (globalVolume == null)
-                Debug.LogError("[SettingsMenu] Não encontrou nenhum Volume na cena!");
+                Debug.LogError("⚠️ [SETTINGS] Nenhum Volume encontrado na cena!");
         }
 
         
         if (globalVolume.profile.TryGet<ColorAdjustments>(out colorAdjustments) == false)
         {
-            Debug.LogError("[SettingsMenu] Profile não tem ColorAdjustments!");
+            Debug.LogError("⚠️ [SETTINGS] Profile não contém ColorAdjustments!");
         }
         //DirectX12 On/Off
         SettingsBinder.BindToggle(
             KEY_DIRECTX,
             directXToggle,
-            on => Debug.Log("DirectX12 " + (on ? "On" : "Off"))
+            on => Debug.Log($"🖥️ [DIRECTX12] {(on ? "Ativado" : "Desativado")}")
         );
 
         //V-Sync
@@ -60,7 +60,7 @@ public class SettingsMenu : MonoBehaviour
             vSyncToggle,
             on => {
                 QualitySettings.vSyncCount = on ? 1 : 0;
-                Debug.Log($"[VSyncToggle] callback: on={on}, vSyncCount={QualitySettings.vSyncCount}");
+                Debug.Log($"🖥️ [VSYNC] on={on}, vSyncCount={QualitySettings.vSyncCount}");
             }
         );
         //Fullscreen On/Off
@@ -78,7 +78,7 @@ public class SettingsMenu : MonoBehaviour
                     ? FullScreenMode.FullScreenWindow
                     : FullScreenMode.Windowed;
                 Screen.SetResolution(w, h, full);
-                Debug.Log($"Resolução: {w}×{h} • Fullscreen: {full}");
+                Debug.Log($"🖥️ [RESOLUTION] {w}×{h} • Fullscreen={full}");
             }
         );
         
@@ -139,7 +139,7 @@ public class SettingsMenu : MonoBehaviour
             ? FullScreenMode.FullScreenWindow
             : FullScreenMode.Windowed;
         Screen.SetResolution(w, h, full);
-        Debug.Log($"Resolução: {w}×{h} • Fullscreen: {full}");
+        Debug.Log($"🖥️ [RESOLUTION] {w}×{h} • Fullscreen={full}");
     }
 
     void ApplyAA(int idx)
@@ -158,14 +158,14 @@ public class SettingsMenu : MonoBehaviour
             case 3: urp.msaaSampleCount = 8; break;  // 8×
             default: Debug.LogWarning("AA inválido: " + idx); break;
         }
-        Debug.Log("MSAA: " + urp.msaaSampleCount + "×");
+        Debug.Log($"🎨 [AA] MSAA = {urp.msaaSampleCount}×");
     }
     
     void ApplyRenderScale(float v)
     {
         var urp = (UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline;
         urp.renderScale = v;
-        Debug.Log(v);
+        Debug.Log($"🎨 [RENDER SCALE] {v}");
     }
     
 }

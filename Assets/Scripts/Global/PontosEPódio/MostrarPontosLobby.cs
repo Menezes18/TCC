@@ -10,7 +10,6 @@ public class MostrarPontosLobby : NetworkBehaviour, IObserverPontos
 
     void Awake()
     {
-        Debug.Log("Ativou aq");
         MyNetworkManager.manager.Adicionar(this);
     }
 
@@ -47,7 +46,6 @@ public class MostrarPontosLobby : NetworkBehaviour, IObserverPontos
     }
     public override void OnStopClient()
     {
-        Debug.Log("OnStopClient – dessinscrevendo observer");
         MyNetworkManager.manager.Retira(this);
         base.OnStopClient();
     }

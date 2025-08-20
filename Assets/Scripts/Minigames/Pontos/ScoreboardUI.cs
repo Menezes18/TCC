@@ -25,7 +25,7 @@ public class ScoreboardUI : NetworkBehaviour, IObserver
     {
         if (isServer)
         {
-            Debug.LogError("Estou criando");
+            Debug.Log("📊 [SCOREBOARD] Inicializando scoreboard no servidor");
             Dictionary<ulong, int> results = controller != null && controller.GetLiveScores().Count > 0
                 ? controller.GetLiveScores()
                 : MyNetworkManager.manager.lastGameResults;

@@ -60,8 +60,9 @@ public class LobbyController : NetworkBehaviour
 
     public void StartGameWithParty() 
     {
-        Debug.LogError(MyNetworkManager.manager.AllPlayersReady());
+        Debug.Log($"🎮 [LOBBY] AllPlayersReady? {MyNetworkManager.manager.AllPlayersReady()}");
         if(MyNetworkManager.manager.startGame){
+            Debug.Log("🎮 [LOBBY] Forçando início via CmdStartMath()");
             CmdStartMath();
             return;
         }
@@ -69,7 +70,7 @@ public class LobbyController : NetworkBehaviour
             
             CmdPrepareMath();
             MyNetworkManager.manager.startGame = true;
-            Debug.LogError("Game started");
+            Debug.Log("✅ [LOBBY] Game started");
         }
         
     }

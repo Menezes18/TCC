@@ -42,7 +42,7 @@ public class QuedaMinigameController : MinigameController, IObserver
         Adicionar(this);
         Notifica();
         
-        Debug.Log($"[Queda] Round iniciado com {alivePlayers.Count} jogadores.");
+        Debug.Log($"🎲 [QUEDA] Round iniciado com {alivePlayers.Count} jogadores");
         Invoke("AddPlayer", 2f);
     }
 
@@ -61,7 +61,7 @@ public class QuedaMinigameController : MinigameController, IObserver
     {
         alivePlayers.Remove(pd);
         eliminationOrder.Add(pd);
-        Debug.LogError($"[Sumo] Eliminado: {pd.playerInfo.steamId}");
+        Debug.LogWarning($"❌ [QUEDA] Eliminado: {pd.playerInfo.steamId}");
         Notifica();
         if (alivePlayers.Count <= 1)
         {

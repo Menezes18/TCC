@@ -125,7 +125,7 @@ public class BriefingManager : NetworkBehaviour
     public void UpdateAllClientsSlots()
     {
         var players = MyNetworkManager.manager.allClients;
-        Debug.LogError(MyNetworkManager.manager.allClients.Count);
+        Debug.Log($"🔢 [NETWORK] Clients conectados: {MyNetworkManager.manager.allClients.Count}");
         ulong[] steamIds = new ulong[players.Count];
         string[] aliases = new string[players.Count];
         int[] playerColor = new int[players.Count];
@@ -153,6 +153,7 @@ public class BriefingManager : NetworkBehaviour
     private void RpcShowBriefing(string syncedTitle, string syncedTip)
     {
         LoadingScreenUI.Instance?.Hide();
+        MyNetworkManager.manager?.RecordClientBriefingShown();
 
         titleText.text = syncedTitle;
         tipText.text   = syncedTip;
@@ -174,7 +175,7 @@ public class BriefingManager : NetworkBehaviour
 
         for (int i = 0; i < steamIds.Length; i++)
         {
-            Debug.LogError(steamIds[i] + " " + aliases[i] + " " + readyStates[i]);
+            Debug.Log($"🧪 [LOBBY] i={i} | steamId={steamIds[i]} | alias=\"{aliases[i]}\" | ready={readyStates[i]}");
             GameObject go = Instantiate(slotPrefab, slotsParent);
             SlotBriefing slot = go.GetComponent<SlotBriefing>();
             slot.InitSlot(steamIds[i], aliases[i], playerColor[i], readyStates[i]);

@@ -9,7 +9,7 @@ public class ServerFinishLine : NetworkBehaviour
 
     private void Start()
     {
-        Debug.LogError(this.gameObject.name);
+        Debug.Log($"🏁 [FINISH LINE] Ativado no objeto: {gameObject.name}");
     }
 
     void OnTriggerEnter(Collider other)

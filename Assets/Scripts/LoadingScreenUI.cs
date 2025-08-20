@@ -100,6 +100,9 @@ public class LoadingScreenUI : MonoBehaviour
 
         if (progressBar != null) progressBar.value = 1f;
         if (progressText != null) progressText.text = "Carregado. Aguardando jogadores...";
+
+        // Telemetry (client-side): finished tracking external load
+        Debug.Log("[Telemetry] client_loading_progress_done");
     }
 
     /// <summary>
