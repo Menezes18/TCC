@@ -40,7 +40,7 @@ public class ColorChangePanel : MonoBehaviour{
         for (int i = 0; i < db.playerColors.Count; i++)
         {
             Transform instance = Instantiate(_customButtonPrefab, _gridRoot);
-            CustomButton cb = instance.GetComponent<CustomButton>();
+            CustomButton cb = instance.GetComponentInChildren<CustomButton>();
             
             cb.Sprite.color = db.playerColors[i].color;
             buttons.Add(cb);
