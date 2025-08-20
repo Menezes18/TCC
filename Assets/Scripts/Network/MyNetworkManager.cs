@@ -363,6 +363,10 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         if (telemetryLogs)
             Debug.Log($"📊 [TELEMETRY] client_scene_change | scene={newSceneName} op={sceneOperation}");
 
+        // Ensure any modal/pop-up is closed during loading
+        if (PopupManager.instance != null)
+            PopupManager.instance.Popup_Close();
+
         if (LoadingScreenUI.Instance != null)
             StartCoroutine(ShowLoadingScreen());
     }
@@ -473,3 +477,5 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
 
 }
+
+

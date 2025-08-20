@@ -25,7 +25,7 @@ public class LoadNewScene : MonoBehaviour
         
         LoadingPanel.SetActive(true);
 
-        while (operation.isDone) 
+        while (!operation.isDone) 
         {
             float progressValue = Mathf.Clamp01(operation.progress / 0.9f);
 
