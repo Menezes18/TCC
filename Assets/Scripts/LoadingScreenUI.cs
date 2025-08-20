@@ -45,6 +45,7 @@ public class LoadingScreenUI : MonoBehaviour
                 var canvasGO = new GameObject("LoadingScreen_Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
                 var canvas = canvasGO.GetComponent<Canvas>();
                 canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvas.sortingOrder = 32767; // top-most
                 var scaler = canvasGO.GetComponent<CanvasScaler>();
                 scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
                 scaler.referenceResolution = new Vector2(1920, 1080);
@@ -53,8 +54,15 @@ public class LoadingScreenUI : MonoBehaviour
             }
             else
             {
+                parentCanvas.sortingOrder = 32767; // ensure on top
                 DontDestroyOnLoad(parentCanvas.gameObject);
             }
+
+            // If external panel exists but no slider/text, create them under panel
+            if (progressBar == null)
+                progressBar = CreateProgressBar(panel.transform);
+            if (progressText == null)
+                progressText = CreateProgressText(panel.transform);
 
             DontDestroyOnLoad(panel);
             panel.SetActive(false);
@@ -67,6 +75,7 @@ public class LoadingScreenUI : MonoBehaviour
     {
         targetSceneName = sceneName;
         if (panel != null) panel.SetActive(true);
+        if (progressBar != null) progressBar.gameObject.SetActive(true);
         StartCoroutine(LoadWithTimeout());
     }
 
@@ -104,6 +113,7 @@ public class LoadingScreenUI : MonoBehaviour
     public void Show(AsyncOperation externalOp)
     {
         if (panel != null) panel.SetActive(true);
+        if (progressBar != null) progressBar.gameObject.SetActive(true);
         StartCoroutine(TrackExternalOperation(externalOp));
     }
 
@@ -167,8 +177,24 @@ public class LoadingScreenUI : MonoBehaviour
         panelRect.offsetMax = Vector2.zero;
 
         // Progress bar with background and fill
+        var bar = CreateProgressBar(panelGO.transform);
+
+        // Progress text
+        var tmp = CreateProgressText(panelGO.transform);
+
+        // Assign references
+        panel = panelGO;
+        progressBar = bar;
+        progressText = tmp;
+
+        DontDestroyOnLoad(canvasGO);
+        DontDestroyOnLoad(panelGO);
+    }
+
+    private Slider CreateProgressBar(Transform parent)
+    {
         var barGO = new GameObject("ProgressBar", typeof(Slider));
-        barGO.transform.SetParent(panelGO.transform, false);
+        barGO.transform.SetParent(parent, false);
         var bar = barGO.GetComponent<Slider>();
         bar.transition = Selectable.Transition.None;
         bar.navigation = new Navigation { mode = Navigation.Mode.None };
@@ -214,10 +240,13 @@ public class LoadingScreenUI : MonoBehaviour
         // Connect slider visuals
         bar.fillRect = fillRect;
         bar.targetGraphic = fillImg;
+        return bar;
+    }
 
-        // Progress text
+    private TextMeshProUGUI CreateProgressText(Transform parent)
+    {
         var textGO = new GameObject("ProgressText", typeof(TextMeshProUGUI));
-        textGO.transform.SetParent(panelGO.transform, false);
+        textGO.transform.SetParent(parent, false);
         var tmp = textGO.GetComponent<TextMeshProUGUI>();
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.fontSize = 28f;
@@ -227,13 +256,6 @@ public class LoadingScreenUI : MonoBehaviour
         textRect.anchorMax = new Vector2(0.5f, 0.5f);
         textRect.anchoredPosition = new Vector2(0f, 20f);
         textRect.sizeDelta = new Vector2(800f, 60f);
-
-        // Assign references
-        panel = panelGO;
-        progressBar = bar;
-        progressText = tmp;
-
-        DontDestroyOnLoad(canvasGO);
-        DontDestroyOnLoad(panelGO);
+        return tmp;
     }
 }
