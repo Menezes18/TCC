@@ -9,8 +9,9 @@ public class LobbySlot : MonoBehaviour
 {
     [SerializeField] TMP_Text nameText;
     [SerializeField] Image readyIndicator;
-    [SerializeField] Image avatarImage;
+    [SerializeField] Image playerColor;
 
+    [SerializeField] Database database;
     private ulong steamId;
 
     public void Initialize(ulong id)
@@ -18,9 +19,10 @@ public class LobbySlot : MonoBehaviour
         steamId = id;
     }
 
-    public void Refresh(string alias, bool isReady)
+    public void Refresh(string alias, bool isReady, int colorPlayer)
     {
         nameText.text = alias;
         readyIndicator.color = isReady ? Color.green : Color.red;
+        playerColor.color = database.GetColor(colorPlayer);
     }
 }
