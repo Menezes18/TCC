@@ -136,24 +136,33 @@ public class SumoMinigameController : MinigameController, IObserver
     }
     public override void AssignFinalPoints()
     {
+        if (!isServer) return;
+
+        finalScores.Clear();
+        int posIndex = 0;
+
         if (alivePlayers.Count == 1)
         {
             var winner = alivePlayers[0];
-            finalScores[winner.playerInfo.steamId] = gameData.firstPlaceBonus;
+            finalScores[winner.playerInfo.steamId] =
+                (posIndex == 0) ? gameData.firstPlaceBonus : 0;
+            posIndex++;
         }
-        else if (alivePlayers.Count > 1)
+
+        for (int i = eliminationOrder.Count - 1; i >= 0; i--)
         {
-            foreach (var pdA in alivePlayers){
-                
-                finalScores[pdA.playerInfo.steamId] = gameData.firstPlaceBonus;
+            var pd = eliminationOrder[i];
+            int pts = 0;
+            switch (posIndex) // 0=1º, 1=2º, 2=3º, 3=4º
+            {
+                case 0: pts = gameData.firstPlaceBonus;  break;
+                case 1: pts = gameData.secondPlaceBonus; break;
+                case 2: pts = gameData.thirdPlaceBonus;  break;
+                case 3: pts = gameData.fourthPlaceBonus; break;
+                default: pts = 0; break;
             }
-        }
-        
-        for (int i = 0; i < eliminationOrder.Count; i++)
-        {
-            int pts = gameData.secondPlaceBonus;
-            var pd  = eliminationOrder[i];
             finalScores[pd.playerInfo.steamId] = pts;
+            posIndex++;
         }
     }
 
