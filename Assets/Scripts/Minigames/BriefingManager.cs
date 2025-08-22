@@ -192,6 +192,20 @@ public class BriefingManager : NetworkBehaviour
     }
     #endregion
 
+    // New: client notifies server that briefing is visible and this player is ready
+    [Command(requiresAuthority = false)]
+    public void CmdMarkClientReady(NetworkConnectionToClient sender = null)
+    {
+        if (!isServer) return;
+        if (sender == null) return;
+        var pd = sender.identity ? sender.identity.GetComponent<PlayerData>() : null;
+        if (pd == null) return;
+
+        pd.IsReady = true;
+        UpdateAllClientsSlots();
+        CheckAllReady();
+    }
+
     private void OnSlotsChanged(SyncListSlotData.Operation op, int index, SlotData oldData, SlotData newData)
     {
         RebuildAllSlots();

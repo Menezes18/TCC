@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Collections;
 using TMPro;
+using Mirror; // added
 
 public class LoadingScreenUI : MonoBehaviour
 {
@@ -15,17 +16,7 @@ public class LoadingScreenUI : MonoBehaviour
 
     private AsyncOperation op;
     private string targetSceneName;
-
-    // Ensure a singleton exists before any scene loads
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-    private static void EnsureInstance()
-    {
-        if (Instance == null)
-        {
-            var go = new GameObject("LoadingScreenUI");
-            go.AddComponent<LoadingScreenUI>();
-        }
-    }
+    private Coroutine progressRoutine; // added
 
     void Awake()
     {
@@ -109,42 +100,62 @@ public class LoadingScreenUI : MonoBehaviour
         op.allowSceneActivation = true;
     }
 
-    // Track an external AsyncOperation (e.g., Mirror)
-    public void Show(AsyncOperation externalOp)
+    // NEW: Mostrar a UI e acompanhar progresso quando o Mirror muda de cena
+    public void ShowForMirror()
     {
-        if (panel != null) panel.SetActive(true);
-        if (progressBar != null) progressBar.gameObject.SetActive(true);
-        StartCoroutine(TrackExternalOperation(externalOp));
+        if (panel != null)
+        {
+            if (progressBar != null) progressBar.value = 0f;
+            if (progressText != null) progressText.text = "0%";
+            panel.SetActive(true);
+        }
+
+        if (progressRoutine != null)
+            StopCoroutine(progressRoutine);
+
+        progressRoutine = StartCoroutine(TrackMirrorLoad());
     }
 
-    private IEnumerator TrackExternalOperation(AsyncOperation externalOp)
+    private IEnumerator TrackMirrorLoad()
     {
-        if (externalOp == null) yield break;
+        float elapsed = 0f;
+        float maxWait = 120f;
 
-        while (!externalOp.isDone)
+        // Aguarda Mirror criar a AsyncOperation
+        while (NetworkManager.loadingSceneAsync == null && elapsed < maxWait)
         {
-            float prog = Mathf.Clamp01(externalOp.progress / 0.9f);
-            if (progressBar != null) progressBar.value = prog;
-            if (progressText != null) progressText.text = $"{(int)(prog * 100)}%";
+            elapsed += Time.unscaledDeltaTime;
             yield return null;
         }
 
-        if (progressBar != null) progressBar.value = 1f;
-        if (progressText != null) progressText.text = "Carregado. Aguardando jogadores...";
-        Debug.Log("[Telemetry] client_loading_progress_done");
+        var async = NetworkManager.loadingSceneAsync;
+        if (async != null)
+        {
+            while (!async.isDone && elapsed < maxWait)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float raw = async.progress;
+                float prog = raw < 0.9f ? raw / 0.9f : 1f;
+                if (progressBar != null) progressBar.value = prog;
+                if (progressText != null) progressText.text = $"{(int)(prog * 100)}%";
+                yield return null;
+            }
+        }
+
+        // Mantém o painel visível; o MyNetworkManager ocultará ao terminar o load
+        progressRoutine = null;
     }
 
-    // Show waiting state for other players
-    public void ShowWaiting()
-    {
-        if (panel != null) panel.SetActive(true);
-        if (progressBar != null) progressBar.gameObject.SetActive(false);
-        if (progressText != null) progressText.text = "Aguardando jogadores...";
-    }
-
-    // Hide/reset for next use
+    /// <summary>
+    /// Caso você queira esconder manualmente em outro ponto.
+    /// </summary>
     public void Hide()
     {
+        if (progressRoutine != null)
+        {
+            StopCoroutine(progressRoutine);
+            progressRoutine = null;
+        }
         if (panel != null) panel.SetActive(false);
         if (progressBar != null)
         {

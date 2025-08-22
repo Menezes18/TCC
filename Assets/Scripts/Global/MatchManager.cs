@@ -69,11 +69,11 @@ public class MatchManager : NetworkBehaviour
         LeanTween.delayedCall(2.0f, () =>
         { 
             TeleportPlayer();
-            scoreRule = FindObjectOfType<MinigameController>() as IScoreRule;
+            scoreRule = FindFirstObjectByType<MinigameController>() as IScoreRule;
             
 
         });
-        scoreRule = FindObjectOfType<MinigameController>() as IScoreRule;
+        scoreRule = FindFirstObjectByType<MinigameController>() as IScoreRule;
         (scoreRule as MinigameController)?.SetupMiniGame();
         //InternalStartMatch();
 
@@ -199,6 +199,7 @@ public class MatchManager : NetworkBehaviour
             _activePlayers.Clear();
             _winnerPlayers .Clear();
             
+            // Centralized network scene change
             NetworkManager.singleton.ServerChangeScene("RASCUNHO");
             
             

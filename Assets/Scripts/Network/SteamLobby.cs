@@ -162,7 +162,11 @@ public class SteamLobby : MonoBehaviour
         PopupManager.instance.Popup_Show("Saindo da Partida", false, true);
         StartCoroutine(DelayAction(_delaySeconds, () => {
             SteamMatchmaking.LeaveLobby(LobbyID);
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            // Use centralized loading when leaving to menu
+            if (NetworkServer.active)
+                NetworkManager.singleton.ServerChangeScene(SceneManager.GetActiveScene().name);
+            else
+                LoadingScreenUI.Instance?.Show(SceneManager.GetActiveScene().name);
         }));
     }
 
@@ -222,4 +226,3 @@ public class SteamLobby : MonoBehaviour
         action?.Invoke();
     }
 }
-                   

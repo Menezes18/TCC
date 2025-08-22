@@ -43,22 +43,9 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     static ulong nextFakeId = 1;
     public List<IObserverPontos> _observers = new List<IObserverPontos>();
     public event Action onClientsChanged;
-
-    // Telemetry
-    [Header("Telemetry")]
-    [SerializeField] private bool telemetryLogs = true;
-    private float clientLoadStartTime = -1f;
-    private string clientTargetScene = null;
-    private float clientWaitingStartTime = -1f;
-    private float serverWaitStartTime = -1f;
-    private string serverSceneName = null;
-
-    [SerializeField] private float waitPlayersTimeout = 20f;
-    private int playersReadyInScene = 0;
-    private bool briefingPending = false;
-    private void Awake()
+    public override void Awake()
     {
-        MyNetworkManager[] managers = FindObjectsOfType<MyNetworkManager>();
+        var managers = FindObjectsByType<MyNetworkManager>(FindObjectsInactive.Include, FindObjectsSortMode.InstanceID);
 
         if (managers.Length > 1)
         {
@@ -353,135 +340,61 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         listaAleatoria();
     }
 
+    // ===== Mirror scene hooks to integrate loading UI and wait-for-all =====
     public override void OnClientChangeScene(string newSceneName, SceneOperation sceneOperation, bool customHandling)
     {
-        // NÃO use customHandling=true aqui; deixe o Mirror tocar o load.
+        LoadingScreenUI.Instance?.ShowForMirror();
         base.OnClientChangeScene(newSceneName, sceneOperation, customHandling);
-
-        clientLoadStartTime = Time.realtimeSinceStartup;
-        clientTargetScene = newSceneName;
-        if (telemetryLogs)
-            Debug.Log($"📊 [TELEMETRY] client_scene_change | scene={newSceneName} op={sceneOperation}");
-
-        if (LoadingScreenUI.Instance != null)
-            StartCoroutine(ShowLoadingScreen());
-    }
-
-    private IEnumerator ShowLoadingScreen()
-    {
-        // espera o Mirror inicializar a AsyncOperation
-        while (NetworkManager.loadingSceneAsync == null)
-            yield return null;
-
-        // entrega a AsyncOperation do Mirror para a UI
-        LoadingScreenUI.Instance.Show(NetworkManager.loadingSceneAsync);
     }
 
     public override void OnClientSceneChanged()
     {
+        LoadingScreenUI.Instance?.Hide();
         base.OnClientSceneChanged();
-        // Cena já carregada no cliente: troca barra por “Aguardando jogadores…”
-        LoadingScreenUI.Instance?.ShowWaiting();
-
-        if (telemetryLogs && clientLoadStartTime >= 0f)
-        {
-            float duration = Time.realtimeSinceStartup - clientLoadStartTime;
-            Debug.Log($"📊 [TELEMETRY] client_scene_loaded | scene={clientTargetScene} dur_ms={(int)(duration*1000f)}");
-        }
-        clientWaitingStartTime = Time.realtimeSinceStartup;
     }
 
     public override void OnServerSceneChanged(string sceneName)
     {
         base.OnServerSceneChanged(sceneName);
-        playersReadyInScene = 0;
-        briefingPending = false;
-
-        serverWaitStartTime = Time.time;
-        serverSceneName = sceneName;
-        if (telemetryLogs)
-            Debug.Log($"📊 [TELEMETRY] server_scene_changed | scene={sceneName}");
+        StartCoroutine(WaitAllConnectionsReadyThenStart());
     }
 
-    public override void OnServerReady(NetworkConnectionToClient conn)
+    private IEnumerator WaitAllConnectionsReadyThenStart()
     {
-        base.OnServerReady(conn);
-
-        playersReadyInScene++;
-
-        if (!briefingPending)
-        {
-            briefingPending = true;
-            StartCoroutine(ServerWaitForPlayers());
-        }
-
-        if (playersReadyInScene >= minJogadores)
-        {
-            BriefingManager.singleton?.RpcHideLoadingUI();
-            BeginBriefing("min_players");
-        }
-
-        if (telemetryLogs)
-            Debug.Log($"📊 [TELEMETRY] server_player_ready | ready={playersReadyInScene} min={minJogadores} total={allClients.Count}");
-    }
-
-    [Server]
-    private IEnumerator ServerWaitForPlayers()
-    {
-        float elapsed = 0f;
-        while (elapsed < waitPlayersTimeout && playersReadyInScene < minJogadores)
-        {
-            elapsed += Time.deltaTime;
+        // Wait until all authenticated connections became ready after the load
+        while (!AreAllConnectionsReady())
             yield return null;
-        }
-        string reason = playersReadyInScene >= minJogadores ? "min_players" : "timeout";
-        BriefingManager.singleton?.RpcHideLoadingUI();
-        BeginBriefing(reason);
+
+        Debug.Log("[MyNetworkManager] All clients loaded and are ready.");
+        // TODO: trigger match start or briefing end here
+        BriefingManager.singleton?.CheckAllReady();
     }
 
-    [Server]
-    private void BeginBriefing()
+    private bool AreAllConnectionsReady()
     {
-        if (!briefingPending) return;
-
-        briefingPending = false;
-        playersReadyInScene = 0;
-
-        // guarantee loading UI is hidden even if BriefingManager is missing
-        BriefingManager.singleton?.RpcHideLoadingUI();
-        // dispara o briefing; a UI de loading tambem e ocultada no RpcShowBriefing
-        // dispara o briefing; a UI de loading será ocultada no RpcShowBriefing
-        BriefingManager.singleton?.TriggerBriefing();
-    }
-
-    [Server]
-    private void BeginBriefing(string reason)
-    {
-        if (!briefingPending) return;
-
-        if (telemetryLogs)
+        foreach (var kvp in NetworkServer.connections)
         {
-            float waitMs = serverWaitStartTime > 0f ? (Time.time - serverWaitStartTime) * 1000f : -1f;
-            Debug.Log($"📊 [TELEMETRY] briefing_trigger | scene={serverSceneName} reason={reason} wait_ms={(int)waitMs} min={minJogadores}");
+            var conn = kvp.Value;
+            if (conn == null) continue;
+            if (!conn.isAuthenticated) return false;
+            if (!conn.isReady) return false;
         }
-
-        BeginBriefing();
+        return true;
     }
 
-    // Client-side log when briefing becomes visible
-    [Client]
+    // Called by clients right after briefing UI is shown (via RpcShowBriefing)
     public void RecordClientBriefingShown()
     {
-        if (!telemetryLogs) return;
-        float waitDur = clientWaitingStartTime > 0f ? (Time.realtimeSinceStartup - clientWaitingStartTime) : -1f;
-        Debug.Log($"📊 [TELEMETRY] client_wait_over | scene={clientTargetScene} wait_ms={(int)(waitDur*1000f)}");
-        clientWaitingStartTime = -1f;
+        // Redirect to BriefingManager's Command (requiresAuthority=false)
+        BriefingManager.singleton?.CmdMarkClientReady();
     }
 
-    [ClientRpc]
-    private void RpcHideLoadingUI()
+    [Server]
+    public void ServerMarkAllReady()
     {
-        LoadingScreenUI.Instance?.Hide();
+        foreach (var pd in allClients)
+            pd.IsReady = true;
+        BriefingManager.singleton?.UpdateAllClientsSlots();
+        BriefingManager.singleton?.CheckAllReady();
     }
 }
-
