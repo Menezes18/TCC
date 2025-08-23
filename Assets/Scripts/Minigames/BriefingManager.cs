@@ -187,8 +187,12 @@ public class BriefingManager : NetworkBehaviour
     [ClientRpc]
     private void RpcCloseBriefing()
     {
+        // Immediately hide UI for everyone
         StopAllCoroutines();
-        StartCoroutine(CloseAfterDelay());
+        canvasGroup.alpha = 0;
+        canvasGroup.interactable = false;
+        cameraBriefing.SetActive(true);
+        onBriefingEnded?.Invoke();
     }
     #endregion
 

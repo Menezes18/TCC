@@ -366,8 +366,9 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             yield return null;
 
         Debug.Log("[MyNetworkManager] All clients loaded and are ready.");
-        // TODO: trigger match start or briefing end here
-        BriefingManager.singleton?.CheckAllReady();
+        // Start the briefing flow so clients can confirm readiness
+        if (BriefingManager.singleton != null && NetworkServer.active)
+            BriefingManager.singleton.TriggerBriefing();
     }
 
     private bool AreAllConnectionsReady()
