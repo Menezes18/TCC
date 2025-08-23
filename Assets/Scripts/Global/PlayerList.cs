@@ -157,7 +157,7 @@ public class PlayerList : NetworkBehaviour{
     [Server]
     public void AtivarPlayer(bool ativar)
     {
-        var allPlayerData = FindObjectsOfType<PlayerData>();
+    var allPlayerData = FindObjectsByType<PlayerData>(FindObjectsSortMode.None);
 
         foreach (var data in allPlayerData)
         {

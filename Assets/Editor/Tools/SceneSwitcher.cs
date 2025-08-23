@@ -60,6 +60,11 @@ public class SceneManagerWindow : EditorWindow
 
     private void InitializeStyles()
     {
+        if (EditorStyles.boldLabel == null || EditorStyles.miniButton == null || EditorStyles.helpBox == null)
+        {
+            EditorApplication.delayCall += InitializeStyles;
+            return;
+        }
         headerStyle = new GUIStyle(EditorStyles.boldLabel)
         {
             alignment = TextAnchor.MiddleLeft,

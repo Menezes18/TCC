@@ -1,14 +1,13 @@
-using Org.BouncyCastle.Asn1.Cmp;
 using UnityEngine;
 
 public class CameraUmprior : MonoBehaviour
 {
-    public Camera camera;
+    public Camera cam;
     void Start()
     {
-        camera = GetComponent<Camera>();
-        //camera.enabled = false;
-        camera.targetDisplay = 2;
+        cam = GetComponent<Camera>();
+        //cam.enabled = false;
+        cam.targetDisplay = 2;
     }
 
     

@@ -37,7 +37,7 @@ public class SettingsMenu : MonoBehaviour
     {
         if (globalVolume == null)
         {
-            globalVolume = FindObjectOfType<Volume>();
+            globalVolume = FindAnyObjectByType<Volume>();
             if (globalVolume == null)
                 Debug.LogError("⚠️ [SETTINGS] Nenhum Volume encontrado na cena!");
         }

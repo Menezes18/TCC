@@ -3301,10 +3301,10 @@ namespace nTools.PrefabPainter
                                     rigidbody.Sleep();
                                 }
 
-                                if (rigidbody2D != null && rigidbody2D.isKinematic == false)
+                                if (rigidbody2D != null && rigidbody2D.bodyType != RigidbodyType2D.Kinematic)
                                 {
                                     m_ThrowTool.m_rigidbody2Ds.Add(rigidbody2D);
-                                    rigidbody2D.isKinematic = true;
+                                    rigidbody2D.bodyType = RigidbodyType2D.Kinematic;
                                     rigidbody2D.Sleep();
                                 }
                             });
@@ -3380,7 +3380,7 @@ namespace nTools.PrefabPainter
 
                     foreach (var rigidbody2D in m_ThrowTool.m_rigidbody2Ds.Where(rigidbody2D => rigidbody2D != null))
                     {
-                        rigidbody2D.isKinematic = false;
+                        rigidbody2D.bodyType = RigidbodyType2D.Dynamic;
                     }
 
                     #if UNITY_2022_2_OR_NEWER

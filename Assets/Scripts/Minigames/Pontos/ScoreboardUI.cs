@@ -15,7 +15,7 @@ public class ScoreboardUI : NetworkBehaviour, IObserver
     void Awake()
     {
         if (controller == null)
-            controller = FindObjectOfType<MinigameController>();
+            controller = FindAnyObjectByType<MinigameController>();
 
         if (controller != null)
             controller.Adicionar(this);
@@ -66,16 +66,11 @@ public class ScoreboardUI : NetworkBehaviour, IObserver
             pts[i] = score;
         }
 
-        RpcUpdateScoreboard(names, pts, colors);
+        // Dispatch the results via the Networked controller (spawned), not from this UI
+        controller?.RpcUpdateScoreboard(names, pts, colors);
     }
 
-    [ClientRpc]
-    void RpcUpdateScoreboard(string[] names, int[] points, int[] colors)
-    {
-        UpdateUI(names, points, colors);
-    }
-
-    void UpdateUI(string[] names, int[] points, int[] colors)
+    public void UpdateUI(string[] names, int[] points, int[] colors)
     {
         EnsureSlots(names.Length);
 

@@ -13,7 +13,7 @@ public abstract class MinigameController : NetworkBehaviour, IScoreRule, ISubjec
     
     
     [Server]
-    public void SetupMiniGame()
+    public virtual void SetupMiniGame()
     {
         BriefingManager.singleton.TriggerBriefing();
     }
@@ -45,6 +45,15 @@ public abstract class MinigameController : NetworkBehaviour, IScoreRule, ISubjec
             MyNetworkManager.manager.AddPoints(playerId, pontos);
             Debug.Log($"[MinigameController] Enviado {pontos} pontos para {playerId}");
         }
+    }
+
+    [ClientRpc]
+    public void RpcUpdateScoreboard(string[] names, int[] points, int[] colors)
+    {
+        // relay to UI on clients via runtime lookup
+        var ui = FindAnyObjectByType<ScoreboardUI>();
+        if (ui != null)
+            ui.UpdateUI(names, points, colors);
     }
     
     

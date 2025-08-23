@@ -44,7 +44,7 @@ public class StateManager : Singleton<StateManager>
         
         base.Awake();
 
-        inspectManager = FindObjectOfType<InspectManager>();
+    inspectManager = FindAnyObjectByType<InspectManager>();
         
         canvasControllerList = GetComponentsInChildren<StateController>().ToList();
         canvasControllerList.ForEach(x => x.gameObject.SetActive(false));
@@ -64,7 +64,7 @@ public class StateManager : Singleton<StateManager>
             ActiveCanvas.gameObject.SetActive(false);
         }
 
-        inspectManager.DeactiveInspector();
+    inspectManager?.DeactiveInspector();
 
         
 

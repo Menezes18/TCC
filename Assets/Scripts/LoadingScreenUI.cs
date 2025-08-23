@@ -221,6 +221,5 @@ public class LoadingScreenUI : MonoBehaviour
         progressBar = slider;
         progressText = tmp;
         panel.SetActive(false);
-        DontDestroyOnLoad(panel);
     }
 }

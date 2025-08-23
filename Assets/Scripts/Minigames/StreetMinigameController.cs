@@ -20,7 +20,7 @@ public class StreetMinigameController : MinigameController, IObserver
     private readonly List<ulong> _finishOrder = new();
     private PlayerList playerList => PlayerList.singleton;
     
-    public void SetupMiniGame()
+    public override void SetupMiniGame()
     {
         base.SetupMiniGame();
         

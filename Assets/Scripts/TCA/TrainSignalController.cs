@@ -54,7 +54,7 @@ public class TrainSignalController : NetworkBehaviour
     {
         if (trainLanes == null || trainLanes.Length == 0)
         {
-            trainLanes = FindObjectsOfType<VehicleLane>();
+            trainLanes = FindObjectsByType<VehicleLane>(FindObjectsSortMode.None);
         }
         
         foreach (var lane in trainLanes)

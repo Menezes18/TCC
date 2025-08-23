@@ -24,7 +24,7 @@ public class LobbyUI : MonoBehaviour
 
     public void RefreshLobby()
     {
-        var foundPlayerData = FindObjectsOfType<PlayerData>();
+        var foundPlayerData = FindObjectsByType<PlayerData>(FindObjectsSortMode.None);
         var seenIds = new HashSet<ulong>();
 
         foreach (var pd in foundPlayerData)

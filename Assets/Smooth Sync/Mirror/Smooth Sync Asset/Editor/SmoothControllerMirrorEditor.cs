@@ -16,7 +16,7 @@ namespace Smooth
 
         static void SceneOpenedCallback(Scene scene, OpenSceneMode mode)
         {
-            var netMan = GameObject.FindObjectOfType<NetworkManager>();
+            var netMan = Object.FindAnyObjectByType<NetworkManager>();
             if (netMan)
             {
                 if (!netMan.GetComponent<SmoothControllerMirror>())

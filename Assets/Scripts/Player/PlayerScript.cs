@@ -768,7 +768,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     private Transform FindSpectatorTarget()
     {
-        PlayerScript[] players = FindObjectsOfType<PlayerScript>();
+    PlayerScript[] players = FindObjectsByType<PlayerScript>(FindObjectsSortMode.None);
         foreach (var player in players)
         {
             if (player != this && player.State != PlayerState.Death)

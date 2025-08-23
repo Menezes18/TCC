@@ -28,7 +28,7 @@ public class QuedaMinigameController : MinigameController, IObserver
         base.StartMatch();
         Notifica();  
     }
-    public void SetupMiniGame()
+    public override void SetupMiniGame()
     {
         base.SetupMiniGame();
     }
