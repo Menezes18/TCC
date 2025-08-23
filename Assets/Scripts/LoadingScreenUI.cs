@@ -61,12 +61,16 @@ public class LoadingScreenUI : MonoBehaviour
         else Destroy(gameObject);
     }
 
+    public void SetMirrorTargetScene(string sceneName)
+    {
+        targetSceneName = sceneName;
+    }
+
     // Begin an internal async load (non-Mirror)
     public void Show(string sceneName)
     {
         targetSceneName = sceneName;
         if (panel != null) panel.SetActive(true);
-        if (progressBar != null) progressBar.gameObject.SetActive(true);
         StartCoroutine(LoadWithTimeout());
     }
 
@@ -120,6 +124,7 @@ public class LoadingScreenUI : MonoBehaviour
     {
         float elapsed = 0f;
         float maxWait = 120f;
+        float lastSent = 0f;
 
         // Aguarda Mirror criar a AsyncOperation
         while (NetworkManager.loadingSceneAsync == null && elapsed < maxWait)
@@ -138,6 +143,21 @@ public class LoadingScreenUI : MonoBehaviour
                 float prog = raw < 0.9f ? raw / 0.9f : 1f;
                 if (progressBar != null) progressBar.value = prog;
                 if (progressText != null) progressText.text = $"{(int)(prog * 100)}%";
+
+                // Reportar telemetria ao servidor (a cada ~0.25s)
+                if (Time.realtimeSinceStartup - lastSent > 0.25f && NetworkClient.active)
+                {
+                    lastSent = Time.realtimeSinceStartup;
+                    var conn = NetworkClient.connection;
+                    var id = conn != null ? conn.identity : null;
+                    var pd = id != null ? id.GetComponent<PlayerData>() : null;
+                    if (pd != null)
+                    {
+                        string scene = string.IsNullOrEmpty(targetSceneName) ? "" : targetSceneName;
+                        pd.CmdReportLoadProgress(scene, prog);
+                    }
+                }
+
                 yield return null;
             }
         }
@@ -157,12 +177,6 @@ public class LoadingScreenUI : MonoBehaviour
             progressRoutine = null;
         }
         if (panel != null) panel.SetActive(false);
-        if (progressBar != null)
-        {
-            progressBar.gameObject.SetActive(true);
-            progressBar.value = 0f;
-        }
-        if (progressText != null) progressText.text = string.Empty;
     }
 
     private void CreateDefaultUI()

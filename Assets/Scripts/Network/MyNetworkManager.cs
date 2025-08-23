@@ -40,6 +40,10 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public HSteamNetConnection steamConnection = HSteamNetConnection.Invalid;
     public bool startGame = false;
 
+    // Telemetry: per-client load progress and start times (server-side)
+    private readonly Dictionary<ulong, float> _clientLoadProgress = new();
+    private readonly Dictionary<ulong, float> _clientLoadStartTs = new();
+
     static ulong nextFakeId = 1;
     public List<IObserverPontos> _observers = new List<IObserverPontos>();
     public event Action onClientsChanged;
@@ -343,6 +347,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     // ===== Mirror scene hooks to integrate loading UI and wait-for-all =====
     public override void OnClientChangeScene(string newSceneName, SceneOperation sceneOperation, bool customHandling)
     {
+        LoadingScreenUI.Instance?.SetMirrorTargetScene(newSceneName);
         LoadingScreenUI.Instance?.ShowForMirror();
         base.OnClientChangeScene(newSceneName, sceneOperation, customHandling);
     }
@@ -356,19 +361,59 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public override void OnServerSceneChanged(string sceneName)
     {
         base.OnServerSceneChanged(sceneName);
+        // reset telemetry for new scene
+        _clientLoadProgress.Clear();
+        _clientLoadStartTs.Clear();
         StartCoroutine(WaitAllConnectionsReadyThenStart());
     }
 
     private IEnumerator WaitAllConnectionsReadyThenStart()
     {
+        float lastLog = 0f;
         // Wait until all authenticated connections became ready after the load
         while (!AreAllConnectionsReady())
+        {
+            // every ~1s, log a telemetry snapshot
+            if (Time.realtimeSinceStartup - lastLog > 1f)
+            {
+                lastLog = Time.realtimeSinceStartup;
+                LogProgressSnapshot();
+            }
             yield return null;
+        }
 
         Debug.Log("[MyNetworkManager] All clients loaded and are ready.");
+        LogProgressSnapshot(final: true);
         // Start the briefing flow so clients can confirm readiness
         if (BriefingManager.singleton != null && NetworkServer.active)
             BriefingManager.singleton.TriggerBriefing();
+    }
+
+    private void LogProgressSnapshot(bool final = false)
+    {
+        // Build readable telemetry per player
+        var list = PlayerList.singleton?.players;
+        if (list == null) return;
+        List<string> lines = new List<string>();
+        float min = 1f, max = 0f, sum = 0f; int count = 0;
+        foreach (var pd in list)
+        {
+            ulong sid = pd.playerInfo.steamId;
+            string alias = string.IsNullOrEmpty(pd.alias) ? sid.ToString() : pd.alias;
+            float prog = _clientLoadProgress.TryGetValue(sid, out var p) ? p : 0f;
+            min = Mathf.Min(min, prog); max = Mathf.Max(max, prog); sum += prog; count++;
+            float startTs = _clientLoadStartTs.TryGetValue(sid, out var ts) ? ts : -1f;
+            string dur = "";
+            if (final && startTs >= 0f)
+            {
+                float total = Time.realtimeSinceStartup - startTs;
+                dur = $" | took {total:0.00}s";
+            }
+            lines.Add($" - {alias} ({sid}): {(int)(prog*100)}%{dur}");
+        }
+        float avg = count > 0 ? sum / count : 0f;
+        string header = final ? "[Telemetry] Final load progress:" : "[Telemetry] Load progress:";
+        Debug.Log(header + $" min={(int)(min*100)}% avg={(int)(avg*100)}% max={(int)(max*100)}%\n" + string.Join("\n", lines));
     }
 
     private bool AreAllConnectionsReady()
@@ -397,5 +442,23 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             pd.IsReady = true;
         BriefingManager.singleton?.UpdateAllClientsSlots();
         BriefingManager.singleton?.CheckAllReady();
+    }
+
+    // [Server] entrypoint for per-client progress reports
+    [Server]
+    public void ServerRecordClientLoadProgress(ulong steamId, string sceneName, float progress)
+    {
+        if (!_clientLoadStartTs.ContainsKey(steamId))
+        {
+            _clientLoadStartTs[steamId] = Time.realtimeSinceStartup;
+            Debug.Log($"[Telemetry] Client {steamId} started loading '{sceneName}'");
+        }
+        _clientLoadProgress[steamId] = Mathf.Clamp01(progress);
+        if (progress >= 0.999f)
+        {
+            float start = _clientLoadStartTs.TryGetValue(steamId, out var ts) ? ts : Time.realtimeSinceStartup;
+            float dur = Time.realtimeSinceStartup - start;
+            Debug.Log($"[Telemetry] Client {steamId} finished loading '{sceneName}' in {dur:0.00}s");
+        }
     }
 }
