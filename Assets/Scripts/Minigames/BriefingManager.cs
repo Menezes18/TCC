@@ -48,13 +48,14 @@ public class BriefingManager : NetworkBehaviour
     {
         base.OnStartClient();
         slots.Callback += OnSlotsChanged;
-        PlayerList.singleton.AtivarPlayer(true);
-        canvasGroup.alpha = 1;
+        // Não chamar funções [Server] e não forçar a UI ficar visível aqui
+        canvasGroup.alpha = 0; // começa escondido; será mostrado via RPC
+        canvasGroup.interactable = false;
     }
 
     private void Start()
     {
-        MyNetworkManager.manager.ResetAllPlayersReady();
+        // Não resetar prontos no Start do cliente; o servidor faz isso em TriggerBriefing
     }
 
     public void CheckAllReady()
@@ -245,9 +246,8 @@ public class BriefingManager : NetworkBehaviour
 
     private void OnBriefingToggleChanged(bool oldVal, bool newVal)
     {
-        Debug.Log("[Briefing] OnBriefingToggleChanged -> ShowLocalBriefing");
-        CmdAtivarPlayersNoServer(true);
-        ShowLocalBriefing();
+        // Não mostrar a UI aqui; servidor chama RpcShowBriefing explicitamente
+        Debug.Log("[Briefing] OnBriefingToggleChanged");
     }
 
     public class SyncListSlotData : SyncList<SlotData> { }

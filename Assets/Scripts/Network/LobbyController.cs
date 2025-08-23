@@ -39,6 +39,7 @@ public class LobbyController : NetworkBehaviour
 
     private void Update()
     {
+        if (!isServer) return; // server-authoritative update
         
         if (_prepareTimer > 0)
             _prepareTimer -= Time.deltaTime;
@@ -124,6 +125,7 @@ public class LobbyController : NetworkBehaviour
 
     void ChangeToRandomMinigame()
     {
+        if (!isServer) return; // only server may change scenes
         NetworkManager.singleton.ServerChangeScene(MyNetworkManager.manager.minigames[MyNetworkManager.manager.indexScene]);
         MyNetworkManager.manager.indexScene++;
         //MyNetworkManager.manager.ChangeScenePlayer(PlayerList.singleton.players[0],sceneToLoad);
