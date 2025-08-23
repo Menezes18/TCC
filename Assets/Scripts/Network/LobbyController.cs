@@ -39,6 +39,7 @@ public class LobbyController : NetworkBehaviour
 
     private void Update()
     {
+        if (!isServer) return; // server-authoritative update
         
         if (_prepareTimer > 0)
             _prepareTimer -= Time.deltaTime;
@@ -60,8 +61,9 @@ public class LobbyController : NetworkBehaviour
 
     public void StartGameWithParty() 
     {
-        Debug.LogError(MyNetworkManager.manager.AllPlayersReady());
+        Debug.Log($"🎮 [LOBBY] AllPlayersReady? {MyNetworkManager.manager.AllPlayersReady()}");
         if(MyNetworkManager.manager.startGame){
+            Debug.Log("🎮 [LOBBY] Forçando início via CmdStartMath()");
             CmdStartMath();
             return;
         }
@@ -69,7 +71,7 @@ public class LobbyController : NetworkBehaviour
             
             CmdPrepareMath();
             MyNetworkManager.manager.startGame = true;
-            Debug.LogError("Game started");
+            Debug.Log("✅ [LOBBY] Game started");
         }
         
     }
@@ -123,6 +125,7 @@ public class LobbyController : NetworkBehaviour
 
     void ChangeToRandomMinigame()
     {
+        if (!isServer) return; // only server may change scenes
         NetworkManager.singleton.ServerChangeScene(MyNetworkManager.manager.minigames[MyNetworkManager.manager.indexScene]);
         MyNetworkManager.manager.indexScene++;
         //MyNetworkManager.manager.ChangeScenePlayer(PlayerList.singleton.players[0],sceneToLoad);

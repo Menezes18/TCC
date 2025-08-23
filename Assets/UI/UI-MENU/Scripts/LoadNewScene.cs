@@ -4,6 +4,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Mirror;
 
 public class LoadNewScene : MonoBehaviour
 {
@@ -13,25 +14,14 @@ public class LoadNewScene : MonoBehaviour
     
     public void LoadANewScene(string scene)
     {
-       
-        StartCoroutine(LoadSceneAsync(scene));
-        
-    }
-
-    IEnumerator LoadSceneAsync(string scene)
-    {
-        AsyncOperation operation = SceneManager.LoadSceneAsync(scene);
-
-        
-        LoadingPanel.SetActive(true);
-
-        while (operation.isDone) 
+        // If we are the server (host or dedicated), change scene for everyone via Mirror
+        if (NetworkServer.active)
         {
-            float progressValue = Mathf.Clamp01(operation.progress / 0.9f);
-
-            LoadingBar.fillAmount = progressValue;
-
-            yield return null;
+            NetworkManager.singleton.ServerChangeScene(scene);
+            return;
         }
+        
+        // Otherwise, local load with the centralized LoadingScreenUI
+        LoadingScreenUI.Instance?.Show(scene);
     }
 }

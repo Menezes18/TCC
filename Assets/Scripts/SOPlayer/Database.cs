@@ -75,9 +75,20 @@ public class Database : ScriptableObject{
     public float serverMatchDuration;
     public float serverStartMatchDuration;
 
-
     public Color GetColor(int index)
     {
+        if (playerColors == null || playerColors.Count == 0)
+        {
+             Debug.LogWarning("🎨 [Database.GetColor] Lista playerColors está nula ou vazia. Usando Color.white como fallback.");
+            return Color.white;
+        }
+
+        if (index < 0 || index >= playerColors.Count)
+        {
+            Debug.LogWarning($"🎨 [Database.GetColor] Índice inválido ({index}). " + $"Intervalo válido: 0..{playerColors.Count - 1}. " + "Clamping aplicado.");
+            index = Mathf.Clamp(index, 0, playerColors.Count - 1);
+        }
+
         return playerColors[index].color;
     }
 

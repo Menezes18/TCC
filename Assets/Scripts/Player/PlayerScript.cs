@@ -61,7 +61,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         set {
             if (_status == value) return;
 
-            Debug.LogError(_status + " -> " + value);
+            Debug.Log($"🔄 [STATUS] {_status} → {value}");
             _animator.SetInteger(_STATUS, (int)value);
             _status = value;
 
@@ -282,7 +282,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
                 });
             }
             else{
-                Debug.LogError("BriefingManager");
+                Debug.Log("🧭 [BRIEFING] BriefingManager");
                 BriefingManager.singleton?.CheckAllReady();
             }
         }
@@ -302,7 +302,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
              float weight = CustomMath.Normalized01(_rollTimer, db.playerMaxAirSpeed, 0f);
              float range = db.playerRollCurve.Evaluate(weight);
-             Debug.LogError(weight + " -> " + range);
+             Debug.Log(weight + " -> " + range);
              Vector3 horizontal = _roll;
              horizontal = Quaternion.Euler(rot) * horizontal;
              horizontal *= db.playerRollSpeed * range;
@@ -617,7 +617,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             this.netIdentity
         );
 
-        Debug.Log("teste instancer Player");
+        Debug.Log("✅ [SPAWN] Teste: instanciar Player");
         // _throwCooldown = db.playerThrowCooldown;
     }
 
@@ -631,7 +631,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     //
     private void OnStateChanged(PlayerState oldState, PlayerState newState)
     {
-        Debug.LogError(oldState + " -> " + newState);
+        Debug.Log($"🔁 [STATE] {oldState} → {newState}");
 
         if (oldState == PlayerState.Roll)
             _rollCooldown = db.playerRollCooldownDuration;
@@ -736,7 +736,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public void CmdChangeSensitivity(float normalized)
     {
         sensibilidade = Mathf.Lerp(0f, 25f, normalized);
-        Debug.Log($"[Server] Sensibilidade ajustada para {sensibilidade}");
+        Debug.LogWarning($"🛠️ [SERVER] Sensibilidade ajustada para {sensibilidade}");
     }
     public void RequestSensitivityChange(float normalized)
     {
@@ -794,7 +794,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             transform.position = position;
         }
 
-        Debug.Log($"[CLIENT] Player {netId} respawned at {position}");
+        Debug.Log($"🎮 [CLIENT] Player {netId} respawned @ {position}");
     }
 
     // isso
@@ -850,7 +850,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [Command]
     void CmdDeath()
     {
-        Debug.LogError("CmdDeath");
+        Debug.LogWarning("⚠️ [CMD] Death");
         this.EventOnDeathServerSide?.Invoke();
         RpcOnDeath();
     }
@@ -858,7 +858,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [ClientRpc]
     public void RpcOnDeath()
     {
-        Debug.LogError("RpcOnOnDeath called");
+        Debug.Log("📡 [RPC] OnDeath()");
         this.EventOnDeath?.Invoke();
 
     }
@@ -866,7 +866,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [ClientRpc]
     public void RpcOnRespawn()
     {
-        Debug.LogError("RpcOnRespawn");
+        Debug.Log("📡 [RPC] OnRespawn()");
         this.EventOnRespawn?.Invoke();
 
         if (base.isOwned == false) return;

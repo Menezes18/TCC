@@ -41,7 +41,8 @@ public class ChegadaPodio : MonoBehaviour, IObserver
         if (podio.Count >= jogadoresEsperados)
         {
             DistribuirPontos();
-            //NetworkManager.singleton.ServerChangeScene("Vitoria");
+            // scene progression centralized elsewhere; server can decide when to change scene
+            // NetworkManager.singleton.ServerChangeScene("Vitoria");
         }
     }
 
@@ -93,6 +94,7 @@ public class ChegadaPodio : MonoBehaviour, IObserver
                 Debug.Log($"SOBREVIVENTE {sobrevivente.playerInfo.steamId} recebeu {pontosBase} pontos");
             }
             
+            // Final scene flow should be orchestrated centrally (e.g., MatchManager)
             NetworkManager.singleton.ServerChangeScene("Vitoria");
         }
     }

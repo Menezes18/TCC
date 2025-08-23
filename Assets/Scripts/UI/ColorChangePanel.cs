@@ -18,8 +18,8 @@ public class ColorChangePanel : MonoBehaviour{
 
     private void Awake()
     {
-        Debug.LogError(db);
-        Debug.LogError($"DB tem {db.playerColors.Count} cores");
+        Debug.Log($"📂 [DB] Ref = {db}"); 
+        Debug.Log($"📂 [DB] Total de cores = {db.playerColors.Count}");
         CreateButtons();
     }
 

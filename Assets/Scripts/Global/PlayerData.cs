@@ -134,7 +134,6 @@ public class PlayerData : NetworkBehaviour{
    [Command]
    void CmdNetworkAlias()
    {
-      string chosenName;
       if (SteamManager.Initialized)
       {
          CSteamID myId = SteamUser.GetSteamID();
@@ -144,7 +143,7 @@ public class PlayerData : NetworkBehaviour{
       }
       else
       {
-         chosenName = "Mamaco";
+         // fallback name could be set here if needed
       }
 
 
@@ -255,6 +254,12 @@ public class PlayerData : NetworkBehaviour{
       
       BriefingManager.singleton?.CheckAllReady();
       BriefingManager.singleton?.UpdateAllClientsSlots();
+   }
+
+   [Command]
+   public void CmdReportLoadProgress(string scene, float progress)
+   {
+      MyNetworkManager.manager?.ServerRecordClientLoadProgress(playerInfo.steamId, scene, progress);
    }
    #endregion
    

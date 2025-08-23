@@ -69,11 +69,11 @@ public class MatchManager : NetworkBehaviour
         LeanTween.delayedCall(2.0f, () =>
         { 
             TeleportPlayer();
-            scoreRule = FindObjectOfType<MinigameController>() as IScoreRule;
+            scoreRule = FindFirstObjectByType<MinigameController>() as IScoreRule;
             
 
         });
-        scoreRule = FindObjectOfType<MinigameController>() as IScoreRule;
+        scoreRule = FindFirstObjectByType<MinigameController>() as IScoreRule;
         (scoreRule as MinigameController)?.SetupMiniGame();
         //InternalStartMatch();
 
@@ -103,7 +103,7 @@ public class MatchManager : NetworkBehaviour
             // efeito talvez
             // ou som
             // mas é aqui 
-            Debug.LogError("Acabou");
+            Debug.Log("⏳ [MATCH] FreezeTime acabou, iniciando partida");
             (scoreRule as MinigameController)?.StartMatch();
             
             _freezeTimer = -1;
@@ -174,7 +174,7 @@ public class MatchManager : NetworkBehaviour
     [Server]
     public void InternalEndMatch()
     {
-        Debug.LogError("Acabou o endMatch");
+        Debug.Log("🏁 [MATCH] Fim de partida – encerrando e atribuindo pontos");
         _matchHasStarted = false;
         _matchTimer = -1;
         _freezeTimer = -1;
@@ -199,6 +199,7 @@ public class MatchManager : NetworkBehaviour
             _activePlayers.Clear();
             _winnerPlayers .Clear();
             
+            // Centralized network scene change
             NetworkManager.singleton.ServerChangeScene("RASCUNHO");
             
             

@@ -1,11 +1,12 @@
 using System;
 using System.Collections;
-using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
-using UnityEngine.Events;
-using Mirror;
 using System.Collections.Generic;
+using Mirror;
+using TMPro;
+using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.UI;
+using System.Linq;
 
 public class BriefingManager : NetworkBehaviour
 {
@@ -19,73 +20,84 @@ public class BriefingManager : NetworkBehaviour
     #endregion
 
     [Header("UI")]
-    [SerializeField] CanvasGroup canvasGroup;
-    [SerializeField] Image imageUI;
-    [SerializeField] TextMeshProUGUI titleText;
-    [SerializeField] TextMeshProUGUI tipText;
-    [SerializeField] GameObject cameraBriefing;
-    [SerializeField] float briefingDuration = 5f;
+    [SerializeField] private CanvasGroup canvasGroup;
+    [SerializeField] private Image imageUI;
+    [SerializeField] private TextMeshProUGUI titleText;
+    [SerializeField] private TextMeshProUGUI tipText;
+    [SerializeField] private GameObject cameraBriefing;
+    [SerializeField] private float briefingDuration = 5f;
     [SerializeField] private BriefingScreenSO data;
     public UnityEvent onBriefingStarted;
     public UnityEvent onBriefingEnded;
-    
+
     [SyncVar(hook = nameof(OnBriefingToggleChanged))]
     private bool briefingToggle;
-    
-    [SyncVar] Sprite syncSprite;
-    [SyncVar] string syncTitle;
-    [SyncVar] string syncTip;
-    [SyncVar] int tipIndex;
-    [SyncVar] bool briefingStarted = false;
-    
+
+    [SyncVar] private Sprite syncSprite;
+    [SyncVar] private string syncTitle;
+    [SyncVar] private string syncTip;
+    [SyncVar] private int tipIndex;
+    [SyncVar] private bool briefingStarted = false;
+
     [Header("Slots de Jogadores")]
     [SerializeField] private GameObject slotPrefab;
     [SerializeField] private Transform slotsParent;
-    private Dictionary<ulong, GameObject> slotsById = new();
+    private readonly Dictionary<ulong, GameObject> slotsById = new();
     public readonly SyncListSlotData slots = new SyncListSlotData();
+
+    // Server-side tracking: who already displayed the briefing
+    private readonly HashSet<int> _briefingAcks = new HashSet<int>();
+    [SyncVar] private int expectedBriefingAcks = 0;
+    [SyncVar] private int receivedBriefingAcks = 0;
+
     public override void OnStartClient()
     {
         base.OnStartClient();
         slots.Callback += OnSlotsChanged;
-        PlayerList.singleton.AtivarPlayer(true);
-        canvasGroup.alpha = 1;
+        // Não chamar funções [Server] e não forçar a UI ficar visível aqui
+        canvasGroup.alpha = 0; // começa escondido; será mostrado via RPC
+        canvasGroup.interactable = false;
     }
 
     private void Start()
     {
-        MyNetworkManager.manager.ResetAllPlayersReady();
+        // Não resetar prontos no Start do cliente; o servidor faz isso em TriggerBriefing
     }
 
     public void CheckAllReady()
     {
-        if (!isServer) return;
-        if (briefingStarted) return;
-        
-        bool allReady = MyNetworkManager.manager.AllPlayersReady();
-       //bool allReady = false;
-       
+        if (!isServer) { Debug.Log("[Briefing] CheckAllReady called on client, ignoring"); return; }
+        if (briefingStarted) { Debug.Log("[Briefing] Already started, ignoring"); return; }
+
+        var (ready, total) = MyNetworkManager.manager.GetReadyCounts();
+        bool allReady = ready == total && total > 0;
+        Debug.Log($"[Briefing] Ready {ready}/{total} | allReady={allReady}");
         if (!allReady) return;
+        // Reativa movimento antes de fechar briefing
+        PlayerList.singleton.AtivarPlayer(true);
         CmdFinishBriefing();
         RpcCloseBriefing();
+        Debug.Log("[Briefing] RpcCloseBriefing dispatched");
     }
+
     private void ShowLocalBriefing()
     {
         imageUI.sprite = data.image;
         titleText.text = data.title;
         tipText.text = data.tips[tipIndex];
         canvasGroup.alpha = 1;
-        canvasGroup.interactable = true;
-
+        // Interação ficará bloqueada até todos clientes entrarem
+        canvasGroup.interactable = false;
         onBriefingStarted?.Invoke();
         StopAllCoroutines();
     }
+
     private void ClearAllSlots()
     {
         foreach (Transform child in slotsParent)
-        {
             Destroy(child.gameObject);
-        }
     }
+
     private void RebuildAllSlots()
     {
         foreach (Transform c in slotsParent)
@@ -97,35 +109,35 @@ public class BriefingManager : NetworkBehaviour
             go.GetComponent<SlotBriefing>().InitSlot(sd.steamId, sd.alias, sd.color, sd.isReady);
         }
     }
+
     private IEnumerator CloseAfterDelay()
     {
-        //yield return new WaitForSeconds(10f);
         yield return new WaitForSeconds(briefingDuration);
-
         canvasGroup.alpha = 0;
         canvasGroup.interactable = false;
         cameraBriefing.SetActive(true);
         onBriefingEnded?.Invoke();
     }
+
     [Command(requiresAuthority = false)]
     private void CmdFinishBriefing()
     {
         if (!briefingStarted)
             briefingStarted = true;
     }
-    #region Server && Comand 
-    
+
+    #region Server && Command
     [Command(requiresAuthority = false)]
     public void CmdAtivarPlayersNoServer(bool ativar)
     {
-        
         PlayerList.singleton.AtivarPlayer(ativar);
     }
+
     [Server]
     public void UpdateAllClientsSlots()
     {
         var players = MyNetworkManager.manager.allClients;
-        Debug.LogError(MyNetworkManager.manager.allClients.Count);
+        Debug.Log($"�[NETWORK] Clients conectados: {players.Count}");
         ulong[] steamIds = new ulong[players.Count];
         string[] aliases = new string[players.Count];
         int[] playerColor = new int[players.Count];
@@ -137,88 +149,168 @@ public class BriefingManager : NetworkBehaviour
             aliases[i] = players[i].alias;
             playerColor[i] = players[i].color;
             readyStates[i] = players[i].IsReady;
-            
         }
 
         RpcRefreshAllSlots(steamIds, aliases, playerColor, readyStates);
     }
+
     [Server]
     public void TriggerBriefing()
     {
+        // Reset readiness e reconstrói UI antes de mostrar briefing
+        MyNetworkManager.manager.ResetAllPlayersReady();
+        UpdateAllClientsSlots();
         tipIndex = UnityEngine.Random.Range(0, data.tips.Length);
         briefingToggle = !briefingToggle;
+
+        // Congela movimento enquanto briefing estiver ativo
+        PlayerList.singleton.AtivarPlayer(false);
+
+        // Reseta acks e define quantos clientes esperamos
+        _briefingAcks.Clear();
+        expectedBriefingAcks = MyNetworkManager.manager.allClients.Count;
+        receivedBriefingAcks = 0;
+
         RpcShowBriefing(data.title, data.tips[tipIndex]);
+        // Bloqueia interação até todos confirmarem que entraram
+        RpcSetReadyInteractable(false);
+
+        Debug.Log("[Briefing] TriggerBriefing -> reset ready, freeze players and RpcShowBriefing");
     }
+
     [ClientRpc]
     private void RpcShowBriefing(string syncedTitle, string syncedTip)
     {
+        Debug.Log("[Briefing] RpcShowBriefing");
+        LoadingScreenUI.Instance?.Hide();
+
         titleText.text = syncedTitle;
-        tipText.text   = syncedTip;
-        canvasGroup.alpha      = 1;
-        canvasGroup.interactable = true;
+        tipText.text = syncedTip;
+        canvasGroup.alpha = 1;
+        // Começa sem interação; será liberado quando todos entrarem
+        canvasGroup.interactable = false;
         onBriefingStarted?.Invoke();
-        
         StopAllCoroutines();
+
+        // Informa ao servidor que este cliente exibiu o briefing
+        CmdAckBriefingShown();
     }
-    
     #endregion
 
     #region ClientRPC
-    
+    [ClientRpc]
+    public void RpcHideLoadingUI()
+    {
+        LoadingScreenUI.Instance?.Hide();
+    }
+
     [ClientRpc]
     private void RpcRefreshAllSlots(ulong[] steamIds, string[] aliases, int[] playerColor, bool[] readyStates)
     {
-        ClearAllSlots(); 
-
+        ClearAllSlots();
         for (int i = 0; i < steamIds.Length; i++)
         {
-            Debug.LogError(steamIds[i] + " " + aliases[i] + " " + readyStates[i]);
+            Debug.Log($"�Y�� [LOBBY] i={i} | steamId={steamIds[i]} | alias=\"{aliases[i]}\" | ready={readyStates[i]}");
             GameObject go = Instantiate(slotPrefab, slotsParent);
             SlotBriefing slot = go.GetComponent<SlotBriefing>();
             slot.InitSlot(steamIds[i], aliases[i], playerColor[i], readyStates[i]);
         }
     }
+
     [ClientRpc]
-    void RpcCloseBriefing()
+    private void RpcCloseBriefing()
     {
+        Debug.Log("[Briefing] RpcCloseBriefing received");
+        // Esconde UI para todos
         StopAllCoroutines();
-        StartCoroutine(CloseAfterDelay());
+        canvasGroup.alpha = 0;
+        canvasGroup.interactable = false;
+        cameraBriefing.SetActive(true);
+        onBriefingEnded?.Invoke();
+    }
+
+    [ClientRpc]
+    private void RpcSetReadyInteractable(bool canInteract)
+    {
+        // Permite/nega interação na UI do briefing (ex: botão de pronto)
+        canvasGroup.interactable = canInteract;
     }
     #endregion
+
+    // Novo: cliente confirma que o briefing apareceu
+    [Command(requiresAuthority = false)]
+    private void CmdAckBriefingShown(NetworkConnectionToClient sender = null)
+    {
+        if (!isServer || sender == null) return;
+        if (_briefingAcks.Add(sender.connectionId))
+        {
+            receivedBriefingAcks = _briefingAcks.Count;
+            Debug.Log($"[Briefing] Ack from connId={sender.connectionId} ({receivedBriefingAcks}/{expectedBriefingAcks})");
+            if (receivedBriefingAcks >= expectedBriefingAcks && expectedBriefingAcks > 0)
+            {
+                // Todos entraram: liberar interação para que os jogadores possam ficar prontos
+                RpcSetReadyInteractable(true);
+            }
+        }
+    }
+
+    // Novo: jogador tenta marcar pronto; bloqueia se nem todos entraram
+    [Command(requiresAuthority = false)]
+    public void CmdMarkClientReady(NetworkConnectionToClient sender = null)
+    {
+        if (!isServer) return;
+        if (sender == null) return;
+
+        // Impede ficar pronto enquanto todos não tiverem entrado no briefing
+        if (_briefingAcks.Count < expectedBriefingAcks || expectedBriefingAcks == 0)
+        {
+            Debug.Log("[Briefing] Ready ignored: nem todos os clientes entraram no briefing ainda");
+            return;
+        }
+
+        var pd = sender.identity ? sender.identity.GetComponent<PlayerData>() : null;
+        if (pd == null) return;
+
+        pd.IsReady = true;
+        UpdateAllClientsSlots();
+        CheckAllReady();
+    }
+
     private void OnSlotsChanged(SyncListSlotData.Operation op, int index, SlotData oldData, SlotData newData)
     {
         RebuildAllSlots();
     }
+
     private void OnBriefingToggleChanged(bool oldVal, bool newVal)
     {
-        CmdAtivarPlayersNoServer(true);
-        ShowLocalBriefing();
+        // Não mostrar a UI aqui; servidor chama RpcShowBriefing explicitamente
+        Debug.Log("[Briefing] OnBriefingToggleChanged");
     }
+
     public class SyncListSlotData : SyncList<SlotData> { }
 }
 
 #region SlotData
+[Serializable]
+public struct SlotData : IEquatable<SlotData>
+{
+    public ulong steamId;
+    public string alias;
+    public bool isReady;
+    public int color;
 
-    [Serializable]
-    public struct SlotData : IEquatable<SlotData>
+    public SlotData(ulong steamId, string alias, bool isReady, int color)
     {
-        public ulong steamId;
-        public string alias;
-        public bool isReady;
-        public int color;
-        public SlotData(ulong steamId, string alias, bool isReady, int color)
-        {
-            this.steamId = steamId;
-            this.alias = alias;
-            this.isReady = isReady;
-            this.color = color;
-        }
-
-        public bool Equals(SlotData other)
-        {
-            return steamId == other.steamId
-                   && alias == other.alias
-                   && isReady == other.isReady;
-        }
+        this.steamId = steamId;
+        this.alias = alias;
+        this.isReady = isReady;
+        this.color = color;
     }
-    #endregion
+
+    public bool Equals(SlotData other)
+    {
+        return steamId == other.steamId && alias == other.alias && isReady == other.isReady;
+    }
+}
+#endregion
+
