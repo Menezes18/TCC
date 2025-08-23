@@ -111,7 +111,6 @@ public class LoadingScreenUI : MonoBehaviour
     {
         float elapsed = 0f;
         float maxWait = 120f;
-        float lastSent = 0f;
 
         // Aguarda Mirror criar a AsyncOperation
         while (NetworkManager.loadingSceneAsync == null && elapsed < maxWait)
@@ -121,36 +120,22 @@ public class LoadingScreenUI : MonoBehaviour
         }
 
         var async = NetworkManager.loadingSceneAsync;
-        if (async != null)
+        if (async == null)
         {
-            while (!async.isDone && elapsed < maxWait)
-            {
-                elapsed += Time.unscaledDeltaTime;
-                float raw = async.progress;
-                float prog = raw < 0.9f ? raw / 0.9f : 1f;
-                if (progressBar != null) progressBar.value = prog;
-                if (progressText != null) progressText.text = $"{(int)(prog * 100)}%";
+            Debug.Log("[LoadingUI] Mirror had no loadingSceneAsync, hiding panel");
+            Hide();
+            progressRoutine = null;
+            yield break;
+        }
 
-                if (Time.realtimeSinceStartup - lastSent > 0.25f && NetworkClient.active)
-                {
-                    lastSent = Time.realtimeSinceStartup;
-                    var conn = NetworkClient.connection;
-                    var id = conn != null ? conn.identity : null;
-                    var pd = id != null ? id.GetComponent<PlayerData>() : null;
-                    if (pd == null)
-                    {
-                        // fallback: try finding any PlayerData locally (player usually persists across scenes)
-                        pd = Object.FindFirstObjectByType<PlayerData>();
-                    }
-                    if (pd != null)
-                    {
-                        string scene = string.IsNullOrEmpty(targetSceneName) ? "" : targetSceneName;
-                        pd.CmdReportLoadProgress(scene, prog);
-                    }
-                }
-
-                yield return null;
-            }
+        while (!async.isDone && elapsed < maxWait)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float raw = async.progress;
+            float prog = raw < 0.9f ? raw / 0.9f : 1f;
+            if (progressBar != null) progressBar.value = prog;
+            if (progressText != null) progressText.text = $"{(int)(prog * 100)}%";
+            yield return null;
         }
 
         progressRoutine = null;

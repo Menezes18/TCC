@@ -154,6 +154,24 @@ public class BriefingManager : NetworkBehaviour
         briefingToggle = !briefingToggle;
         RpcShowBriefing(data.title, data.tips[tipIndex]);
         Debug.Log("[Briefing] TriggerBriefing -> reset ready and RpcShowBriefing");
+        
+        // Mark host as ready immediately (host receives Rpc too, but this guarantees progress)
+        var hostConn = NetworkServer.localConnection;
+        if (hostConn != null)
+        {
+            var hostPd = hostConn.identity ? hostConn.identity.GetComponent<PlayerData>() : null;
+            if (hostPd != null) hostPd.IsReady = true;
+        }
+        // After a short delay, re-check – gives time for clients to send their ready command
+        StartCoroutine(ServerDelayedRecheck());
+    }
+
+    [Server]
+    private IEnumerator ServerDelayedRecheck()
+    {
+        yield return new WaitForSeconds(0.5f);
+        UpdateAllClientsSlots();
+        CheckAllReady();
     }
 
     [ClientRpc]
