@@ -312,6 +312,14 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
                 return false;
         return true;
     }
+    public (int ready, int total) GetReadyCounts()
+    {
+        int total = allClients.Count;
+        int ready = 0;
+        foreach (var pd in allClients)
+            if (pd.IsReady) ready++;
+        return (ready, total);
+    }
     public void limparPontos()
     {
         for (int i = 0; i < scoreboard.players.Count; i++)
@@ -350,6 +358,13 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         LoadingScreenUI.Ensure();
         LoadingScreenUI.Instance?.SetMirrorTargetScene(newSceneName);
         LoadingScreenUI.Instance?.ShowForMirror();
+
+        // Safety: if Mirror skips async or finishes instantly (e.g., host already on scene), hide after short grace
+        LeanTween.delayedCall(2.0f, () =>
+        {
+            if (NetworkManager.loadingSceneAsync == null || NetworkManager.loadingSceneAsync.isDone)
+                LoadingScreenUI.Instance?.Hide();
+        });
         base.OnClientChangeScene(newSceneName, sceneOperation, customHandling);
     }
 

@@ -62,8 +62,9 @@ public class BriefingManager : NetworkBehaviour
         if (!isServer) { Debug.Log("[Briefing] CheckAllReady called on client, ignoring"); return; }
         if (briefingStarted) { Debug.Log("[Briefing] Already started, ignoring"); return; }
 
-        bool allReady = MyNetworkManager.manager.AllPlayersReady();
-        Debug.Log($"[Briefing] AllPlayersReady={allReady}");
+        var (ready, total) = MyNetworkManager.manager.GetReadyCounts();
+        bool allReady = ready == total && total > 0;
+        Debug.Log($"[Briefing] Ready {ready}/{total} | allReady={allReady}");
         if (!allReady) return;
         CmdFinishBriefing();
         RpcCloseBriefing();
@@ -146,9 +147,13 @@ public class BriefingManager : NetworkBehaviour
     [Server]
     public void TriggerBriefing()
     {
+        // Reset readiness and rebuild UI before showing briefing
+        MyNetworkManager.manager.ResetAllPlayersReady();
+        UpdateAllClientsSlots();
         tipIndex = UnityEngine.Random.Range(0, data.tips.Length);
         briefingToggle = !briefingToggle;
         RpcShowBriefing(data.title, data.tips[tipIndex]);
+        Debug.Log("[Briefing] TriggerBriefing -> reset ready and RpcShowBriefing");
     }
 
     [ClientRpc]
@@ -156,6 +161,7 @@ public class BriefingManager : NetworkBehaviour
     {
         Debug.Log("[Briefing] RpcShowBriefing");
         LoadingScreenUI.Instance?.Hide();
+        // Ensure we notify server this client is present/ready for briefing
         MyNetworkManager.manager?.RecordClientBriefingShown();
 
         titleText.text = syncedTitle;
