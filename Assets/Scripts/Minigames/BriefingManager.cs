@@ -6,6 +6,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
+using System.Linq;
 
 public class BriefingManager : NetworkBehaviour
 {
@@ -44,6 +45,11 @@ public class BriefingManager : NetworkBehaviour
     private readonly Dictionary<ulong, GameObject> slotsById = new();
     public readonly SyncListSlotData slots = new SyncListSlotData();
 
+    // Server-side tracking: who already displayed the briefing
+    private readonly HashSet<int> _briefingAcks = new HashSet<int>();
+    [SyncVar] private int expectedBriefingAcks = 0;
+    [SyncVar] private int receivedBriefingAcks = 0;
+
     public override void OnStartClient()
     {
         base.OnStartClient();
@@ -67,6 +73,8 @@ public class BriefingManager : NetworkBehaviour
         bool allReady = ready == total && total > 0;
         Debug.Log($"[Briefing] Ready {ready}/{total} | allReady={allReady}");
         if (!allReady) return;
+        // Reativa movimento antes de fechar briefing
+        PlayerList.singleton.AtivarPlayer(true);
         CmdFinishBriefing();
         RpcCloseBriefing();
         Debug.Log("[Briefing] RpcCloseBriefing dispatched");
@@ -78,7 +86,8 @@ public class BriefingManager : NetworkBehaviour
         titleText.text = data.title;
         tipText.text = data.tips[tipIndex];
         canvasGroup.alpha = 1;
-        canvasGroup.interactable = true;
+        // Interação ficará bloqueada até todos clientes entrarem
+        canvasGroup.interactable = false;
         onBriefingStarted?.Invoke();
         StopAllCoroutines();
     }
@@ -148,31 +157,25 @@ public class BriefingManager : NetworkBehaviour
     [Server]
     public void TriggerBriefing()
     {
-        // Reset readiness and rebuild UI before showing briefing
+        // Reset readiness e reconstrói UI antes de mostrar briefing
         MyNetworkManager.manager.ResetAllPlayersReady();
         UpdateAllClientsSlots();
         tipIndex = UnityEngine.Random.Range(0, data.tips.Length);
         briefingToggle = !briefingToggle;
-        RpcShowBriefing(data.title, data.tips[tipIndex]);
-        Debug.Log("[Briefing] TriggerBriefing -> reset ready and RpcShowBriefing");
-        
-        // Mark host as ready immediately (host receives Rpc too, but this guarantees progress)
-        var hostConn = NetworkServer.localConnection;
-        if (hostConn != null)
-        {
-            var hostPd = hostConn.identity ? hostConn.identity.GetComponent<PlayerData>() : null;
-            if (hostPd != null) hostPd.IsReady = true;
-        }
-        // After a short delay, re-check – gives time for clients to send their ready command
-        StartCoroutine(ServerDelayedRecheck());
-    }
 
-    [Server]
-    private IEnumerator ServerDelayedRecheck()
-    {
-        yield return new WaitForSeconds(0.5f);
-        UpdateAllClientsSlots();
-        CheckAllReady();
+        // Congela movimento enquanto briefing estiver ativo
+        PlayerList.singleton.AtivarPlayer(false);
+
+        // Reseta acks e define quantos clientes esperamos
+        _briefingAcks.Clear();
+        expectedBriefingAcks = MyNetworkManager.manager.allClients.Count;
+        receivedBriefingAcks = 0;
+
+        RpcShowBriefing(data.title, data.tips[tipIndex]);
+        // Bloqueia interação até todos confirmarem que entraram
+        RpcSetReadyInteractable(false);
+
+        Debug.Log("[Briefing] TriggerBriefing -> reset ready, freeze players and RpcShowBriefing");
     }
 
     [ClientRpc]
@@ -180,15 +183,17 @@ public class BriefingManager : NetworkBehaviour
     {
         Debug.Log("[Briefing] RpcShowBriefing");
         LoadingScreenUI.Instance?.Hide();
-        // Ensure we notify server this client is present/ready for briefing
-        MyNetworkManager.manager?.RecordClientBriefingShown();
 
         titleText.text = syncedTitle;
         tipText.text = syncedTip;
         canvasGroup.alpha = 1;
-        canvasGroup.interactable = true;
+        // Começa sem interação; será liberado quando todos entrarem
+        canvasGroup.interactable = false;
         onBriefingStarted?.Invoke();
         StopAllCoroutines();
+
+        // Informa ao servidor que este cliente exibiu o briefing
+        CmdAckBriefingShown();
     }
     #endregion
 
@@ -216,21 +221,53 @@ public class BriefingManager : NetworkBehaviour
     private void RpcCloseBriefing()
     {
         Debug.Log("[Briefing] RpcCloseBriefing received");
-        // Immediately hide UI for everyone
+        // Esconde UI para todos
         StopAllCoroutines();
         canvasGroup.alpha = 0;
         canvasGroup.interactable = false;
         cameraBriefing.SetActive(true);
         onBriefingEnded?.Invoke();
     }
+
+    [ClientRpc]
+    private void RpcSetReadyInteractable(bool canInteract)
+    {
+        // Permite/nega interação na UI do briefing (ex: botão de pronto)
+        canvasGroup.interactable = canInteract;
+    }
     #endregion
 
-    // New: client notifies server that briefing is visible and this player is ready
+    // Novo: cliente confirma que o briefing apareceu
+    [Command(requiresAuthority = false)]
+    private void CmdAckBriefingShown(NetworkConnectionToClient sender = null)
+    {
+        if (!isServer || sender == null) return;
+        if (_briefingAcks.Add(sender.connectionId))
+        {
+            receivedBriefingAcks = _briefingAcks.Count;
+            Debug.Log($"[Briefing] Ack from connId={sender.connectionId} ({receivedBriefingAcks}/{expectedBriefingAcks})");
+            if (receivedBriefingAcks >= expectedBriefingAcks && expectedBriefingAcks > 0)
+            {
+                // Todos entraram: liberar interação para que os jogadores possam ficar prontos
+                RpcSetReadyInteractable(true);
+            }
+        }
+    }
+
+    // Novo: jogador tenta marcar pronto; bloqueia se nem todos entraram
     [Command(requiresAuthority = false)]
     public void CmdMarkClientReady(NetworkConnectionToClient sender = null)
     {
         if (!isServer) return;
         if (sender == null) return;
+
+        // Impede ficar pronto enquanto todos não tiverem entrado no briefing
+        if (_briefingAcks.Count < expectedBriefingAcks || expectedBriefingAcks == 0)
+        {
+            Debug.Log("[Briefing] Ready ignored: nem todos os clientes entraram no briefing ainda");
+            return;
+        }
+
         var pd = sender.identity ? sender.identity.GetComponent<PlayerData>() : null;
         if (pd == null) return;
 
