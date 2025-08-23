@@ -138,6 +138,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     private PlayerInput _playerInput;
 
+    [Header("Input Schemes")]
+    [SerializeField] private string keyboardMouseScheme = "Keyboard&Mouse";
+    [SerializeField] private string gamepadScheme = "Gamepad";
+
     public bool IsAirborne => State == PlayerState.Ascend || State == PlayerState.Descend;
     [SyncVar(hook = nameof(OnExtraFreezeChanged))]
     public bool _extraFreeze;
@@ -193,11 +197,17 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
 
-        _cam = Camera.main.transform;
+        if (_cam == null)
+        {
+            if (Camera.main != null) _cam = Camera.main.transform;
+            else Debug.LogWarning("[PlayerScript] No main camera found to assign as _cam.");
+        }
         cameraTarget = transform;
 
-        // Cache
         _playerInput = GetComponent<PlayerInput>();
+        if (_networkAnimator != null) _networkAnimator.enabled = false;
+
+        ConfigureControlScheme(initial:true);
 
         if (PlayerPrefs.HasKey("MouseSensitivity"))
         {
@@ -209,8 +219,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         base.OnStartLocalPlayer();
         if (base.isOwned == false) return;
+        if (_networkAnimator != null) _networkAnimator.enabled = true;
+        ConfigureControlScheme(initial:false);
         PlayerControlsSO.OnMenu += EventOnCelularMenu;
-        _cam = Camera.main.transform;
+        if (_cam == null)
+        {
+            if (Camera.main != null) _cam = Camera.main.transform;
+        }
         // UI
         celularInstance = Instantiate(canvasCelularPrefab);
         mainMenu = celularInstance.GetComponentInChildren<MainMenu>(true);
@@ -232,6 +247,34 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             Destroy(cooldownUIInstance);
 
 
+    }
+
+    private void ConfigureControlScheme(bool initial)
+    {
+        if (_playerInput == null) return;
+        _playerInput.neverAutoSwitchControlSchemes = false;
+        // choose a scheme based on devices the user currently has
+        try
+        {
+            if (Gamepad.current != null)
+            {
+                _playerInput.SwitchCurrentControlScheme(gamepadScheme, Gamepad.current);
+                return;
+            }
+
+            var devices = new System.Collections.Generic.List<InputDevice>();
+            if (Keyboard.current != null) devices.Add(Keyboard.current);
+            if (Mouse.current != null) devices.Add(Mouse.current);
+
+            if (devices.Count > 0)
+            {
+                _playerInput.SwitchCurrentControlScheme(keyboardMouseScheme, devices.ToArray());
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[PlayerScript] Failed to switch control scheme: {e.Message}");
+        }
     }
 
     private void OnDestroy()
@@ -609,6 +652,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public void PrefabFrameInstancer()
     {
         // //Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
+        if (_cam == null)
+        {
+            Debug.LogWarning("[PlayerScript] _cam not assigned; cannot spawn projectile.");
+            return;
+        }
         Vector3 direction = _cam.forward;
         //
         PrefabInstancer.singleton.CmdSpawnProjectile(

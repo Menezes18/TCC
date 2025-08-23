@@ -72,14 +72,13 @@ public class TrainSignalController : NetworkBehaviour
     {
         UpdateVisuals();
         
-        // Dispara eventos
-        if (newState)
+        // Dispara eventos apenas no servidor, pois listeners chamam métodos [Server]
+        if (isServer)
         {
-            OnSignalGreen?.Invoke();
-        }
-        else
-        {
-            OnSignalRed?.Invoke();
+            if (newState)
+                OnSignalGreen?.Invoke();
+            else
+                OnSignalRed?.Invoke();
         }
     }
     
