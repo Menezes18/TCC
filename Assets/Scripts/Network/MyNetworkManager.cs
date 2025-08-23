@@ -347,6 +347,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     // ===== Mirror scene hooks to integrate loading UI and wait-for-all =====
     public override void OnClientChangeScene(string newSceneName, SceneOperation sceneOperation, bool customHandling)
     {
+        LoadingScreenUI.Ensure();
         LoadingScreenUI.Instance?.SetMirrorTargetScene(newSceneName);
         LoadingScreenUI.Instance?.ShowForMirror();
         base.OnClientChangeScene(newSceneName, sceneOperation, customHandling);

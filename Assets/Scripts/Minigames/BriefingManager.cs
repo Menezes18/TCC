@@ -59,13 +59,15 @@ public class BriefingManager : NetworkBehaviour
 
     public void CheckAllReady()
     {
-        if (!isServer) return;
-        if (briefingStarted) return;
+        if (!isServer) { Debug.Log("[Briefing] CheckAllReady called on client, ignoring"); return; }
+        if (briefingStarted) { Debug.Log("[Briefing] Already started, ignoring"); return; }
 
         bool allReady = MyNetworkManager.manager.AllPlayersReady();
+        Debug.Log($"[Briefing] AllPlayersReady={allReady}");
         if (!allReady) return;
         CmdFinishBriefing();
         RpcCloseBriefing();
+        Debug.Log("[Briefing] RpcCloseBriefing dispatched");
     }
 
     private void ShowLocalBriefing()
@@ -152,6 +154,7 @@ public class BriefingManager : NetworkBehaviour
     [ClientRpc]
     private void RpcShowBriefing(string syncedTitle, string syncedTip)
     {
+        Debug.Log("[Briefing] RpcShowBriefing");
         LoadingScreenUI.Instance?.Hide();
         MyNetworkManager.manager?.RecordClientBriefingShown();
 
@@ -187,6 +190,7 @@ public class BriefingManager : NetworkBehaviour
     [ClientRpc]
     private void RpcCloseBriefing()
     {
+        Debug.Log("[Briefing] RpcCloseBriefing received");
         // Immediately hide UI for everyone
         StopAllCoroutines();
         canvasGroup.alpha = 0;
@@ -217,6 +221,7 @@ public class BriefingManager : NetworkBehaviour
 
     private void OnBriefingToggleChanged(bool oldVal, bool newVal)
     {
+        Debug.Log("[Briefing] OnBriefingToggleChanged -> ShowLocalBriefing");
         CmdAtivarPlayersNoServer(true);
         ShowLocalBriefing();
     }

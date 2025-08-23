@@ -9,8 +9,19 @@ public class LoadingScreenUI : MonoBehaviour
 {
     public static LoadingScreenUI Instance { get; private set; }
 
-    [Header("UI References")]
-    [SerializeField] private GameObject panel;
+    public static LoadingScreenUI Ensure()
+    {
+        if (Instance == null)
+        {
+            var go = new GameObject("__LoadingScreenUI");
+            Instance = go.AddComponent<LoadingScreenUI>();
+            DontDestroyOnLoad(go);
+        }
+        return Instance;
+    }
+
+    [Header("Referências de UI")]
+    [SerializeField] private GameObject panel;   
     [SerializeField] private Slider progressBar;
     [SerializeField] private TextMeshProUGUI progressText;
 
@@ -24,39 +35,13 @@ public class LoadingScreenUI : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-
-            // If no panel assigned from a scene, create a basic UI
-            if (panel == null)
-                CreateDefaultUI();
-
-            // Ensure panel is under a Canvas and persist both across scenes
-            var parentCanvas = panel.GetComponentInParent<Canvas>();
-            if (parentCanvas == null)
+            // If panel was assigned in scene, detach and persist
+            if (panel != null)
             {
-                var canvasGO = new GameObject("LoadingScreen_Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-                var canvas = canvasGO.GetComponent<Canvas>();
-                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                canvas.sortingOrder = 32767; // top-most
-                var scaler = canvasGO.GetComponent<CanvasScaler>();
-                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-                scaler.referenceResolution = new Vector2(1920, 1080);
-                panel.transform.SetParent(canvasGO.transform, false);
-                DontDestroyOnLoad(canvasGO);
+                panel.transform.SetParent(null);
+                DontDestroyOnLoad(panel);
+                panel.SetActive(false);
             }
-            else
-            {
-                parentCanvas.sortingOrder = 32767; // ensure on top
-                DontDestroyOnLoad(parentCanvas.gameObject);
-            }
-
-            // If external panel exists but no slider/text, create them under panel
-            if (progressBar == null)
-                progressBar = CreateProgressBar(panel.transform);
-            if (progressText == null)
-                progressText = CreateProgressText(panel.transform);
-
-            DontDestroyOnLoad(panel);
-            panel.SetActive(false);
         }
         else Destroy(gameObject);
     }
@@ -66,12 +51,16 @@ public class LoadingScreenUI : MonoBehaviour
         targetSceneName = sceneName;
     }
 
-    // Begin an internal async load (non-Mirror)
+    /// <summary>
+    /// Inicia o carregamento assíncrono com timeout de 10s.
+    /// </summary>
     public void Show(string sceneName)
     {
+        EnsureRuntimeUI();
         targetSceneName = sceneName;
         if (panel != null) panel.SetActive(true);
         StartCoroutine(LoadWithTimeout());
+        Debug.Log($"[LoadingUI] Show local scene load '{sceneName}'");
     }
 
     private IEnumerator LoadWithTimeout()
@@ -82,7 +71,6 @@ public class LoadingScreenUI : MonoBehaviour
         float elapsed = 0f;
         float maxWait = 120f;
 
-        // Update progress up to 90% or until timeout
         while (op.progress < 0.9f && elapsed < maxWait)
         {
             elapsed += Time.unscaledDeltaTime;
@@ -92,21 +80,19 @@ public class LoadingScreenUI : MonoBehaviour
             yield return null;
         }
 
-        // If timeout, force UI to 100%
         if (elapsed >= maxWait)
         {
             if (progressBar != null) progressBar.value = 1f;
             if (progressText != null) progressText.text = "100%";
         }
 
-        // Hide panel before activating
         if (panel != null) panel.SetActive(false);
         op.allowSceneActivation = true;
     }
 
-    // NEW: Mostrar a UI e acompanhar progresso quando o Mirror muda de cena
     public void ShowForMirror()
     {
+        EnsureRuntimeUI();
         if (panel != null)
         {
             if (progressBar != null) progressBar.value = 0f;
@@ -118,6 +104,7 @@ public class LoadingScreenUI : MonoBehaviour
             StopCoroutine(progressRoutine);
 
         progressRoutine = StartCoroutine(TrackMirrorLoad());
+        Debug.Log($"[LoadingUI] Show for Mirror scene '{targetSceneName}'");
     }
 
     private IEnumerator TrackMirrorLoad()
@@ -144,13 +131,17 @@ public class LoadingScreenUI : MonoBehaviour
                 if (progressBar != null) progressBar.value = prog;
                 if (progressText != null) progressText.text = $"{(int)(prog * 100)}%";
 
-                // Reportar telemetria ao servidor (a cada ~0.25s)
                 if (Time.realtimeSinceStartup - lastSent > 0.25f && NetworkClient.active)
                 {
                     lastSent = Time.realtimeSinceStartup;
                     var conn = NetworkClient.connection;
                     var id = conn != null ? conn.identity : null;
                     var pd = id != null ? id.GetComponent<PlayerData>() : null;
+                    if (pd == null)
+                    {
+                        // fallback: try finding any PlayerData locally (player usually persists across scenes)
+                        pd = Object.FindFirstObjectByType<PlayerData>();
+                    }
                     if (pd != null)
                     {
                         string scene = string.IsNullOrEmpty(targetSceneName) ? "" : targetSceneName;
@@ -162,13 +153,9 @@ public class LoadingScreenUI : MonoBehaviour
             }
         }
 
-        // Mantém o painel visível; o MyNetworkManager ocultará ao terminar o load
         progressRoutine = null;
     }
 
-    /// <summary>
-    /// Caso você queira esconder manualmente em outro ponto.
-    /// </summary>
     public void Hide()
     {
         if (progressRoutine != null)
@@ -177,110 +164,78 @@ public class LoadingScreenUI : MonoBehaviour
             progressRoutine = null;
         }
         if (panel != null) panel.SetActive(false);
+        Debug.Log("[LoadingUI] Hide");
     }
 
-    private void CreateDefaultUI()
+    private void EnsureRuntimeUI()
     {
-        // Root canvas
-        var canvasGO = new GameObject("LoadingScreen_Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-        canvasGO.transform.SetParent(gameObject.transform, false);
-        var canvas = canvasGO.GetComponent<Canvas>();
+        if (panel != null && progressBar != null)
+            return;
+
+        // Create a minimal overlay UI if not present
+        var canvasGO = new GameObject("__LoadingUICanvas");
+        var canvas = canvasGO.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        var scaler = canvasGO.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
-
-        // Background panel
-        var panelGO = new GameObject("Panel", typeof(Image));
-        panelGO.transform.SetParent(canvasGO.transform, false);
-        var panelImg = panelGO.GetComponent<Image>();
-        panelImg.color = new Color(0f, 0f, 0f, 0.75f);
-        var panelRect = panelGO.GetComponent<RectTransform>();
-        panelRect.anchorMin = Vector2.zero;
-        panelRect.anchorMax = Vector2.one;
-        panelRect.offsetMin = Vector2.zero;
-        panelRect.offsetMax = Vector2.zero;
-
-        // Progress bar with background and fill
-        var bar = CreateProgressBar(panelGO.transform);
-
-        // Progress text
-        var tmp = CreateProgressText(panelGO.transform);
-
-        // Assign references
-        panel = panelGO;
-        progressBar = bar;
-        progressText = tmp;
-
+        canvas.sortingOrder = short.MaxValue; // force on top
+        canvasGO.AddComponent<CanvasScaler>();
+        canvasGO.AddComponent<GraphicRaycaster>();
         DontDestroyOnLoad(canvasGO);
-        DontDestroyOnLoad(panelGO);
-    }
 
-    private Slider CreateProgressBar(Transform parent)
-    {
-        var barGO = new GameObject("ProgressBar", typeof(Slider));
-        barGO.transform.SetParent(parent, false);
-        var bar = barGO.GetComponent<Slider>();
-        bar.transition = Selectable.Transition.None;
-        bar.navigation = new Navigation { mode = Navigation.Mode.None };
-        bar.minValue = 0f; bar.maxValue = 1f; bar.value = 0f;
-        bar.direction = Slider.Direction.LeftToRight;
-        var barRect = barGO.GetComponent<RectTransform>();
-        barRect.anchorMin = new Vector2(0.5f, 0.5f);
-        barRect.anchorMax = new Vector2(0.5f, 0.5f);
-        barRect.sizeDelta = new Vector2(600f, 24f);
-        barRect.anchoredPosition = new Vector2(0f, -20f);
+        var panelGO = new GameObject("Panel");
+        panelGO.transform.SetParent(canvasGO.transform, false);
+        var img = panelGO.AddComponent<Image>();
+        img.color = new Color(0f, 0f, 0f, 0.6f);
+        var rt = panelGO.GetComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
 
-        // Background image
-        var bgGO = new GameObject("Background", typeof(Image));
-        bgGO.transform.SetParent(barGO.transform, false);
-        var bgRect = bgGO.GetComponent<RectTransform>();
-        bgRect.anchorMin = Vector2.zero; bgRect.anchorMax = Vector2.one;
-        bgRect.offsetMin = Vector2.zero; bgRect.offsetMax = Vector2.zero;
-        var bgImg = bgGO.GetComponent<Image>();
-        bgImg.color = new Color(1f, 1f, 1f, 0.15f);
+        var sliderGO = new GameObject("Progress");
+        sliderGO.transform.SetParent(panelGO.transform, false);
+        var srt = sliderGO.AddComponent<RectTransform>();
+        srt.anchorMin = new Vector2(0.2f, 0.45f);
+        srt.anchorMax = new Vector2(0.8f, 0.55f);
+        srt.offsetMin = Vector2.zero; srt.offsetMax = Vector2.zero;
+        var slider = sliderGO.AddComponent<Slider>();
+        slider.minValue = 0f; slider.maxValue = 1f; slider.value = 0f;
+        // background
+        var bgGO = new GameObject("BG");
+        bgGO.transform.SetParent(sliderGO.transform, false);
+        var bg = bgGO.AddComponent<Image>();
+        bg.color = new Color(1f,1f,1f,0.2f);
+        var bgRT = bgGO.GetComponent<RectTransform>();
+        bgRT.anchorMin = new Vector2(0f, 0f); bgRT.anchorMax = new Vector2(1f, 1f);
+        bgRT.offsetMin = new Vector2(0f, 0f); bgRT.offsetMax = new Vector2(0f, 0f);
+        slider.targetGraphic = bg;
+        // fill
+        var fillArea = new GameObject("Fill");
+        fillArea.transform.SetParent(sliderGO.transform, false);
+        var fillImg = fillArea.AddComponent<Image>();
+        fillImg.color = new Color(0.2f, 0.8f, 0.3f, 0.9f);
+        var fillRT = fillArea.GetComponent<RectTransform>();
+        fillRT.anchorMin = new Vector2(0f, 0f); fillRT.anchorMax = new Vector2(0f, 1f);
+        fillRT.offsetMin = Vector2.zero; fillRT.offsetMax = new Vector2(0f, 0f);
+        slider.fillRect = fillRT;
 
-        // Fill area
-        var fillAreaGO = new GameObject("Fill Area", typeof(RectTransform));
-        fillAreaGO.transform.SetParent(barGO.transform, false);
-        var fillAreaRect = fillAreaGO.GetComponent<RectTransform>();
-        fillAreaRect.anchorMin = new Vector2(0f, 0f);
-        fillAreaRect.anchorMax = new Vector2(1f, 1f);
-        fillAreaRect.offsetMin = new Vector2(3f, 3f);
-        fillAreaRect.offsetMax = new Vector2(-3f, -3f);
+        // optional percent text
+        TextMeshProUGUI tmp = null;
+        try
+        {
+            var textGO = new GameObject("PercentText");
+            textGO.transform.SetParent(panelGO.transform, false);
+            tmp = textGO.AddComponent<TextMeshProUGUI>();
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.fontSize = 32f;
+            var trt = textGO.GetComponent<RectTransform>();
+            trt.anchorMin = new Vector2(0.3f, 0.57f);
+            trt.anchorMax = new Vector2(0.7f, 0.67f);
+            trt.offsetMin = Vector2.zero; trt.offsetMax = Vector2.zero;
+            tmp.text = "0%";
+        }
+        catch { }
 
-        // Fill image
-        var fillGO = new GameObject("Fill", typeof(Image));
-        fillGO.transform.SetParent(fillAreaGO.transform, false);
-        var fillRect = fillGO.GetComponent<RectTransform>();
-        fillRect.anchorMin = new Vector2(0f, 0f);
-        fillRect.anchorMax = new Vector2(1f, 1f);
-        fillRect.offsetMin = Vector2.zero; fillRect.offsetMax = Vector2.zero;
-        var fillImg = fillGO.GetComponent<Image>();
-        fillImg.color = new Color(0.2f, 0.8f, 0.2f, 1f);
-        fillImg.type = Image.Type.Filled;
-        fillImg.fillMethod = Image.FillMethod.Horizontal;
-        fillImg.fillOrigin = (int)Image.OriginHorizontal.Left;
-
-        // Connect slider visuals
-        bar.fillRect = fillRect;
-        bar.targetGraphic = fillImg;
-        return bar;
-    }
-
-    private TextMeshProUGUI CreateProgressText(Transform parent)
-    {
-        var textGO = new GameObject("ProgressText", typeof(TextMeshProUGUI));
-        textGO.transform.SetParent(parent, false);
-        var tmp = textGO.GetComponent<TextMeshProUGUI>();
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.fontSize = 28f;
-        tmp.text = string.Empty;
-        var textRect = textGO.GetComponent<RectTransform>();
-        textRect.anchorMin = new Vector2(0.5f, 0.5f);
-        textRect.anchorMax = new Vector2(0.5f, 0.5f);
-        textRect.anchoredPosition = new Vector2(0f, 20f);
-        textRect.sizeDelta = new Vector2(800f, 60f);
-        return tmp;
+        panel = panelGO;
+        progressBar = slider;
+        progressText = tmp;
+        panel.SetActive(false);
+        DontDestroyOnLoad(panel);
     }
 }
