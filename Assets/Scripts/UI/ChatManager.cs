@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.Text;
 using Mirror;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 // Lightweight in-game chat that works without scene/prefab edits.
 // - Press T to toggle the chat panel.
@@ -19,7 +22,7 @@ public class ChatManager : MonoBehaviour
     public static ChatManager Instance { get; private set; }
 
     [Header("Settings")]
-    public KeyCode toggleKey = KeyCode.T;
+    public Key toggleKey = Key.T;
     [Tooltip("Max number of lines to keep in chat text (0 = unlimited)")]
     public int maxLines = 200;
 
@@ -31,6 +34,8 @@ public class ChatManager : MonoBehaviour
 
     bool _isOpen;
     bool _handlersRegistered;
+    readonly Queue<string> _lines = new Queue<string>();
+    readonly StringBuilder _sb = new StringBuilder(2048);
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Bootstrap()
@@ -69,14 +74,17 @@ public class ChatManager : MonoBehaviour
 
     void Update()
     {
-        // Toggle panel with T
-        if (Input.GetKeyDown(toggleKey))
+        var kb = Keyboard.current;
+        if (kb == null) return;
+
+        // Toggle panel with T (ignore when typing in the input)
+        if (kb[toggleKey].wasPressedThisFrame && !(inputField != null && inputField.isFocused))
         {
             SetOpen(!_isOpen);
         }
 
         // Optional quick hide
-        if (_isOpen && Input.GetKeyDown(KeyCode.Escape))
+        if (_isOpen && kb.escapeKey.wasPressedThisFrame)
         {
             SetOpen(false);
         }
@@ -183,7 +191,7 @@ public class ChatManager : MonoBehaviour
         textRT.offsetMin = new Vector2(8, 8);
         textRT.offsetMax = new Vector2(-8, -8);
         chatText = textGO.GetComponent<TextMeshProUGUI>();
-        chatText.enableWordWrapping = true;
+    chatText.textWrappingMode = TextWrappingModes.Normal;
         chatText.richText = true;
         chatText.fontSize = 20;
         chatText.text = string.Empty;
@@ -218,7 +226,7 @@ public class ChatManager : MonoBehaviour
         inputTextRT.offsetMin = new Vector2(10, 6);
         inputTextRT.offsetMax = new Vector2(-10, -6);
         var inputText = inputTextGO.GetComponent<TextMeshProUGUI>();
-        inputText.enableWordWrapping = false;
+    inputText.textWrappingMode = TextWrappingModes.NoWrap;
         inputText.fontSize = 20;
 
         var placeholderGO = new GameObject("Placeholder", typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -312,20 +320,23 @@ public class ChatManager : MonoBehaviour
     {
         if (chatText == null) return;
 
-        if (!string.IsNullOrEmpty(chatText.text))
-            chatText.text += "\n";
-        chatText.text += msg;
+        if (!string.IsNullOrEmpty(msg))
+            _lines.Enqueue(msg);
 
         // Trim lines if needed
         if (maxLines > 0)
         {
-            var lines = chatText.text.Split(new[] { '\n' }, StringSplitOptions.None);
-            if (lines.Length > maxLines)
-            {
-                int start = lines.Length - maxLines;
-                chatText.text = string.Join("\n", lines, start, maxLines);
-            }
+            while (_lines.Count > maxLines)
+                _lines.Dequeue();
         }
+
+        // Rebuild text efficiently
+        _sb.Clear();
+        foreach (var line in _lines)
+        {
+            _sb.AppendLine(line);
+        }
+        chatText.text = _sb.ToString();
 
         Canvas.ForceUpdateCanvases();
     }
