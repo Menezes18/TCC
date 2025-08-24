@@ -17,6 +17,7 @@ public class MovingPlatform : MonoBehaviour
     private class PlayerOnPlatformData
     {
         public Transform playerTransform;
+        public CharacterController controller; // cache para evitar GetComponent por frame
         public float timeExitedTrigger; // Tempo em que o player saiu do trigger (para gerenciar o "playerStayTime")
         public bool currentlyInTrigger; // Indica se o player está atualmente dentro do trigger
     }
@@ -57,9 +58,11 @@ public class MovingPlatform : MonoBehaviour
             }
             else
             {
-                // Adiciona novo player
+                // Adiciona novo player com cache do CharacterController
+                var cc = other.GetComponent<CharacterController>();
                 playersOnPlatform.Add(new PlayerOnPlatformData {
                     playerTransform = other.transform,
+                    controller = cc,
                     currentlyInTrigger = true,
                     timeExitedTrigger = 0f // Não saiu do trigger ainda
                 });
@@ -83,27 +86,29 @@ public class MovingPlatform : MonoBehaviour
 
     private void MovePlayers(Vector3 movement)
     {
-        var playersToMove = playersOnPlatform.ToList(); 
-
-        foreach (PlayerOnPlatformData playerData in playersToMove)
+        // evita ToList() e alocações
+        for (int i = 0; i < playersOnPlatform.Count; i++)
         {
-            if (IsPlayerValid(playerData.playerTransform))
+            var playerData = playersOnPlatform[i];
+            if (!IsPlayerValid(playerData.playerTransform)) continue;
+
+            var controller = playerData.controller;
+            if (controller == null)
             {
-                CharacterController controller = playerData.playerTransform.GetComponent<CharacterController>();
-                if (controller != null && controller.enabled)
+                controller = playerData.playerTransform.GetComponent<CharacterController>();
+                playerData.controller = controller;
+                playersOnPlatform[i] = playerData; // regrava o cache
+            }
+
+            if (controller != null && controller.enabled)
+            {
+                // Aplica o movimento da plataforma
+                controller.Move(movement);
+
+                if (!controller.isGrounded)
                 {
-                    
-
-                    // Aplica o movimento da plataforma
-                    controller.Move(movement); 
-
-                    if (!controller.isGrounded) // Se o player não está "grudado" por conta própria
-                    {
-                        // Tenta forçar o player um pouco para baixo para ele "grudar" na plataforma ( se ficar musgo agora desisto)
-                        
-
-                        controller.Move(Vector3.down * 0.5f * Time.deltaTime); 
-                    }
+                    // empurra levemente para baixo para "colar" na plataforma
+                    controller.Move(Vector3.down * 0.5f * Time.deltaTime);
                 }
             }
         }
@@ -111,16 +116,24 @@ public class MovingPlatform : MonoBehaviour
 
     private void UpdateAndCleanupPlayers()
     {
-        // Remove players que podem tar desativados ou mortos 
-        playersOnPlatform.RemoveAll(p => !IsPlayerValid(p.playerTransform));
+        // Remove players inválidos sem alocar (evita RemoveAll)
+        for (int i = playersOnPlatform.Count - 1; i >= 0; i--)
+        {
+            if (!IsPlayerValid(playersOnPlatform[i].playerTransform))
+            {
+                playersOnPlatform.RemoveAt(i);
+            }
+        }
 
-        // Para os jogadores que saíram do trigger, verifica se eles ainda devem ser considerados na plataforma
-        // Isso lida com o pulo: o player saiu do trigger mas está próximo e dentro do "tempo de tolerância"
-        playersOnPlatform.RemoveAll(playerData => 
-            !playerData.currentlyInTrigger && // Se ele saiu do trigger
-            Time.time - playerData.timeExitedTrigger > playerStayTime && // E o tempo de tolerância acabou
-            !IsPlayerNearPlatform(playerData.playerTransform) // E ele não está mais perto da plataforma (verificação de fallback)
-        );
+        // Remove players que passaram do tempo de tolerância e já não estão próximos
+        for (int i = playersOnPlatform.Count - 1; i >= 0; i--)
+        {
+            var playerData = playersOnPlatform[i];
+            if (!playerData.currentlyInTrigger && (Time.time - playerData.timeExitedTrigger > playerStayTime) && !IsPlayerNearPlatform(playerData.playerTransform))
+            {
+                playersOnPlatform.RemoveAt(i);
+            }
+        }
     }
 
     // Nova função para verificar se o player está perto da plataforma, mesmo fora do trigger
@@ -145,18 +158,12 @@ public class MovingPlatform : MonoBehaviour
         
         if (!player.gameObject.activeInHierarchy) return false;
         
+        // se houver cache, usa
+        var cached = playersOnPlatform.FirstOrDefault(p => p.playerTransform == player)?.controller;
+        if (cached != null && cached.enabled) return true;
+        
         CharacterController controller = player.GetComponent<CharacterController>();
-        if (controller == null || !controller.enabled) return false;
-        
-        // Caso seja pra fazer por playerscript, mas aí Gustavo infarta cmg
-        // var playerScript = player.GetComponent<PlayerScript>();
-        // if (playerScript != null)
-        // {
-        //     // Remova ou adapte esta linha se você não tiver PlayerState no PlayerScript
-        //     // if (playerScript.State == PlayerState.Death) return false;
-        // }
-        
-        return true;
+        return controller != null && controller.enabled;
     }
     
     private bool IsPlayerLayer(GameObject obj)
@@ -167,7 +174,11 @@ public class MovingPlatform : MonoBehaviour
     // Métodos para forçar tirar a galera 
     public void RemovePlayer(Transform player)
     {
-        playersOnPlatform.RemoveAll(p => p.playerTransform == player);
+        for (int i = playersOnPlatform.Count - 1; i >= 0; i--)
+        {
+            if (playersOnPlatform[i].playerTransform == player)
+                playersOnPlatform.RemoveAt(i);
+        }
     }
     
     public void ClearAllPlayers()

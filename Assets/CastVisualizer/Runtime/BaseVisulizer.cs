@@ -32,6 +32,10 @@ namespace BgTools.CastVisualizer
 
         private int lastframe;
 
+        // controla o custo das atualizações
+        [SerializeField] private float fixedFps = 30f; // executa no máx. 30x/s no Editor
+        private float _nextTick;
+
         #region Add Render Data Functions
         internal static bool AddHitToRender((Vector3, Vector3) hitData)
         {
@@ -107,8 +111,12 @@ namespace BgTools.CastVisualizer
         {
             if (lastframe == Time.frameCount)
                 return;
-            
             lastframe = Time.frameCount;
+
+            // throttling no Editor para reduzir GC/custo
+            if (Time.unscaledTime < _nextTick)
+                return;
+            _nextTick = Time.unscaledTime + (1f / Mathf.Max(1f, fixedFps));
                 
             hitsToRender.RemoveAll(data => data.Lifetime < 0.0f);
             raysToRender.RemoveAll(data => data.Lifetime < 0.0f);

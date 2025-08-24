@@ -10,6 +10,7 @@ public class ChaoQuebrando : ChaoMae
     private bool jogadorNoTile = false;
     private int indiceEstadoAtual = 0;
 
+    [ServerCallback]
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
@@ -18,6 +19,7 @@ public class ChaoQuebrando : ChaoMae
         }
     }
 
+    [ServerCallback]
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Player"))
@@ -26,6 +28,7 @@ public class ChaoQuebrando : ChaoMae
         }
     }
 
+    [ServerCallback]
     private void Update()
     {
         if (jogadorNoTile && !chaoTirado)

@@ -23,6 +23,10 @@ public class TrajectoryPredictor  : MonoBehaviour
     private LayerMask ProjectCollisionMask;
     private bool isTrajectoryVisible = false;
 
+    // Throttling para reduzir raycasts por segundo
+    [SerializeField] private float projectionFps = 30f;
+    private float _nextProjectionTime;
+
     //[Header("HitPoint")]
     //public GameObject hitObj;
 
@@ -82,9 +86,10 @@ public class TrajectoryPredictor  : MonoBehaviour
             isTrajectoryVisible = false;
         }
 
-        // Atualizar a trajetória enquanto estiver visível
-        if (isTrajectoryVisible)
+        // Atualizar a trajetória enquanto estiver visível (limitado a projectionFps)
+        if (isTrajectoryVisible && Time.time >= _nextProjectionTime)
         {
+            _nextProjectionTime = Time.time + (1f / Mathf.Max(1f, projectionFps));
             DrawProjection();
         }
     }

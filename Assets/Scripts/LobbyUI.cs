@@ -12,6 +12,10 @@ public class LobbyUI : MonoBehaviour
 
     private readonly Dictionary<ulong, LobbySlot> slotsById = new Dictionary<ulong, LobbySlot>();
 
+    // throttling para evitar FindObjects por frame
+    [SerializeField] private float refreshFps = 5f; // 5x/s é suficiente
+    private float _nextRefresh;
+
     private void Awake()
     {
         Instance = this;
@@ -19,6 +23,8 @@ public class LobbyUI : MonoBehaviour
 
     private void Update()
     {
+        if (Time.unscaledTime < _nextRefresh) return;
+        _nextRefresh = Time.unscaledTime + (1f / Mathf.Max(1f, refreshFps));
         RefreshLobby();
     }
 

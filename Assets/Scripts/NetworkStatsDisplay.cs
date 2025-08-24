@@ -17,6 +17,8 @@ public class NetworkStatsDisplay : MonoBehaviour
     private float updateTimer;
     private float updateRate = 1.5f;
 
+    [SerializeField] bool showInRelease = false; // só em editor/dev por padrão
+
     void Update()
     {
         updateTimer += Time.deltaTime;
@@ -29,8 +31,12 @@ public class NetworkStatsDisplay : MonoBehaviour
 
     void OnGUI()
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         if (!NetworkClient.active) return;
-
+        if (!showInRelease && !Debug.isDebugBuild) return;
+#else
+        if (!showInRelease) return; // oculta em build release por padrão
+#endif
         GUI.color = fontColor;
         GUIStyle style = GUI.skin.GetStyle("Label");
         style.fontSize = fontSize;

@@ -1,5 +1,4 @@
-﻿
-using static UnityEngine.InputSystem.InputAction;
+﻿using static UnityEngine.InputSystem.InputAction;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -16,6 +15,11 @@ using UnityEngine.InputSystem;
         float _x, _y;
 
         private float _mouse;
+
+        // throttle para reduzir custo quando congelado
+        private float _nextMoveTick;
+        [SerializeField] private float moveFpsWhenFrozen = 15f;
+
         private void Start(){
             
             playerScript = GetComponent<PlayerScript>();
@@ -50,6 +54,13 @@ using UnityEngine.InputSystem;
         
         
         private void Update(){
+
+            // se painel aberto ou congelado, limita frequência de atualização para economizar CPU/bateria
+            bool blocked = (playerScript.panel || playerScript.isFrozen);
+            if (blocked && Time.unscaledTime < _nextMoveTick)
+                return;
+            if (blocked)
+                _nextMoveTick = Time.unscaledTime + (1f / Mathf.Max(1f, moveFpsWhenFrozen));
 
             if (playerScript.panel || playerScript.isFrozen)
             {

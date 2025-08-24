@@ -22,6 +22,10 @@ public class ChaoDerrete : ChaoMae
     private bool jogadorNoTile = false;
     private bool estaDerretendo = false;
 
+    // animação local no cliente (sem RPC por frame)
+    private bool clientDerretendo = false;
+    private float clientTempoDerretendo = 0f;
+
     // Constante para o valor inicial do cutoff (totalmente visível)
     private const float FULLY_VISIBLE_CUTOFF = 0f;
     // Constante para o valor final do cutoff (totalmente invisível)
@@ -58,56 +62,86 @@ public class ChaoDerrete : ChaoMae
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
+        if (!other.CompareTag("Player")) return;
+        if (isServer)
         {
             jogadorNoTile = true;
-            // Só inicia o derretimento se o chão ainda não estiver tirado
             if (!chaoTirado && !estaDerretendo)
-            {
                 RpcIniciarContagemDerretimento();
-            }
+        }
+        else
+        {
+            CmdSetJogadorNoTile(true);
         }
     }
 
     private void OnTriggerExit(Collider other)
     {
-        if (other.CompareTag("Player"))
+        if (!other.CompareTag("Player")) return;
+        if (isServer)
         {
             jogadorNoTile = false;
-            // Reseta a contagem se o jogador sair antes de começar a derreter
             if (!estaDerretendo)
-            {
                 RpcPararContagemDerretimento();
-            }
+        }
+        else
+        {
+            CmdSetJogadorNoTile(false);
+        }
+    }
+
+    [Command(requiresAuthority = false)]
+    private void CmdSetJogadorNoTile(bool value)
+    {
+        jogadorNoTile = value;
+        if (value)
+        {
+            if (!chaoTirado && !estaDerretendo)
+                RpcIniciarContagemDerretimento();
+        }
+        else
+        {
+            if (!estaDerretendo)
+                RpcPararContagemDerretimento();
         }
     }
 
     private void Update()
     {
-        if (!isServer) return; // A lógica de derretimento será gerenciada pelo servidor
-
-        if (jogadorNoTile && !chaoTirado && !estaDerretendo)
+        // Servidor: controla o estado e decide quando sumir
+        if (isServer)
         {
-            tempoAcumuladoNoChao += Time.deltaTime;
-            if (tempoAcumuladoNoChao >= tempoAteComecarDerreter)
+            if (jogadorNoTile && !chaoTirado && !estaDerretendo)
             {
-                estaDerretendo = true;
-                RpcIniciarDerretimento();
+                tempoAcumuladoNoChao += Time.deltaTime;
+                if (tempoAcumuladoNoChao >= tempoAteComecarDerreter)
+                {
+                    estaDerretendo = true;
+                    tempoDerretendo = 0f;
+                    RpcIniciarDerretimento(); // clientes passam a animar localmente
+                }
             }
+
+            if (estaDerretendo && !chaoTirado)
+            {
+                tempoDerretendo += Time.deltaTime;
+                float progressoDerretimento = Mathf.Clamp01(tempoDerretendo / tempoParaSumirTotalmente);
+                if (progressoDerretimento >= 1f)
+                {
+                    tiraChao(); // O chão sumiu completamente
+                }
+            }
+
+            return; // servidor não precisa animar material por frame
         }
 
-        if (estaDerretendo && !chaoTirado)
+        // Cliente: anima material localmente sem RPC por frame
+        if (clientDerretendo && instancedMaterial != null)
         {
-            tempoDerretendo += Time.deltaTime;
-            float progressoDerretimento = Mathf.Clamp01(tempoDerretendo / tempoParaSumirTotalmente);
-            float novoCutoff = Mathf.Lerp(FULLY_VISIBLE_CUTOFF, FULLY_INVISIBLE_CUTOFF, progressoDerretimento);
-
-            RpcAtualizarAlphaCutoff(novoCutoff);
-
-            if (progressoDerretimento >= 1f)
-            {
-                tiraChao(); // O chão sumiu completamente
-            }
+            clientTempoDerretendo += Time.deltaTime;
+            float progresso = Mathf.Clamp01(clientTempoDerretendo / tempoParaSumirTotalmente);
+            float novoCutoff = Mathf.Lerp(FULLY_VISIBLE_CUTOFF, FULLY_INVISIBLE_CUTOFF, progresso);
+            instancedMaterial.SetFloat(alphaCutoffPropertyName, novoCutoff);
         }
     }
 
@@ -137,10 +171,13 @@ public class ChaoDerrete : ChaoMae
     [ClientRpc]
     private void RpcIniciarDerretimento()
     {
+        // cliente inicia sua própria animação
         if (!isServer)
         {
             estaDerretendo = true;
             tempoDerretendo = 0f;
+            clientDerretendo = true;
+            clientTempoDerretendo = 0f;
             Debug.Log("Cliente: Derretimento iniciado!");
         }
     }
@@ -148,6 +185,7 @@ public class ChaoDerrete : ChaoMae
     [ClientRpc]
     private void RpcAtualizarAlphaCutoff(float novoCutoff)
     {
+        // Mantido por compatibilidade, mas não é mais chamado por frame
         if (instancedMaterial != null)
         {
             instancedMaterial.SetFloat(alphaCutoffPropertyName, novoCutoff);
@@ -194,6 +232,8 @@ public class ChaoDerrete : ChaoMae
         transform.position = posIncial;
         tempoAcumuladoNoChao = 0f;
         tempoDerretendo = 0f;
+        clientTempoDerretendo = 0f;
+        clientDerretendo = false;
         jogadorNoTile = false;
         estaDerretendo = false;
         chaoTirado = false;
