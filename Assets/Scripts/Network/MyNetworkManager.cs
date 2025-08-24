@@ -153,12 +153,6 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         Notifica();
     }
 
-    private int i = 0;
-    private void UpdatePointsBoardInspector()
-    {
-
-
-    }
     public override void OnServerDisconnect(NetworkConnectionToClient conn)
     {
         var client = conn.identity?.GetComponent<PlayerData>();
@@ -288,14 +282,15 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         }
 
         minigames.Add("Vitoria");
+        
     }
 
     public void ReiniciarJogo()
     {
-        startGame = false;
         limparPontos();
         limparLista();
         listaAleatoria();
+        startGame = false;
     }
     [Server]
     public void ResetAllPlayersReady()

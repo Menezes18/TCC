@@ -126,7 +126,7 @@ public class SumoMinigameController : MinigameController, IObserver
     {
         alivePlayers.Remove(pd);
         eliminationOrder.Add(pd);
-        Debug.LogError($"[Sumo] Eliminado: {pd.playerInfo.steamId}");
+        Debug.Log($"💣[Sumo] Eliminado: {pd.playerInfo.steamId}");
         Notifica();
         if (alivePlayers.Count <= 1)
         {
