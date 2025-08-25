@@ -85,9 +85,9 @@ public class ChatManager : MonoBehaviour
             TryFindLocalPlayer();
 
         // Toggle com T sempre (mesmo se o input estiver focado)
-        if (kb[toggleKey].wasPressedThisFrame)
+        if (kb[toggleKey].wasPressedThisFrame && !_isOpen)
         {
-            SetOpen(!_isOpen);
+            SetOpen(true);
             return;
         }
 
