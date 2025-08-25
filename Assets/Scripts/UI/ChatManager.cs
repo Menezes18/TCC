@@ -340,7 +340,7 @@ public class ChatManager : MonoBehaviour
         vlg.childControlHeight = true;
         vlg.childForceExpandWidth = true;
         vlg.childControlWidth = true;
-        vlg.spacing = 6f;
+        vlg.spacing = 22f;
         var fitter = rootGO.GetComponent<ContentSizeFitter>();
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
