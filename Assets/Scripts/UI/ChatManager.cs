@@ -8,9 +8,9 @@ using UnityEngine.UI;
 using UnityEngine.InputSystem;
 
 // Lightweight in-game chat that works without scene/prefab edits.
-// - Press T to toggle the chat panel.
-// - Press Enter to send; chat hides automatically after sending.
-// - Uses Mirror NetworkMessages, so no NetworkIdentity spawn is required.
+// - Press T to toggle the chat panel (abre/fecha mesmo com foco).
+// - Press Enter to send; chat permanece aberto.
+// - Usa Mirror NetworkMessages, não precisa de NetworkIdentity no UI.
 public class ChatManager : MonoBehaviour
 {
     // Network message payload
@@ -31,6 +31,9 @@ public class ChatManager : MonoBehaviour
     public TMP_Text chatText;
     public TMP_InputField inputField;
     public Button sendButton;
+
+    // Link para o Player local para travar/destravar movimento/visão
+    private PlayerScript _localPlayer;
 
     bool _isOpen;
     bool _handlersRegistered;
@@ -60,6 +63,7 @@ public class ChatManager : MonoBehaviour
 
         EnsureUI();
         SetOpen(false);
+        TryFindLocalPlayer();
     }
 
     void OnEnable()
@@ -77,16 +81,21 @@ public class ChatManager : MonoBehaviour
         var kb = Keyboard.current;
         if (kb == null) return;
 
-        // Toggle panel with T (ignore when typing in the input)
-        if (kb[toggleKey].wasPressedThisFrame && !(inputField != null && inputField.isFocused))
+        if (_localPlayer == null)
+            TryFindLocalPlayer();
+
+        // Toggle com T sempre (mesmo se o input estiver focado)
+        if (kb[toggleKey].wasPressedThisFrame)
         {
             SetOpen(!_isOpen);
+            return;
         }
 
-        // Optional quick hide
+        // Fechar com ESC
         if (_isOpen && kb.escapeKey.wasPressedThisFrame)
         {
             SetOpen(false);
+            return;
         }
     }
 
@@ -275,20 +284,44 @@ public class ChatManager : MonoBehaviour
         sendLbl.fontSize = 20;
     }
 
+    // Localiza o Player local (dono) para sinalizar estado de chat
+    void TryFindLocalPlayer()
+    {
+        if (NetworkClient.localPlayer != null)
+        {
+            _localPlayer = NetworkClient.localPlayer.GetComponent<PlayerScript>();
+            if (_localPlayer != null) return;
+        }
+
+        var players = FindObjectsByType<PlayerScript>(FindObjectsSortMode.None);
+        foreach (var p in players)
+        {
+            if (p != null && p.isOwned) { _localPlayer = p; break; }
+        }
+    }
+
     void SetOpen(bool open)
     {
         _isOpen = open;
         if (chatRoot != null)
             chatRoot.SetActive(open);
 
-        if (open && inputField != null)
+        if (open)
         {
-            inputField.ActivateInputField();
-            inputField.Select();
+            _localPlayer?.OnChatOpen();
+            if (inputField != null)
+            {
+                inputField.ActivateInputField();
+                inputField.Select();
+            }
         }
-        else if (!open && inputField != null)
+        else
         {
-            inputField.DeactivateInputField();
+            _localPlayer?.OnChatClose();
+            if (inputField != null)
+            {
+                inputField.DeactivateInputField();
+            }
         }
     }
 
@@ -303,17 +336,17 @@ public class ChatManager : MonoBehaviour
         string msg = (inputField != null ? inputField.text : string.Empty).Trim();
         if (string.IsNullOrEmpty(msg)) return;
 
-        // Send to server; server will format and broadcast
+        // Envia para o servidor; o servidor formata e retransmite
         NetworkClient.Send(new ChatMessage { text = msg });
 
         if (inputField != null)
         {
             inputField.text = string.Empty;
             inputField.ActivateInputField();
+            inputField.Select();
         }
 
-        // Auto-hide after sending to keep gameplay focus
-        SetOpen(false);
+        // NÃO fechar o chat após enviar (mantém aberto)
     }
 
     void AppendMessage(string msg)
