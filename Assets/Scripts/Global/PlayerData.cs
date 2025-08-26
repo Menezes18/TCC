@@ -164,7 +164,7 @@ public class PlayerData : NetworkBehaviour{
    [Command]
    void CmdRequestColor(int value)
    {
-      Debug.LogError(value + " is not a valid color");
+      Debug.Log($"[ColorSystem] Cor alterada: {value}" );
       color = playerList.ServerRequestColor(color, value);
 
      

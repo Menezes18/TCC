@@ -8,7 +8,6 @@ public class HUDSO : ScriptableObject{
 
     public void ShowColorChangePanel()
     {
-        Debug.LogError("ShowColorChangePanel");
         this.EventOnShowColorChangePanel?.Invoke();
     }
     

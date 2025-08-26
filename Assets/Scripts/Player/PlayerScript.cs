@@ -165,6 +165,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     private bool _menuOpen = false;
     public bool panel = false;
+    // Bloqueia movimento/olhar enquanto o chat estiver aberto
+    [SerializeField] private bool _chatOpen = false;
 
     [SerializeField] private float sensibilidade = 1;
 
@@ -210,7 +212,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         cameraTarget = transform;
 
         _playerInput = GetComponent<PlayerInput>();
-        if (_networkAnimator != null) _networkAnimator.enabled = false;
+        // Não desabilitar o NetworkAnimator no local player. Deixe sempre habilitado para sincronizar parâmetros.
 
         ConfigureControlScheme(initial:true);
 
@@ -224,7 +226,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         base.OnStartLocalPlayer();
         if (base.isOwned == false) return;
-        if (_networkAnimator != null) _networkAnimator.enabled = true;
+        // NetworkAnimator deve permanecer habilitado; não alternar aqui
         ConfigureControlScheme(initial:false);
         PlayerControlsSO.OnMenu += EventOnCelularMenu;
         if (_cam == null)
@@ -379,8 +381,17 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         AerialBehaviour();
         DefaultBehaviour();
 
-        _animator.SetFloat(_MOVEX, _input.x, 0.1f, Time.deltaTime);
-        _animator.SetFloat(_MOVEY, _input.z, 0.1f, Time.deltaTime);
+        // Zera parâmetros de movimento do Animator enquanto o chat está aberto
+        if (_chatOpen)
+        {
+            _animator.SetFloat(_MOVEX, 0f, 0.1f, Time.deltaTime);
+            _animator.SetFloat(_MOVEY, 0f, 0.1f, Time.deltaTime);
+        }
+        else
+        {
+            _animator.SetFloat(_MOVEX, _input.x, 0.1f, Time.deltaTime);
+            _animator.SetFloat(_MOVEY, _input.z, 0.1f, Time.deltaTime);
+        }
 
         aimWeigh = CustomMath.ConvertRange(_pitch, db.maxMouseX, db.minMouseY);
         _animator.SetFloat("animweight", aimWeigh);
@@ -546,6 +557,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     //
     private void PlayerControlsSO_OnMove(Vector2 input, Vector2 raw)
     {
+        if (_chatOpen) { _raw = Vector3.zero; _input = Vector3.zero; return; }
         _raw = raw;
         _input = new Vector3(input.x, 0, input.y);
     }
@@ -553,6 +565,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
 
         if (panel) return;
+        if (_chatOpen) return;
         if (Cursor.visible == true) return;
         if (!this.isOwned) return;
         float sensitivityFactor = sensibilidade;
@@ -570,6 +583,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private void PlayerControlsSO_OnJump()
     {
         if (panel) return;
+        if (_chatOpen) return;
         if (isFrozen) return;
         if (State != PlayerState.Default) return;
 
@@ -587,6 +601,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private void PlayerControlsSO_OnPush()
     {
         if (panel) return;
+        if (_chatOpen) return;
         if (isFrozen) return;
         if (State == PlayerState.Stagger) return;
         if (Status != PlayerStatus.Default || Status == PlayerStatus.Blinded) return;
@@ -601,6 +616,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if (isFrozen) return;
         if (panel) return;
+        if (_chatOpen) return;
         if (IsAirborne) return;
         if (State == PlayerState.Stagger) return;
         if (_rollCooldown > 0) return;
@@ -618,6 +634,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if (isFrozen) return;
         if (panel) return;
+        if (_chatOpen) return;
         if (Cursor.visible == true) return;
         if (State == PlayerState.Death) return;
         if (State == PlayerState.Stagger) return;
@@ -634,6 +651,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if (isFrozen) return;
         if (panel) return;
+        if (_chatOpen) return;
         if (Cursor.visible == true) return;
         if (State == PlayerState.Death) return;
         if (State == PlayerState.Stagger) return;
@@ -672,6 +690,24 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
         Debug.Log("✅ [SPAWN] Teste: instanciar Player");
         // _throwCooldown = db.playerThrowCooldown;
+    }
+
+    // Chamado pelo Chat UI quando abrir/fechar o campo de texto
+    public void OnChatOpen()
+    {
+        _chatOpen = true;
+        _input = Vector3.zero;
+        _raw = Vector3.zero;
+        _move = new Vector3(0, _move.y, 0); // preserva componente vertical
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+    }
+
+    public void OnChatClose()
+    {
+        _chatOpen = false;
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
     }
 
     // MUDAR ISSO AQUI DEPOIS

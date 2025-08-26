@@ -16,11 +16,19 @@ public class Instrutor : NetworkBehaviour, ISubject
     public TMP_Text textoCor;
     public TMP_Text textoTimer;
     public Image   imagem;
-    public float   tempoEntreAcoes = 4f;
+    public float   tempoEntreAcoes = 4f; // legado
+    public float   tempoMemorizar = 5f;
+    public float   tempoEspera = 2f;
+    public float   tempoResolver = 3f;
     public ColorInfo[] colors;
     public List<IObserver> _observers = new List<IObserver>();
 
     public static Instrutor instrutor;
+
+    public enum MemoryPhase { Idle = 0, Reveal = 1, Hide = 2, Resolve = 3 }
+
+    [SyncVar]
+    public MemoryPhase currentPhase = MemoryPhase.Idle;
 
     [SyncVar(hook = nameof(OnColorChanged))]
     public Color currentColor;
@@ -35,7 +43,7 @@ public class Instrutor : NetworkBehaviour, ISubject
     {
         base.OnStartServer();
         instrutor = this;
-        StartCoroutine(CicloDeCores());
+    // Não iniciar automaticamente; o MinigameController controla o início
     }
 
     public override void OnStartClient()
@@ -48,26 +56,49 @@ public class Instrutor : NetworkBehaviour, ISubject
         textoTimer.text = currentTimerText;
     }
 
-    IEnumerator CicloDeCores()
+    private bool _isRunning = false;
+
+    [Server]
+    public void StartMemoryCycle()
+    {
+        if (_isRunning) return;
+        _isRunning = true;
+        StartCoroutine(CicloMemoria());
+    }
+
+    IEnumerator CicloMemoria()
     {
         while (true)
         {
-            currentColor     = Color.white;
-            currentColorName = "Irá começar";
-            yield return Countdown(tempoEntreAcoes, 1);
+            // 1) Revela: cada chão mostra sua cor para memorizar
+            currentPhase = MemoryPhase.Reveal;
+            currentColor = Color.white;
+            currentColorName = "Memorize as cores";
+            Notifica(); // tiles randomizam a cor e mostram
+            yield return Countdown(tempoMemorizar, 0);
 
+            // 2) Esconde: todos os chãos ficam neutros
+            currentPhase = MemoryPhase.Hide;
+            currentColor = Color.white;
+            currentColorName = "Prepare-se";
+            Notifica(); // tiles escondem a cor
+            yield return Countdown(tempoEspera, 1);
+
+            // 3) Escolhe alvo e resolve: apenas a cor correta permanece
             ColorInfo corEscolhida = EscolherCor();
             currentColor     = corEscolhida.color;
-            currentColorName = corEscolhida.colorName;
-            yield return Countdown(tempoEntreAcoes, 2);
+            currentColorName = corEscolhida.colorName; // mostra o nome da cor-alvo
+            currentPhase = MemoryPhase.Resolve;
+            yield return Countdown(tempoResolver, 2);
 
+            // Notifica para eliminar os errados / manter corretos
             Notifica();
 
-            yield return Countdown(tempoEntreAcoes, 1);
-            
-            currentColor     = Color.white;
-            currentColorName = "Irá começar";
-            Notifica();
+            // 4) Pequena pausa antes de um novo ciclo
+            currentPhase = MemoryPhase.Idle;
+            currentColor = Color.white;
+            currentColorName = "Novo ciclo";
+            yield return Countdown(tempoEspera, 1);
         }
     }
     IEnumerator Countdown(float duration, int tipo)
@@ -75,9 +106,15 @@ public class Instrutor : NetworkBehaviour, ISubject
         float timer = duration;
         while (timer > 0f)
         {
-            currentTimerText = tipo == 1 
-                ? $"Trocando em {Mathf.Ceil(timer)} s" 
-                : $"Sumindo em {Mathf.Ceil(timer)} s";
+            // tipo: 0=memorize, 1=prepare, 2=sumindo
+            if (tipo == 0)
+                currentTimerText = $"Memorize: {Mathf.Ceil(timer)} s";
+            else if (tipo == 1)
+                currentTimerText = $"Pronto em {Mathf.Ceil(timer)} s";
+            else if (tipo == 2)
+                currentTimerText = $"Sumindo em {Mathf.Ceil(timer)} s";
+            else
+                currentTimerText = $"{Mathf.Ceil(timer)} s";
             timer -= Time.deltaTime;
             yield return null;
         }

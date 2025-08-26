@@ -47,7 +47,7 @@ public class LobbyUI : MonoBehaviour
                 slotsById[pd.playerInfo.steamId] = slot;
             }
 
-            slot.Refresh(pd.alias, pd.IsReady); 
+            slot.Refresh(pd.alias, pd.IsReady, pd.color); 
         }
 
         foreach (var id in new List<ulong>(slotsById.Keys))
