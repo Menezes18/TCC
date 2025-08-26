@@ -91,10 +91,13 @@ public class SteamLobby : MonoBehaviour
     }
 
     private readonly float _delaySeconds = 2.0f;
+    private static readonly WaitForSeconds WFS_1 = new WaitForSeconds(1f);
+    private static readonly WaitForSeconds WFS_1_7 = new WaitForSeconds(1.7f);
+    private static readonly WaitForSecondsRealtime WFSR_2 = new WaitForSecondsRealtime(2.0f);
     public void CreateLobby()
     {
         PopupManager.instance.Popup_Show("Criando Partida", false, true);
-        StartCoroutine(DelayAction(_delaySeconds, () => {
+    StartCoroutine(DelayActionRealtime(() => {
         SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypePublic, ((MyNetworkManager)NetworkManager.singleton).maxConnections);
         MainMenu.instance.gameObject.SetActive(false);
         }));
@@ -129,7 +132,7 @@ public class SteamLobby : MonoBehaviour
     private void OnJoinRequest(GameLobbyJoinRequested_t callback)
     {
         PopupManager.instance.Popup_Show("Entrando na Partida", false, true);
-        StartCoroutine(DelayAction(_delaySeconds, () => {
+    StartCoroutine(DelayActionRealtime(() => {
         SteamMatchmaking.JoinLobby(callback.m_steamIDLobby);
         }));
     }
@@ -160,7 +163,7 @@ public class SteamLobby : MonoBehaviour
     public void Leave()
     {
         PopupManager.instance.Popup_Show("Saindo da Partida", false, true);
-        StartCoroutine(DelayAction(_delaySeconds, () => {
+    StartCoroutine(DelayActionRealtime(() => {
             SteamMatchmaking.LeaveLobby(LobbyID);
             // Use centralized loading when leaving to menu
             if (NetworkServer.active)
@@ -193,7 +196,7 @@ public class SteamLobby : MonoBehaviour
         while (!foundMatch && elapsedTime < maxTime)
         {
             ReloadLobbyList();
-            yield return new WaitForSeconds(1f);
+            yield return WFS_1;
             elapsedTime += 1f;
 
             foreach (var lobby in allLobbies)
@@ -213,16 +216,21 @@ public class SteamLobby : MonoBehaviour
         {
             PopupManager.instance.Popup_Show("Nenhuma partida encontrada.", false, true);
         }
-        StartCoroutine(DelayAction(1.7f, () => {
+    StartCoroutine(DelayAction_1_7(() => {
             PopupManager.instance.Popup_Close();
             
         }));
     }
 
     
-    private IEnumerator DelayAction(float delay, Action action)
+    private IEnumerator DelayActionRealtime(Action action)
     {
-        yield return new WaitForSeconds(delay);
+        yield return WFSR_2;
+        action?.Invoke();
+    }
+    private IEnumerator DelayAction_1_7(Action action)
+    {
+        yield return WFS_1_7;
         action?.Invoke();
     }
 }

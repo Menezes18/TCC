@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Smooth;
+using Unity.Profiling;
 using Random = UnityEngine.Random;
 using UnityEngine.Events;
 public struct PlayerScoreEntry
@@ -85,6 +86,9 @@ public class MatchManager : NetworkBehaviour
         if (acabarFreezeTime != null)
             acabarFreezeTime.SetActive(false);
     }
+    private float _rankingNextUpdate;
+    [SerializeField] private float rankingUpdatesPerSecond = 4f; // throttle ranking rebuilds
+    private static readonly Unity.Profiling.ProfilerMarker PM_RebuildRanking = new("MatchManager.RebuildRanking");
     private void Update()
     {
         if(base.isServer == false) return;
@@ -93,7 +97,12 @@ public class MatchManager : NetworkBehaviour
         
         if(_matchHasStarted == false) return;
         scoreRule.UpdateScores();
-        UpdateTemporaryRanking();
+        // throttle ranking recompute to reduce CPU/GC
+        if (Time.unscaledTime >= _rankingNextUpdate)
+        {
+            _rankingNextUpdate = Time.unscaledTime + (1f / Mathf.Max(1f, rankingUpdatesPerSecond));
+            UpdateTemporaryRanking_NoAlloc();
+        }
         
         if(_freezeTimer > 0)
             _freezeTimer -= Time.deltaTime;
@@ -247,21 +256,40 @@ public class MatchManager : NetworkBehaviour
         return random;
     }
 
-    private void UpdateTemporaryRanking()
+    // non-allocating ranking rebuild
+    static readonly List<PlayerScoreEntry> _tmpRanking = new List<PlayerScoreEntry>(32);
+    private void UpdateTemporaryRanking_NoAlloc()
     {
-        var results = scoreRule.GetResults();
-        _temporaryRanking = playerList.players
-            .Select(pd =>
+        using (PM_RebuildRanking.Auto())
+        {
+            var results = scoreRule.GetResults();
+            _tmpRanking.Clear();
+            // build
+            for (int i = 0; i < playerList.players.Count; i++)
             {
-                var sid = pd.playerInfo.steamId;
-                return new PlayerScoreEntry {
+                var pd = playerList.players[i];
+                ulong sid = pd.playerInfo.steamId;
+                int s = 0;
+                if (results != null)
+                    results.TryGetValue(sid, out s);
+                _tmpRanking.Add(new PlayerScoreEntry
+                {
                     steamId = sid,
                     displayName = pd.playerInfo.username,
-                    score = results.TryGetValue(sid, out var s) ? s : 0
-                };
-            })
-            .OrderByDescending(e => e.score)
-            .ToList();
+                    score = s
+                });
+            }
+            // sort by score desc
+            _tmpRanking.Sort((a, b) => b.score.CompareTo(a.score));
+            // assign
+            _temporaryRanking = new List<PlayerScoreEntry>(_tmpRanking);
+        }
+    }
+
+    // keep compatibility for any existing callers
+    private void UpdateTemporaryRanking()
+    {
+        UpdateTemporaryRanking_NoAlloc();
     }
     
     void HookOnFreezeTimerUpdated(float oldValue, float newValue)

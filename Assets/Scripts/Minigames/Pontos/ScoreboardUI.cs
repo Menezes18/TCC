@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Mirror;
 using UnityEngine;
 
@@ -48,25 +47,37 @@ public class ScoreboardUI : NetworkBehaviour, IObserver
         SendResults(mc.GetLiveScores());
     }
 
+    static readonly List<KeyValuePair<ulong,int>> _tmpOrdered = new(32);
     void SendResults(Dictionary<ulong, int> results)
     {
-        var ordered = results.OrderByDescending(kv => kv.Value).ToList();
+        if (results == null) return;
+        _tmpOrdered.Clear();
+        foreach (var kv in results) _tmpOrdered.Add(kv);
+        _tmpOrdered.Sort((a,b)=> b.Value.CompareTo(a.Value));
 
-        string[] names = new string[ordered.Count];
-        int[] pts = new int[ordered.Count];
-        int[] colors = new int[ordered.Count];
+        int count = _tmpOrdered.Count;
+        string[] names = new string[count];
+        int[] pts = new int[count];
+        int[] colors = new int[count];
 
-        for (int i = 0; i < ordered.Count; i++)
+        var list = PlayerList.singleton?.players;
+        for (int i = 0; i < count; i++)
         {
-            ulong id = ordered[i].Key;
-            int score = ordered[i].Value;
-            var pd = PlayerList.singleton.players.FirstOrDefault(p => p.playerInfo.steamId == id);
+            ulong id = _tmpOrdered[i].Key;
+            int score = _tmpOrdered[i].Value;
+            PlayerData pd = null;
+            if (list != null)
+            {
+                for (int j = 0; j < list.Count; j++)
+                {
+                    if (list[j].playerInfo.steamId == id) { pd = list[j]; break; }
+                }
+            }
             names[i] = pd != null ? pd.alias : id.ToString();
             colors[i] = pd != null ? pd.color : -1;
             pts[i] = score;
         }
 
-        // Dispatch the results via the Networked controller (spawned), not from this UI
         controller?.RpcUpdateScoreboard(names, pts, colors);
     }
 

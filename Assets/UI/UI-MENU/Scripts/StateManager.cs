@@ -8,6 +8,7 @@ using UnityEngine.SceneManagement;
 
 public class StateManager : Singleton<StateManager>
 {
+    private static readonly WaitForSeconds WFS_0_1 = new WaitForSeconds(0.1f);
     [Tooltip("You need to add all of your states in here.")]
     [Header("List of States")]
     [SerializeField]
@@ -117,9 +118,8 @@ public class StateManager : Singleton<StateManager>
 
     public IEnumerator PlayNextCanvasAnimation(CanvasType _type)
     {
-        
-        CanvasAnimator.Play("out_canvas");
-        yield return new WaitForSeconds(0.1f);
+    CanvasAnimator.Play("out_canvas");
+    yield return WFS_0_1;
         GoToNextCanvas(_type);
 
         CanvasAnimator.Play("in_canvas");
@@ -128,8 +128,8 @@ public class StateManager : Singleton<StateManager>
     public IEnumerator PlayPreviousCanvasAnimation()
     {
 
-        CanvasAnimator.Play("out_canvas");
-        yield return new WaitForSeconds(0.1f);
+    CanvasAnimator.Play("out_canvas");
+    yield return WFS_0_1;
         GoToPreviousCanvas();
         CanvasAnimator.Play("in_canvas");
 

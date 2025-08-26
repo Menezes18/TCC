@@ -8,6 +8,7 @@ public class UIAlwaysSelect : MonoBehaviour
 {
     private EventSystem currentEventSystem;
     private GameObject currentlySelected;
+    private Selectable cachedSelectable;
 
     private void Awake()
     {
@@ -37,14 +38,19 @@ public class UIAlwaysSelect : MonoBehaviour
             // If this happens simply re-select the last known selected GameObject.
             if (currentlySelected != null)
             {
-                currentlySelected.GetComponent<Selectable>().Select();
+                if (cachedSelectable == null || cachedSelectable.gameObject != currentlySelected)
+                    cachedSelectable = currentlySelected.GetComponent<Selectable>();
+                if (cachedSelectable != null)
+                    cachedSelectable.Select();
             }
             else
             {
                 // If there is none, select the firstSelectedGameObject
                 // (which can be setup inthe EventSystem component).
                 currentlySelected = currentEventSystem.firstSelectedGameObject;
-                currentlySelected.GetComponent<Selectable>().Select();
+                cachedSelectable = currentlySelected != null ? currentlySelected.GetComponent<Selectable>() : null;
+                if (cachedSelectable != null)
+                    cachedSelectable.Select();
             }
         }
     }

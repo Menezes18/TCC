@@ -43,6 +43,7 @@ public class Marker : MonoBehaviour
         this.worldObject = worldObject;
         this.targetPos = targetPos;
         this.objToFollow = objToFollow;
+    timeAlive = 0f;
 /*        aimFadeGroup.alpha = 0;
         fadeGroup.alpha = 0;*/
     }

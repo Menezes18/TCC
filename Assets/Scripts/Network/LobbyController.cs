@@ -34,7 +34,14 @@ public class LobbyController : NetworkBehaviour
     {
         _prepareTimer = -1;
         _startTimer = -1;
-        Invoke("StartGameWithParty", 0.5f );
+        StartCoroutine(StartGameWithPartyDelayed());
+    }
+
+    static readonly WaitForSeconds WFS_0_5 = new WaitForSeconds(0.5f);
+    IEnumerator StartGameWithPartyDelayed()
+    {
+        yield return WFS_0_5;
+        StartGameWithParty();
     }
 
     private void Update()

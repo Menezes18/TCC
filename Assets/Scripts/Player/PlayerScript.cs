@@ -61,7 +61,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         set {
             if (_status == value) return;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             Debug.Log($"🔄 [STATUS] {_status} → {value}");
+#endif
             _animator.SetInteger(_STATUS, (int)value);
             _status = value;
 
@@ -156,7 +158,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public Transform cameraTarget;
 
     // cache de alvos para Spectate (evita FindObjects por chamada)
-    private Transform[] _spectatorTargetsCache;
+    private PlayerScript[] _spectatorTargetsCache;
     private float _nextSpectatorRefresh;
     [SerializeField] private float spectatorRefreshInterval = 1.5f;
 
@@ -861,20 +863,16 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         // atualiza cache no máximo a cada spectatorRefreshInterval para evitar custo de FindObjects por chamada
         if (_spectatorTargetsCache == null || Time.unscaledTime >= _nextSpectatorRefresh)
         {
-            var players = FindObjectsByType<PlayerScript>(FindObjectsSortMode.None);
-            _spectatorTargetsCache = new Transform[players.Length];
-            for (int i = 0; i < players.Length; i++)
-                _spectatorTargetsCache[i] = players[i].transform;
+            _spectatorTargetsCache = FindObjectsByType<PlayerScript>(FindObjectsSortMode.None);
             _nextSpectatorRefresh = Time.unscaledTime + spectatorRefreshInterval;
         }
 
         for (int i = 0; i < _spectatorTargetsCache.Length; i++)
         {
-            var t = _spectatorTargetsCache[i];
-            if (t == null) continue;
-            var ps = t.GetComponent<PlayerScript>();
-            if (ps != null && ps != this && ps.State != PlayerState.Death)
-                return t;
+            var ps = _spectatorTargetsCache[i];
+            if (ps == null) continue;
+            if (ps != this && ps.State != PlayerState.Death)
+                return ps.transform;
         }
         return null;
     }
