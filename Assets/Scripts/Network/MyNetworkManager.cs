@@ -327,6 +327,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         indexScene = 0;
         minigames.Clear();
         minigames.Add("MN_Rua");
+        minigames.Add("MN_Memoria");
         minigames.Add("MN_Queda");
         minigames.Add("MN_Sumo");
         minigames.Add("Vitoria");
