@@ -2058,7 +2058,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &244676451
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5855,8 +5855,8 @@ MonoBehaviour:
   onDeath:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: SumoMinigameController, Assembly-CSharp
+      - m_Target: {fileID: 1062122900}
+        m_TargetAssemblyTypeName: MemoriaMinigameController, Assembly-CSharp
         m_MethodName: Eliminate
         m_Mode: 0
         m_Arguments:
@@ -7591,63 +7591,14 @@ GameObject:
   m_Component:
   - component: {fileID: 1062122899}
   - component: {fileID: 1062122898}
-  - component: {fileID: 1062122897}
+  - component: {fileID: 1062122900}
   m_Layer: 0
-  m_Name: Queda
+  m_Name: Memoria
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1062122897
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1062122896}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 99c95b5e84e1c034597341ccaa1351e2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
-  OnStartGame:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1062122897}
-        m_TargetAssemblyTypeName: QuedaMinigameController, Assembly-CSharp
-        m_MethodName: StartGame
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  finalizar:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 643699991}
-        m_TargetAssemblyTypeName: MatchManager, Assembly-CSharp
-        m_MethodName: InternalEndMatch
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  settingsData: {fileID: 11400000, guid: 45c51428d0f579a4b9819f490b1da042, type: 2}
-  alivePlayers: []
-  eliminationOrder: []
-  _startGame: 0
 --- !u!114 &1062122898
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7680,6 +7631,56 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1062122900
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1062122896}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69c8a7cf8173abf44b9b77e485cabfc1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  OnStartGame:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1062122900}
+        m_TargetAssemblyTypeName: MemoriaMinigameController, Assembly-CSharp
+        m_MethodName: StartGame
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  finalizar:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 643699991}
+        m_TargetAssemblyTypeName: MatchManager, Assembly-CSharp
+        m_MethodName: InternalEndMatch
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  settingsData: {fileID: 11400000, guid: 17b6a163300f786489961844d4c83ef6, type: 2}
+  alivePlayers: []
+  eliminationOrder: []
+  instrutor: {fileID: 2014762147}
+  _startGame: 0
 --- !u!1001 &1078447728
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11978,6 +11979,9 @@ MonoBehaviour:
   textoTimer: {fileID: 449314021}
   imagem: {fileID: 1979402447}
   tempoEntreAcoes: 4
+  tempoMemorizar: 5
+  tempoEspera: 2
+  tempoResolver: 3
   colors:
   - colorName: Vermelho
     color: {r: 1, g: 0, b: 0, a: 1}
@@ -11987,6 +11991,7 @@ MonoBehaviour:
     color: {r: 0, g: 1, b: 0, a: 1}
   - colorName: Amarelo
     color: {r: 1, g: 0.9, b: 0, a: 1}
+  currentPhase: 0
   currentColor: {r: 0, g: 0, b: 0, a: 0}
   currentColorName: 
   currentTimerText: 
