@@ -73,11 +73,17 @@ public class BriefingManager : NetworkBehaviour
         bool allReady = ready == total && total > 0;
         Debug.Log($"[Briefing] Ready {ready}/{total} | allReady={allReady}");
         if (!allReady) return;
-        // Reativa movimento antes de fechar briefing
-        PlayerList.singleton.AtivarPlayer(true);
+        // Reativa movimento antes de fechar briefing (descongela)
+        PlayerList.singleton.AtivarPlayer(false);
         CmdFinishBriefing();
         RpcCloseBriefing();
         Debug.Log("[Briefing] RpcCloseBriefing dispatched");
+
+        // Inicia a partida somente após todos estarem prontos
+        if (MatchManager.singleton != null)
+        {
+            MatchManager.singleton.InternalStartMatch();
+        }
     }
 
     private void ShowLocalBriefing()
@@ -163,8 +169,8 @@ public class BriefingManager : NetworkBehaviour
         tipIndex = UnityEngine.Random.Range(0, data.tips.Length);
         briefingToggle = !briefingToggle;
 
-        // Congela movimento enquanto briefing estiver ativo
-        PlayerList.singleton.AtivarPlayer(false);
+        // Congela movimento enquanto briefing estiver ativo (congela)
+        PlayerList.singleton.AtivarPlayer(true);
 
         // Reseta acks e define quantos clientes esperamos
         _briefingAcks.Clear();
