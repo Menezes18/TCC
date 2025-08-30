@@ -58,6 +58,9 @@ public class StreetMinigameController : MinigameController, IObserver
                 playerScript.EventOnDeathServerSide.AddListener(onDeathHandler);
             }
         }
+
+    // push initial zeroed scoreboard so ranking shows from the beginning
+    Notifica();
     }
 
     [Server]
@@ -88,6 +91,10 @@ public class StreetMinigameController : MinigameController, IObserver
         {
             _carryingByPlayer[playerId] = true;
             Notifica();
+
+            // notify only this player
+            if (pd.connectionToClient != null)
+                TargetToast(pd.connectionToClient, "Pegou a banana! Leve até sua pilha.");
         }
     }
 
@@ -102,6 +109,14 @@ public class StreetMinigameController : MinigameController, IObserver
             _carryingByPlayer[playerId] = false;
             _deliveriesByPlayer[playerId] = _deliveriesByPlayer.TryGetValue(playerId, out var currentDeliveryCount) ? currentDeliveryCount + 1 : 1;
             Notifica();
+
+            // notify only this player
+            if (pd.connectionToClient != null)
+            {
+                int total = _deliveriesByPlayer[playerId];
+                int ptsNow = GetProvisionalPointsFor(playerId);
+                TargetToast(pd.connectionToClient, $"Entrega! +1 (Total: {total}) — Pontos atuais: {ptsNow}");
+            }
         }
     }
 
@@ -120,7 +135,7 @@ public class StreetMinigameController : MinigameController, IObserver
     public override void AssignFinalPoints()
     {
         if (!isServer) return;
-        var rankedByDeliveries = _deliveriesByPlayer
+    var rankedByDeliveries = _deliveriesByPlayer
             .OrderByDescending(kv => kv.Value)
             .ThenBy(kv => kv.Key)
             .ToList();
@@ -142,9 +157,52 @@ public class StreetMinigameController : MinigameController, IObserver
         Notifica();
     }
 
-    // SIM essa porra vai ficar igual 
-    public override Dictionary<ulong, int> GetLiveScores() => _deliveriesByPlayer;
+    // Mostrar pontuação final (bônus de colocação) desde o início, com base no ranking atual de entregas
+    public override Dictionary<ulong, int> GetLiveScores()
+    {
+        // calcula prévia de pontos por colocação usando deliveries atuais
+        var ranked = _deliveriesByPlayer
+            .OrderByDescending(kv => kv.Value)
+            .ThenBy(kv => kv.Key)
+            .ToList();
+
+        var preview = new Dictionary<ulong, int>(_deliveriesByPlayer.Count);
+        for (int i = 0; i < ranked.Count; i++)
+        {
+            int pts = i switch
+            {
+                0 => settingsData?.firstPlaceBonus ?? 0,
+                1 => settingsData?.secondPlaceBonus ?? 0,
+                2 => settingsData?.thirdPlaceBonus ?? 0,
+                3 => settingsData?.fourthPlaceBonus ?? 0,
+                _ => 0
+            };
+            preview[ranked[i].Key] = pts;
+        }
+        return preview;
+    }
     public override Dictionary<ulong, int> GetResults() => _finalPointsByPlayer.Count > 0 ? _finalPointsByPlayer : _deliveriesByPlayer;
+
+    int GetProvisionalPointsFor(ulong playerId)
+    {
+        var ranked = _deliveriesByPlayer
+            .OrderByDescending(kv => kv.Value)
+            .ThenBy(kv => kv.Key)
+            .ToList();
+        for (int i = 0; i < ranked.Count; i++)
+        {
+            if (ranked[i].Key != playerId) continue;
+            return i switch
+            {
+                0 => settingsData?.firstPlaceBonus ?? 0,
+                1 => settingsData?.secondPlaceBonus ?? 0,
+                2 => settingsData?.thirdPlaceBonus ?? 0,
+                3 => settingsData?.fourthPlaceBonus ?? 0,
+                _ => 0
+            };
+        }
+        return 0;
+    }
 
     [Server]
     public void ServerRegisterDropoff(ulong playerId, StreetCourierZone dropoffZone)
@@ -194,22 +252,18 @@ public class StreetMinigameController : MinigameController, IObserver
             ServerRegisterDropoff(playerId, best);
             availableDropoffs.Remove(best);
 
-            TryColorDropoff(best, pd.color);
+            // define cor replicada para clientes via SyncVar no zone
+            if (database != null && pd.color >= 0 && pd.color < database.playerColors.Count)
+            {
+                var color = (Color32)database.playerColors[pd.color].color;
+                best.ServerSetTint(color);
+            }
         }
     }
 
-    [Server]
-    private void TryColorDropoff(StreetCourierZone zone, int colorIndex)
+    [TargetRpc]
+    void TargetToast(NetworkConnectionToClient conn, string msg)
     {
-        if (database == null) return;
-        if (colorIndex < 0 || colorIndex >= database.playerColors.Count) return;
-        var color = database.playerColors[colorIndex].color;
-
-        var renderers = zone.GetComponentsInChildren<Renderer>(true);
-        foreach (var r in renderers)
-        {
-            if (r.material != null)
-                r.material.color = color;
-        }
+    ChatManager.ShowToastGlobal(msg);
     }
 }

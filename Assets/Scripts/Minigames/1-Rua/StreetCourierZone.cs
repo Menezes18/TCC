@@ -12,6 +12,7 @@ public class StreetCourierZone : NetworkBehaviour
     [SerializeField] private StreetMinigameController _minigameController;
     [SerializeField] private StreetCourierZoneType _zoneType = StreetCourierZoneType.Pickup;
     [SyncVar] private ulong _ownerSteamId;
+    [SyncVar(hook = nameof(OnTintChanged))] private Color32 _tint;
 
     private void Reset()
     {
@@ -50,6 +51,34 @@ public class StreetCourierZone : NetworkBehaviour
     public void ServerSetOwner(ulong steamId)
     {
         _ownerSteamId = steamId;
+    }
+
+    [Server]
+    public void ServerSetTint(Color32 color)
+    {
+        _tint = color;
+        RpcApplyTint(color);
+    }
+
+    void OnTintChanged(Color32 oldColor, Color32 newColor)
+    {
+        ApplyTint(newColor);
+    }
+
+    [ClientRpc]
+    void RpcApplyTint(Color32 color)
+    {
+        ApplyTint(color);
+    }
+
+    void ApplyTint(Color32 color)
+    {
+        var renderers = GetComponentsInChildren<Renderer>(true);
+        foreach (var r in renderers)
+        {
+            if (r != null && r.material != null)
+                r.material.color = color;
+        }
     }
 
     public bool HasOwner => _ownerSteamId != 0UL;
