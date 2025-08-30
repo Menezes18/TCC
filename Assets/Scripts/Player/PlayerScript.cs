@@ -316,7 +316,15 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         
         if (Keyboard.current.pKey.wasPressedThisFrame ) // input
         {
-            NetworkClient.localPlayer.GetComponent<PlayerData>().ToggleReady();
+            // Bloqueia alternar "pronto" enquanto o briefing não liberar interação
+            if (BriefingManager.singleton != null && !BriefingManager.singleton.ReadyInteractableClient)
+            {
+                Debug.Log("[Ready] Ignorado: aguardando todos entrarem no briefing");
+            }
+            else
+            {
+                NetworkClient.localPlayer.GetComponent<PlayerData>().ToggleReady();
+            }
             
             Scene sceneAtual = SceneManager.GetActiveScene();
             if (sceneAtual.name == "RASCUNHO"){

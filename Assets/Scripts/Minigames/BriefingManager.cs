@@ -39,6 +39,11 @@ public class BriefingManager : NetworkBehaviour
     [SyncVar] private int tipIndex;
     [SyncVar] private bool briefingStarted = false;
 
+    // Client-side gate: allow pressing Ready only when server permits interaction
+    [SerializeField]
+    private bool readyInteractableClient = false;
+    public bool ReadyInteractableClient => readyInteractableClient;
+
     [Header("Slots de Jogadores")]
     [SerializeField] private GameObject slotPrefab;
     [SerializeField] private Transform slotsParent;
@@ -93,7 +98,8 @@ public class BriefingManager : NetworkBehaviour
         tipText.text = data.tips[tipIndex];
         canvasGroup.alpha = 1;
         // Interação ficará bloqueada até todos clientes entrarem
-        canvasGroup.interactable = false;
+    canvasGroup.interactable = false;
+    readyInteractableClient = false;
         onBriefingStarted?.Invoke();
         StopAllCoroutines();
     }
@@ -121,6 +127,7 @@ public class BriefingManager : NetworkBehaviour
         yield return new WaitForSeconds(briefingDuration);
         canvasGroup.alpha = 0;
         canvasGroup.interactable = false;
+    readyInteractableClient = false;
         cameraBriefing.SetActive(true);
         onBriefingEnded?.Invoke();
     }
@@ -195,6 +202,7 @@ public class BriefingManager : NetworkBehaviour
         canvasGroup.alpha = 1;
         // Começa sem interação; será liberado quando todos entrarem
         canvasGroup.interactable = false;
+        readyInteractableClient = false;
         onBriefingStarted?.Invoke();
         StopAllCoroutines();
 
@@ -231,6 +239,7 @@ public class BriefingManager : NetworkBehaviour
         StopAllCoroutines();
         canvasGroup.alpha = 0;
         canvasGroup.interactable = false;
+    readyInteractableClient = false;
         cameraBriefing.SetActive(true);
         onBriefingEnded?.Invoke();
     }
@@ -239,7 +248,8 @@ public class BriefingManager : NetworkBehaviour
     private void RpcSetReadyInteractable(bool canInteract)
     {
         // Permite/nega interação na UI do briefing (ex: botão de pronto)
-        canvasGroup.interactable = canInteract;
+    canvasGroup.interactable = canInteract;
+    readyInteractableClient = canInteract;
     }
     #endregion
 
