@@ -114,8 +114,7 @@ public class StreetMinigameController : MinigameController, IObserver
             if (pd.connectionToClient != null)
             {
                 int total = _deliveriesByPlayer[playerId];
-                int ptsNow = GetProvisionalPointsFor(playerId);
-                TargetToast(pd.connectionToClient, $"Entrega! +1 (Total: {total}) — Pontos atuais: {ptsNow}");
+                TargetToast(pd.connectionToClient, $"Entrega! +1 (Total: {total})");
             }
         }
     }
@@ -157,52 +156,9 @@ public class StreetMinigameController : MinigameController, IObserver
         Notifica();
     }
 
-    // Mostrar pontuação final (bônus de colocação) desde o início, com base no ranking atual de entregas
-    public override Dictionary<ulong, int> GetLiveScores()
-    {
-        // calcula prévia de pontos por colocação usando deliveries atuais
-        var ranked = _deliveriesByPlayer
-            .OrderByDescending(kv => kv.Value)
-            .ThenBy(kv => kv.Key)
-            .ToList();
-
-        var preview = new Dictionary<ulong, int>(_deliveriesByPlayer.Count);
-        for (int i = 0; i < ranked.Count; i++)
-        {
-            int pts = i switch
-            {
-                0 => settingsData?.firstPlaceBonus ?? 0,
-                1 => settingsData?.secondPlaceBonus ?? 0,
-                2 => settingsData?.thirdPlaceBonus ?? 0,
-                3 => settingsData?.fourthPlaceBonus ?? 0,
-                _ => 0
-            };
-            preview[ranked[i].Key] = pts;
-        }
-        return preview;
-    }
+    // Mostrar ao vivo quantas bananas cada jogador já ENTREGOU
+    public override Dictionary<ulong, int> GetLiveScores() => _deliveriesByPlayer;
     public override Dictionary<ulong, int> GetResults() => _finalPointsByPlayer.Count > 0 ? _finalPointsByPlayer : _deliveriesByPlayer;
-
-    int GetProvisionalPointsFor(ulong playerId)
-    {
-        var ranked = _deliveriesByPlayer
-            .OrderByDescending(kv => kv.Value)
-            .ThenBy(kv => kv.Key)
-            .ToList();
-        for (int i = 0; i < ranked.Count; i++)
-        {
-            if (ranked[i].Key != playerId) continue;
-            return i switch
-            {
-                0 => settingsData?.firstPlaceBonus ?? 0,
-                1 => settingsData?.secondPlaceBonus ?? 0,
-                2 => settingsData?.thirdPlaceBonus ?? 0,
-                3 => settingsData?.fourthPlaceBonus ?? 0,
-                _ => 0
-            };
-        }
-        return 0;
-    }
 
     [Server]
     public void ServerRegisterDropoff(ulong playerId, StreetCourierZone dropoffZone)
