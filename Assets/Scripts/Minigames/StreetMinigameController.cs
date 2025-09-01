@@ -91,6 +91,8 @@ public class StreetMinigameController : MinigameController, IObserver
         {
             _carryingByPlayer[playerId] = true;
             Notifica();
+            var ps = pd.GetComponent<PlayerScript>();
+            if (ps != null) ps.ServerSetCarrying(true);
 
             // notify only this player
             if (pd.connectionToClient != null)
@@ -109,6 +111,8 @@ public class StreetMinigameController : MinigameController, IObserver
             _carryingByPlayer[playerId] = false;
             _deliveriesByPlayer[playerId] = _deliveriesByPlayer.TryGetValue(playerId, out var currentDeliveryCount) ? currentDeliveryCount + 1 : 1;
             Notifica();
+            var ps = pd.GetComponent<PlayerScript>();
+            if (ps != null) ps.ServerSetCarrying(false);
 
             // notify only this player
             if (pd.connectionToClient != null)
@@ -126,6 +130,8 @@ public class StreetMinigameController : MinigameController, IObserver
         ulong playerId = pd.playerInfo.steamId;
         if (_carryingByPlayer.ContainsKey(playerId))
             _carryingByPlayer[playerId] = false;
+        var psd = pd.GetComponent<PlayerScript>();
+        if (psd != null) psd.ServerSetCarrying(false);
         Notifica();
     }
 

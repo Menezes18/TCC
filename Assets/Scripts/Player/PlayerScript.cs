@@ -164,7 +164,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SerializeField] private bool _chatOpen = false;
 
     [SerializeField] private float sensibilidade = 1;
-
+    [SyncVar(hook = nameof(OnCarryingChanged))] private bool _isCarrying;
+    [SerializeField, Range(0.3f, 1f)] private float carryingSpeedMultiplier = 0.8f;
+    public bool IsCarrying => _isCarrying;
 
     // UI
 
@@ -442,6 +444,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (hit.gameObject.CompareTag("KillPlane"))
             InternalDeath(false);
     }
+    
+    [Server] public void ServerSetCarrying(bool value) { _isCarrying = value; }
+    private void OnCarryingChanged(bool oldVal, bool newVal)
+    {
+
+    }
+    private float GetSpeedMultiplier() => _isCarrying ? carryingSpeedMultiplier : 1f;
 
 
     //
@@ -509,7 +518,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
         Vector3 input = new Vector3(_input.x, 0, _input.z);
         input = Quaternion.Euler(rot) * input;
-        input *= db.playerAirSpeed * Time.deltaTime;
+        input *= (db.playerAirSpeed * GetSpeedMultiplier()) * Time.deltaTime;
         _inertia += input;
         _inertia = Vector3.ClampMagnitude(_inertia, InertiaCap);
 
@@ -524,7 +533,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
         _move = _input;
         _move = Quaternion.Euler(rot) * _move;
-        _move *= db.playerSpeed;
+        _move *= db.playerSpeed * GetSpeedMultiplier();
 
         _move.y = vertical;
 
@@ -588,12 +597,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (panel) return;
         if (_chatOpen) return;
         if (isFrozen) return;
+        if (_isCarrying) return;
         if (State != PlayerState.Default) return;
 
-        if (_move.y > 0)
-            State = PlayerState.Ascend;
-        else if (_move.y < db.gravityGrounded)
-            State = PlayerState.Descend;
+        State = PlayerState.Ascend;
 
         _ignoreGroundedNextFrame = true;
         _move.y = db.playerJumpHeight;
@@ -605,6 +612,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if (panel) return;
         if (_chatOpen) return;
+        if (_isCarrying) return;
         if (isFrozen) return;
         if (State == PlayerState.Stagger) return;
         if (Status != PlayerStatus.Default || Status == PlayerStatus.Blinded) return;
@@ -623,8 +631,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (IsAirborne) return;
         if (State == PlayerState.Stagger) return;
         if (_rollCooldown > 0) return;
-
-        _roll = new Vector3(_raw.x, 0, _raw.y);
+        if (_isCarrying) return;
 
         if (_roll.magnitude == 0)
             _roll = Vector3.forward;
@@ -644,15 +651,14 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (Status != PlayerStatus.Default) return;
         if (Status == PlayerStatus.Throw) return;
         if (_throwCooldown > 0) return;
-
-
+        if (_isCarrying) return;
         Status = PlayerStatus.ThrowPrepare;
 
     }
 
     private void PlayerControlsSO_OnThrowCancel()
     {
-        if (isFrozen) return;
+    if (isFrozen) return;
         if (panel) return;
         if (_chatOpen) return;
         if (Cursor.visible == true) return;
@@ -660,9 +666,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (State == PlayerState.Stagger) return;
         if (Status == PlayerStatus.Pushing) return;
         if (Status == PlayerStatus.Throw) return;
+        if (_isCarrying) return;
         Status = PlayerStatus.Throw;
 
-        Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
+        if (isFrozen) return;
+        if (_isCarrying) return; 
         Vector3 direction = _cam.forward;
         // Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
         //direction = _cam.forward;
