@@ -36,6 +36,9 @@ public class HUDSO : ScriptableObject{
     
     public event Action<float> EventOnRespawnTimerUpdated;
     public void RespawnTimerUpdate(float value) {this.EventOnRespawnTimerUpdated?.Invoke(value);}
+    
+    public event Action<string> EventOnPotatoHolderUpdated;
+    public void PotatoHolderUpdate(string value) { this.EventOnPotatoHolderUpdated?.Invoke(value); }
     //
     
     public event Action<string> EventOnGameOver;

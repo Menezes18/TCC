@@ -9,6 +9,8 @@ public class HUDManager : MonoBehaviour
     [SerializeField] HUDSO HUDSO;
 
     [SerializeField] TMP_Text _matchTimer, _freezeTimer, _respawnTimer, _gameover;
+    [SerializeField] TMP_Text _potatoHolder;
+
     
     [Header("Countdown FX")]
     [SerializeField] float spinDuration = 0.45f;
@@ -27,7 +29,7 @@ public class HUDManager : MonoBehaviour
         HUDSO.EventOnFreezeTimerUpdated += HUDSOOnEventOnFreezeTimerUpdated;
         HUDSO.EventOnRespawnTimerUpdated += HUDSOOnEventOnRespawnTimerUpdated;
         HUDSO.EventOnGameOver += HUDSOOnEventOnGameOver;
-
+        HUDSO.EventOnPotatoHolderUpdated += OnPotatoHolderUpdated;
         _matchTimer.text = _freezeTimer.text = _respawnTimer.text = _gameover.text = "";
 
         _numColors = new Dictionary<int, Color> {
@@ -86,7 +88,11 @@ public class HUDManager : MonoBehaviour
             AnimateCountdownTMP(_freezeTimer, s);
         }
     }
-    
+    private void OnPotatoHolderUpdated(string name)
+    {
+        if (_potatoHolder)
+            _potatoHolder.text = name;
+    }
     void HUDSOOnEventOnMatchTimerUpdated(float obj)
     {
         if (Mathf.RoundToInt(obj) == -1) { _matchTimer.text = ""; return; }
