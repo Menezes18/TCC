@@ -39,6 +39,9 @@ public class SlotRoleta : MonoBehaviour
     public AudioSource tick;
     public float tickMinInterval = 0.04f;
 
+    [Header("Debug")]
+    public bool enableDebugHotkey = false; // Pressione Espaço para girar localmente
+
     [Header("Seed")]
     public int fixedSeed = 0;
     [Header("Vitória (UI)")]
@@ -64,14 +67,14 @@ public class SlotRoleta : MonoBehaviour
 
     void Start()
     {
-        SetupWinUI();
-        ConstruirFaixa();
-        PosicionarInicioAleatorio();
+        // SetupWinUI();
+        // ConstruirFaixa();
+        // PosicionarInicioAleatorio();
     }
 
     void Update()
     {
-        if (Keyboard.current.spaceKey.wasPressedThisFrame)
+        if (enableDebugHotkey && Keyboard.current.spaceKey.wasPressedThisFrame)
         {
             SetupWinUI();
             ConstruirFaixa();
@@ -165,6 +168,13 @@ public class SlotRoleta : MonoBehaviour
         FixAnchors(rt, new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f));
         rt.sizeDelta = new Vector2(itemWidth, itemWidth);
         rt.anchoredPosition = new Vector2(xLeftPadding + itemWidth * 0.5f, 0f);
+
+        // Preenche UI básica do slot, se o prefab tiver UiSlotBatata
+        var slot = go.GetComponent<UiSlotBatata>();
+        if (slot != null && e.playerData != null)
+        {
+            slot.Setup(e.playerData.alias, e.playerData.color);
+        }
         return rt;
     }
 

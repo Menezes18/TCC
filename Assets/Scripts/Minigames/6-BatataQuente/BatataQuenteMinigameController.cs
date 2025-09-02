@@ -1,5 +1,4 @@
 #region Usings
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Mirror;
@@ -8,15 +7,36 @@ using UnityEngine;
 
 public class BatataQuenteMinigameController : MinigameController, IObserver
 {
+    #region Tipos
+    public enum GameMode
+    {
+        Eliminatorio, // explode/eliminação ao zerar tempo
+        Rotativo      // não elimina; volta a selecionar
+    }
+
+    private enum Phase
+    {
+        Idle,
+        Selecting,   // roleta rodando (congelado)
+        Round        // rodada ativa (timer contando)
+    }
+    #endregion
+
     #region Campos e Estado
-    [Header("Configurações da Batata Quente")]
+    [Header("Configurações")]
     [SerializeField] private SettingsMiniGameData settingsData;
     [SerializeField] private float passDistance = 3f;
-    [SerializeField] private float timeLimit = 5f;
+    [SerializeField] private float timeLimit = 20f; // 20s por rodada
     [SerializeField] private HUDSO hudso;
+    [SerializeField] private GameMode mode = GameMode.Eliminatorio;
+
     [Header("Roleta (UI de clientes)")]
     [SerializeField] private SlotRoleta roletaUI;
     [SerializeField] private float selectionFreezeSeconds = 3.2f;
+
+    [Header("Comportamento de estouro")]
+    [Tooltip("Se true, ao zerar o timer o holder explode (é eliminado).")]
+    [SerializeField] private bool eliminateOnTimeout = true;
 
     [Header("Estado")]
     [SerializeField] private List<PlayerData> alivePlayers = new List<PlayerData>();
@@ -25,6 +45,11 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
 
     private PlayerList playerList => PlayerList.singleton;
     private bool matchActive;
+    private float roundTimer;
+    private int _lastWholeSecondLogged = -1;
+
+    private Phase phase = Phase.Idle;
+    private double selectionEndTime = -1; // NetworkTime.time alvo p/ terminar seleção
 
     [SyncVar(hook = nameof(OnHolderChanged))]
     private ulong potatoHolderId;
@@ -37,9 +62,8 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     public override void OnStartServer()
     {
         base.OnStartServer();
-        Adicionar(this);
         Notifica();
-    
+        Adicionar(this);
     }
 
     [Server]
@@ -47,76 +71,238 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     {
         base.StartMatch();
         matchActive = true;
+        roundTimer = 0f;
+
+        if (mode == GameMode.Eliminatorio)
+            MatchManager.singleton.SetMatchTimer(-1f);
 
         alivePlayers.Clear();
         eliminationOrder.Clear();
         finalScores.Clear();
-
-
         alivePlayers.AddRange(playerList.players.Where(p => p != null));
 
-        StartCoroutine(SelectHolderWithRoulette());
+        StartSelection();
         Notifica();
     }
+    public override void SetupMiniGame()
+    {
+        base.SetupMiniGame();
+    }
     #endregion
-    #region Seleção via Roleta (server-authoritative)
 
+
+    #region Loop por Update (server-authoritative)
+    public override void UpdateScores()
+    {
+
+
+    }
+    [ServerCallback]
+    private void Update()
+    {
+        if (!matchActive) return;
+
+        switch (phase)
+        {
+            case Phase.Selecting:
+                
+                if (NetworkTime.time >= selectionEndTime)
+                {
+                    SafeUnfreeze("selection-end");
+                    BeginRoundTimer();
+                }
+                break;
+
+            case Phase.Round:
+                
+                if (roundTimer > 0f)
+                {
+                    roundTimer -= Time.deltaTime;
+
+                    if (hudso != null) hudso.MatchTimerUpdate(Mathf.Max(0f, roundTimer));
+
+                    int whole = Mathf.CeilToInt(roundTimer);
+                    if (whole != _lastWholeSecondLogged)
+                    {
+                        _lastWholeSecondLogged = whole;
+                        var holder = alivePlayers.FirstOrDefault(p => p.playerInfo.steamId == potatoHolderId);
+                        if (holder != null && whole > 0)
+                            Debug.Log($"[BatataQuente] {holder.playerInfo.username}: {whole}s restantes.");
+                    }
+
+                    if (roundTimer <= 0f)
+                    {
+                        HandleTimeout(); 
+                    }
+                }
+                break;
+
+            case Phase.Idle:
+            default:
+                break;
+        }
+    }
+    #endregion
+
+
+    #region Seleção SEM coroutine
     [Server]
-    private IEnumerator SelectHolderWithRoulette()
+    private void StartSelection()
     {
         if (alivePlayers.Count == 0)
         {
             potatoHolderId = 0;
-            MatchManager.singleton.SetMatchTimer(-1f);
-            yield break;
+            MatchManager.singleton.SetMatchTimer(0f);
+            phase = Phase.Idle;
+            return;
         }
 
-        // 1) congela todo mundo
+        phase = Phase.Selecting;
+        
         FreezeAll(true);
 
-        // 2) prepara ordem visível e escolhe o vencedor no servidor
         ulong[] order = alivePlayers.Select(p => p.playerInfo.steamId).ToArray();
         PlayerData chosen = WeightedPick(alivePlayers);
         potatoHolderId = chosen != null ? chosen.playerInfo.steamId : 0;
 
-        // 3) manda os clientes girarem até o escolhido
+        if (chosen != null)
+            Debug.Log($"[BatataQuente] Selecionado: {chosen.playerInfo.username} — tempo = {timeLimit:0.#}s para passar.");
+        
         RpcShowRoulette(order, potatoHolderId, selectionFreezeSeconds);
-
-        // 4) espera a animação da roleta e solta geral
-        yield return new WaitForSeconds(selectionFreezeSeconds);
-
-        FreezeAll(false);
-
-        // 5) inicia/renova o timer da batata para a posse atual
-        MatchManager.singleton.SetMatchTimer(timeLimit);
+        
+        selectionEndTime = NetworkTime.time + selectionFreezeSeconds;
     }
 
     [ClientRpc]
     private void RpcShowRoulette(ulong[] order, ulong winnerSteamId, float freezeSeconds)
     {
-        // Cada cliente reconstrói a roleta com a MESMA ordem do servidor e gira até o vencedor
         if (roletaUI == null) return;
-
+        roletaUI.duracao = freezeSeconds;
         roletaUI.SetEntriesFromSteamIds(order);
         roletaUI.SpinToWinner(winnerSteamId);
+    }
+    #endregion
 
-        // Obs: Se você quiser congelar input local (cliente) durante a rotação,
-        // faça num outro componente de UI, usando 'freezeSeconds' como referência de duração.
+
+    #region Rodada / Timeout / Eliminação
+    [Server]
+    private void BeginRoundTimer()
+    {
+        roundTimer = timeLimit;
+        _lastWholeSecondLogged = Mathf.CeilToInt(roundTimer);
+        if (hudso != null) hudso.MatchTimerUpdate(roundTimer);
+        phase = Phase.Round;
     }
 
-    // Congela/descongela todos os vivos
     [Server]
-    private void FreezeAll(bool frozen)
+    private void HandleTimeout()
     {
-        foreach (var pd in alivePlayers)
+        var holder = alivePlayers.FirstOrDefault(p => p.playerInfo.steamId == potatoHolderId);
+
+        if (eliminateOnTimeout || mode == GameMode.Eliminatorio)
         {
-            if (pd == null) continue;
-            var ps = pd.GetComponent<PlayerScript>();
-            if (ps != null) ps.isFrozen = frozen;
+            if (holder != null)
+                ExplodeAndEliminateCurrentHolder(holder);
+            
+            if (alivePlayers.Count <= 1)
+                EndMatch();
+            else
+                StartSelection();
+        }
+        else
+        {
+            if (alivePlayers.Count > 1)
+                StartSelection();
+            else
+                EndMatch();
         }
     }
 
-    // Sorteio ponderado (por enquanto pesos = 1). Se quiser pesos reais, troque GetWeight(pd).
+    [Server]
+    private void ExplodeAndEliminateCurrentHolder(PlayerData holder)
+    {
+        string holderName = holder != null ? holder.playerInfo.username : "(desconhecido)";
+        Debug.Log($"[BatataQuente] {holderName} explodiu! Ficou {timeLimit:0.#}s sem passar.");
+        Eliminate(holder);
+    }
+
+    [Server]
+    private void Eliminate(PlayerData pd)
+    {
+        if (pd == null) return;
+
+        alivePlayers.Remove(pd);
+        eliminationOrder.Add(pd);
+
+        var ps = pd.GetComponent<PlayerScript>();
+        if (ps != null) ps.isFrozen = true;
+
+        Notifica();
+
+        if (alivePlayers.Count <= 1)
+        {
+            potatoHolderId = alivePlayers.Count == 1 ? alivePlayers[0].playerInfo.steamId : 0;
+            EndMatch();
+        }
+        else
+        {
+           
+        }
+    }
+
+    [Server]
+    private void EndMatch()
+    {
+        MatchManager.singleton.SetMatchTimer(0f);
+        phase = Phase.Idle;
+        matchActive = false;
+        SafeUnfreeze("match-end");
+    }
+    #endregion
+
+
+    #region Passe da batata (push)
+    [Server]
+    public void OnPlayerPush(PlayerData attacker, PlayerData target)
+    {
+        if (!matchActive) return;
+        if (phase != Phase.Round) return;
+        if (attacker == null || target == null) return;
+        if (attacker.playerInfo.steamId != potatoHolderId) return;
+        if (!alivePlayers.Contains(target)) return;
+
+        float distSqr = (attacker.transform.position - target.transform.position).sqrMagnitude;
+        if (distSqr > passDistance * passDistance) return;
+
+        potatoHolderId = target.playerInfo.steamId;
+        roundTimer = timeLimit;
+        _lastWholeSecondLogged = Mathf.CeilToInt(roundTimer);
+
+        Debug.Log($"[BatataQuente] {attacker.playerInfo.username} passou para {target.playerInfo.username}. Tempo resetado para {timeLimit:0.#}s.");
+    }
+    #endregion
+
+
+    #region Utilitários (freeze/unfreeze/weight)
+    [Server]
+    private void FreezeAll(bool frozen)
+    {
+        foreach (var pd in playerList.players)
+        {
+            if (pd == null) continue;
+            var ps = pd.GetComponent<PlayerScript>();
+            if (ps != null) ps.isFrozen = frozen; 
+        }
+        
+    }
+
+    [Server]
+    private void SafeUnfreeze(string reason)
+    {
+        FreezeAll(false);
+       
+    }
+
     [Server]
     private PlayerData WeightedPick(List<PlayerData> list)
     {
@@ -142,94 +328,21 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     }
 
     [Server]
-    private float GetWeight(PlayerData pd)
-    {
-        // TODO: ligar com alguma origem de pesos se desejar (ex.: placar, favoritismo, etc.)
-        return 1f;
-    }
-
+    private float GetWeight(PlayerData pd) => 1f;
     #endregion
-    #region Mecânica de Passe / Eliminação
 
-    [Server]
-    public void OnPlayerPush(PlayerData attacker, PlayerData target)
-    {
-        if (!matchActive) return;
-        if (attacker == null || target == null) return;
-        if (attacker.playerInfo.steamId != potatoHolderId) return;
-        if (!alivePlayers.Contains(target)) return;
 
-        float distSqr = (attacker.transform.position - target.transform.position).sqrMagnitude;
-        if (distSqr > passDistance * passDistance) return;
-
-        // troca a posse e reinicia o timer
-        potatoHolderId = target.playerInfo.steamId;
-        MatchManager.singleton.SetMatchTimer(timeLimit);
-    }
-
-    [Server]
-    private void Eliminate(PlayerData pd)
-    {
-        if (pd == null) return;
-
-        alivePlayers.Remove(pd);
-        eliminationOrder.Add(pd);
-
-        var ps = pd.GetComponent<PlayerScript>();
-        if (ps != null) ps.isFrozen = true;
-
-        Notifica();
-
-        if (alivePlayers.Count <= 1)
-        {
-            // fim da partida
-            MatchManager.singleton.SetMatchTimer(-1f);
-            potatoHolderId = alivePlayers.Count == 1 ? alivePlayers[0].playerInfo.steamId : 0;
-            AssignFinalPoints();
-        }
-        else
-        {
-            // escolhe novo holder via roleta
-            StartCoroutine(SelectHolderWithRoulette());
-        }
-    }
-
-    #endregion
-    #region Tempo / Pontuação
-
-    [Server]
-    public override void UpdateScores()
-    {
-        if (!matchActive) return;
-
-        float current = MatchManager.singleton.MatchTimer;
-        if (current > 0f)
-        {
-            current -= Time.deltaTime;
-            MatchManager.singleton.SetMatchTimer(current);
-
-            if (current <= 0f)
-            {
-                // tempo estourou: elimina quem está segurando
-                var holder = alivePlayers.FirstOrDefault(p => p.playerInfo.steamId == potatoHolderId);
-                if (holder != null)
-                    Eliminate(holder);
-            }
-        }
-    }
-
+    #region Pontuação / Hooks UI
     public override void AssignFinalPoints()
     {
         finalScores.Clear();
 
-        // vencedor
         if (alivePlayers.Count == 1)
         {
             var winner = alivePlayers[0];
             finalScores[winner.playerInfo.steamId] = settingsData.firstPlaceBonus;
         }
 
-        // demais posições (ordem de eliminação)
         for (int i = 0; i < eliminationOrder.Count; i++)
         {
             var pd = eliminationOrder[i];
@@ -256,9 +369,6 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         return live;
     }
 
-    #endregion
-    #region UI / Observer
-
     private void OnHolderChanged(ulong oldVal, ulong newVal)
     {
         string name = string.Empty;
@@ -273,6 +383,6 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
             hudso.PotatoHolderUpdate(name);
     }
 
-    public void Atualizacao(ISubject subject) { /* implementação do seu padrão Observer, se necessário */ }
+    public void Atualizacao(ISubject subject) { }
     #endregion
 }
