@@ -70,4 +70,5 @@ public abstract class MinigameController : NetworkBehaviour, IScoreRule, ISubjec
         foreach (var obs in _observers) 
             obs.Atualizacao(this);
     }
+    protected T FindController<T>() where T : MinigameController => FindAnyObjectByType<T>();
 }

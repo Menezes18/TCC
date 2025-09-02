@@ -7,10 +7,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 
-// Lightweight in-game chat that works without scene/prefab edits.
-// - Press T to toggle the chat panel.
-// - Press Enter to send; chat hides automatically after sending.
-// - Uses Mirror NetworkMessages, so no NetworkIdentity spawn is required.
 public class ChatManager : MonoBehaviour
 {
     // Network message payload
@@ -32,10 +28,31 @@ public class ChatManager : MonoBehaviour
     public TMP_InputField inputField;
     public Button sendButton;
 
+    // Popup/Toast settings
+    [Header("Popups")]
+    [Tooltip("Container for popup toasts; auto-created if null")] public RectTransform toastRoot;
+    [Tooltip("How long a popup stays fully visible before fading")] public float toastLifetime = 4f;
+    [Tooltip("Fade duration at the end of lifetime")] public float toastFadeDuration = 0.75f;
+    [Tooltip("Max active popups visible; 0 = unlimited")] public int toastMaxActive = 5;
+
+    // Link para o Player local para travar/destravar movimento/visão
+    private PlayerScript _localPlayer;
+
     bool _isOpen;
     bool _handlersRegistered;
     readonly Queue<string> _lines = new Queue<string>();
     readonly StringBuilder _sb = new StringBuilder(2048);
+
+    // Toast state
+    class Toast
+    {
+        public GameObject go;
+        public CanvasGroup cg;
+        public float bornTime;
+        public float life;
+        public TextMeshProUGUI text;
+    }
+    readonly List<Toast> _toasts = new List<Toast>(8);
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Bootstrap()
@@ -59,7 +76,9 @@ public class ChatManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         EnsureUI();
+        EnsureToastRoot();
         SetOpen(false);
+        TryFindLocalPlayer();
     }
 
     void OnEnable()
@@ -77,17 +96,24 @@ public class ChatManager : MonoBehaviour
         var kb = Keyboard.current;
         if (kb == null) return;
 
-        // Toggle panel with T (ignore when typing in the input)
-        if (kb[toggleKey].wasPressedThisFrame && !(inputField != null && inputField.isFocused))
+        if (_localPlayer == null)
+            TryFindLocalPlayer();
+
+        // Toggle com T sempre (mesmo se o input estiver focado)
+        if (kb[toggleKey].wasPressedThisFrame && !_isOpen)
         {
-            SetOpen(!_isOpen);
+            SetOpen(true);
+            return;
         }
 
-        // Optional quick hide
+        // Fechar com ESC
         if (_isOpen && kb.escapeKey.wasPressedThisFrame)
         {
             SetOpen(false);
+            return;
         }
+
+        UpdateToasts();
     }
 
     void RegisterHandlers()
@@ -141,12 +167,17 @@ public class ChatManager : MonoBehaviour
     void OnClientReceive(ChatMessage msg)
     {
         AppendMessage(msg.text);
+        ShowToast(msg.text);
     }
 
     void EnsureUI()
     {
         if (chatRoot != null && chatText != null && inputField != null)
+        {
+            // Garantir alinhamento para mostrar as mensagens mais recentes
+            chatText.alignment = TextAlignmentOptions.BottomLeft;
             return;
+        }
 
         // Create a minimal canvas + panel UI hierarchy at runtime
         var canvasGO = new GameObject("ChatCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
@@ -191,9 +222,10 @@ public class ChatManager : MonoBehaviour
         textRT.offsetMin = new Vector2(8, 8);
         textRT.offsetMax = new Vector2(-8, -8);
         chatText = textGO.GetComponent<TextMeshProUGUI>();
-    chatText.textWrappingMode = TextWrappingModes.Normal;
+        chatText.textWrappingMode = TextWrappingModes.Normal;
         chatText.richText = true;
         chatText.fontSize = 20;
+        chatText.alignment = TextAlignmentOptions.BottomLeft; // recentes sempre visíveis
         chatText.text = string.Empty;
 
         // Input row
@@ -226,7 +258,7 @@ public class ChatManager : MonoBehaviour
         inputTextRT.offsetMin = new Vector2(10, 6);
         inputTextRT.offsetMax = new Vector2(-10, -6);
         var inputText = inputTextGO.GetComponent<TextMeshProUGUI>();
-    inputText.textWrappingMode = TextWrappingModes.NoWrap;
+        inputText.textWrappingMode = TextWrappingModes.NoWrap;
         inputText.fontSize = 20;
 
         var placeholderGO = new GameObject("Placeholder", typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -275,20 +307,169 @@ public class ChatManager : MonoBehaviour
         sendLbl.fontSize = 20;
     }
 
+    // Cria container de toasts (popups) ancorado no canto inferior esquerdo
+    void EnsureToastRoot()
+    {
+        if (toastRoot != null) return;
+
+        var canvas = FindFirstObjectByType<Canvas>();
+        if (canvas == null)
+        {
+            // Se ainda não existe (primeira cena), cria um canvas básico
+            var canvasGO = new GameObject("ChatToastCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            canvas = canvasGO.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGO.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920, 1080);
+            DontDestroyOnLoad(canvasGO);
+        }
+
+        var rootGO = new GameObject("ChatToasts", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+        rootGO.transform.SetParent(canvas.transform, false);
+        toastRoot = (RectTransform)rootGO.transform;
+        toastRoot.anchorMin = new Vector2(0, 0);
+        toastRoot.anchorMax = new Vector2(0, 0);
+        toastRoot.pivot = new Vector2(0, 0);
+        toastRoot.anchoredPosition = new Vector2(20, 300);
+        toastRoot.sizeDelta = new Vector2(560, 0);
+
+        var vlg = rootGO.GetComponent<VerticalLayoutGroup>();
+        vlg.childAlignment = TextAnchor.LowerLeft;
+        vlg.childForceExpandHeight = false;
+        vlg.childControlHeight = true;
+        vlg.childForceExpandWidth = true;
+        vlg.childControlWidth = true;
+        vlg.spacing = 22f;
+        var fitter = rootGO.GetComponent<ContentSizeFitter>();
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+    }
+
+    // Cria um toast para a mensagem recebida
+    void ShowToast(string msg)
+    {
+        if (string.IsNullOrEmpty(msg) || toastRoot == null) return;
+
+        // Limita quantidade
+        if (toastMaxActive > 0 && _toasts.Count >= toastMaxActive)
+        {
+            // Remove o mais antigo imediatamente
+            var oldest = _toasts[0];
+            if (oldest != null && oldest.go != null) Destroy(oldest.go);
+            _toasts.RemoveAt(0);
+        }
+
+        var itemGO = new GameObject("Toast", typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
+        itemGO.transform.SetParent(toastRoot, false);
+        var rt = (RectTransform)itemGO.transform;
+        rt.anchorMin = new Vector2(0, 0);
+        rt.anchorMax = new Vector2(1, 0);
+        rt.pivot = new Vector2(0, 0);
+        rt.sizeDelta = new Vector2(0, 0);
+
+        var bg = itemGO.GetComponent<Image>();
+        bg.color = new Color(0f, 0f, 0f, 0.6f);
+
+        var cg = itemGO.GetComponent<CanvasGroup>();
+        cg.alpha = 1f;
+
+        // Texto
+        var txtGO = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+        txtGO.transform.SetParent(itemGO.transform, false);
+        var trt = (RectTransform)txtGO.transform;
+        trt.anchorMin = new Vector2(0, 0);
+        trt.anchorMax = new Vector2(1, 1);
+        trt.offsetMin = new Vector2(10, 6);
+        trt.offsetMax = new Vector2(-10, -6);
+        var tmp = txtGO.GetComponent<TextMeshProUGUI>();
+        tmp.text = msg;
+        tmp.textWrappingMode = TextWrappingModes.Normal;
+        tmp.richText = true;
+        tmp.fontSize = 20;
+        tmp.alignment = TextAlignmentOptions.Left;
+
+        // Força ficar como último filho para aparecer em baixo e empurrar os antigos para cima
+        itemGO.transform.SetAsLastSibling();
+
+        _toasts.Add(new Toast
+        {
+            go = itemGO,
+            cg = cg,
+            bornTime = Time.unscaledTime,
+            life = Mathf.Max(0.1f, toastLifetime),
+            text = tmp
+        });
+    }
+
+    void UpdateToasts()
+    {
+        if (_toasts.Count == 0) return;
+
+        float now = Time.unscaledTime;
+        for (int i = _toasts.Count - 1; i >= 0; i--)
+        {
+            var t = _toasts[i];
+            float age = now - t.bornTime;
+            float fadeStart = Mathf.Max(0.01f, t.life - toastFadeDuration);
+
+            if (age >= t.life + toastFadeDuration)
+            {
+                if (t.go != null) Destroy(t.go);
+                _toasts.RemoveAt(i);
+                continue;
+            }
+
+            if (age >= fadeStart)
+            {
+                float k = Mathf.InverseLerp(t.life + toastFadeDuration, fadeStart, age);
+                t.cg.alpha = Mathf.Clamp01(k);
+            }
+            else
+            {
+                t.cg.alpha = 1f;
+            }
+        }
+    }
+
+    // Localiza o Player local (dono) para sinalizar estado de chat
+    void TryFindLocalPlayer()
+    {
+        if (NetworkClient.localPlayer != null)
+        {
+            _localPlayer = NetworkClient.localPlayer.GetComponent<PlayerScript>();
+            if (_localPlayer != null) return;
+        }
+
+        var players = FindObjectsByType<PlayerScript>(FindObjectsSortMode.None);
+        foreach (var p in players)
+        {
+            if (p != null && p.isOwned) { _localPlayer = p; break; }
+        }
+    }
+
     void SetOpen(bool open)
     {
         _isOpen = open;
         if (chatRoot != null)
             chatRoot.SetActive(open);
 
-        if (open && inputField != null)
+        if (open)
         {
-            inputField.ActivateInputField();
-            inputField.Select();
+            _localPlayer?.OnChatOpen();
+            if (inputField != null)
+            {
+                inputField.ActivateInputField();
+                inputField.Select();
+            }
         }
-        else if (!open && inputField != null)
+        else
         {
-            inputField.DeactivateInputField();
+            _localPlayer?.OnChatClose();
+            if (inputField != null)
+            {
+                inputField.DeactivateInputField();
+            }
         }
     }
 
@@ -303,16 +484,14 @@ public class ChatManager : MonoBehaviour
         string msg = (inputField != null ? inputField.text : string.Empty).Trim();
         if (string.IsNullOrEmpty(msg)) return;
 
-        // Send to server; server will format and broadcast
         NetworkClient.Send(new ChatMessage { text = msg });
 
         if (inputField != null)
         {
             inputField.text = string.Empty;
-            inputField.ActivateInputField();
         }
 
-        // Auto-hide after sending to keep gameplay focus
+        // Agora fecha o chat após enviar. O popup aparecerá via broadcast do servidor.
         SetOpen(false);
     }
 
@@ -323,21 +502,34 @@ public class ChatManager : MonoBehaviour
         if (!string.IsNullOrEmpty(msg))
             _lines.Enqueue(msg);
 
-        // Trim lines if needed
         if (maxLines > 0)
         {
             while (_lines.Count > maxLines)
                 _lines.Dequeue();
         }
 
-        // Rebuild text efficiently
+        // Sempre exibir os mais recentes. Como o alinhamento é BottomLeft, montar na ordem natural funciona.
         _sb.Clear();
         foreach (var line in _lines)
-        {
             _sb.AppendLine(line);
-        }
-        chatText.text = _sb.ToString();
 
+        chatText.text = _sb.ToString();
         Canvas.ForceUpdateCanvases();
+    }
+
+    // Public static to show toast from any script (will auto-create if needed)
+    public static void ShowToastGlobal(string message)
+    {
+        if (Instance == null)
+        {
+            var go = new GameObject("ChatManager");
+            Instance = go.AddComponent<ChatManager>();
+            DontDestroyOnLoad(go);
+        }
+        if (!string.IsNullOrEmpty(message))
+        {
+            Instance.EnsureToastRoot();
+            Instance.ShowToast(message);
+        }
     }
 }
