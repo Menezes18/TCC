@@ -1,0 +1,307 @@
+*** Begin Patch
+*** Update File: Assets/Scripts/Minigames/6-BatataQuente/SlotRoleta.cs
+@@
+-    public class Entrada
++    public class Entrada
+     {
+-        public PlayerData playerData;
+-        public Sprite sprite;
+-        [Range(0.0001f, 1000f)] public float peso = 1f;
++        public PlayerData playerData;
++        public Sprite sprite;
++        [Range(0.0001f, 1000f)] public float peso = 1f;
++        // Snapshot fields (do not depend on PlayerData lookups)
++        public ulong steamId;
++        public string alias;
++        public int colorIndex;
+     }
+@@
+-    public void StartRoletaNetwork()
++    public void StartRoletaNetwork()
+     {
+         if (isServer) ServerStartSpin();
+         else CmdRequestStartSpin();
+     }
+@@
+-    void ServerStartSpin()
++    void ServerStartSpin()
+     {
+         if (_girando) return;
+-
+-        var steamIds = ColetarSteamIdsValidosServidor();
+-        if (steamIds.Count == 0) return;
+-
+-        int winnerIdx = UnityEngine.Random.Range(0, steamIds.Count);
+-        ulong winner = steamIds[winnerIdx];
+-
+-        float total = TempoTotalUI();
+-
+-        RpcSetOverlayVisible(true);
+-
+-        RpcPrepareAndSpin(steamIds.ToArray(), winner, total);
+-
+-        StartCoroutine(ServerHideAfter(total));
++
++        // Snapshot roster (ids, aliases, color indices)
++        var (ids, aliases, colors) = ColetarRosterSnapshotServidor();
++        if (ids == null || ids.Length == 0) return;
++
++        // Winner selection (uniform)
++        int winnerIdx = UnityEngine.Random.Range(0, ids.Length);
++        ulong winner = ids[winnerIdx];
++
++        // Seed for all client-side randomness
++        int seed = UnityEngine.Random.Range(1, int.MaxValue);
++
++        // Sync start time using server clock
++        double startTime = Mirror.NetworkTime.time + 0.25; // small buffer
++
++        // Optional: align key params too
++        float duration = duracao;
++        int loops = loopsVisuais;
++        float total = TempoTotalUI();
++
++        // Single start packet with everything clients need
++        RpcSpinStart(ids, aliases, colors, seed, winner, startTime, duration, loops, total);
++
++        // Optional belt-and-suspenders visibility
++        RpcSetOverlayVisible(true);
++        StartCoroutine(ServerHideAfter(total));
+     }
+@@
+-    [ClientRpc]
+-    void RpcPrepareAndSpin(ulong[] steamIds, ulong winner, float totalTime)
+-    {
+-        SetupWinUI();
+-        SetEntriesFromSteamIds(steamIds);
+-        SpinToWinner(winner);
+-
+-        OnWinTextClosed -= HandleClose;
+-        OnWinTextClosed += HandleClose;
+-
+-        void HandleClose()
+-        {
+-            SetOverlayVisible(false);
+-            OnWinTextClosed -= HandleClose; // desinscreve
+-        }
+-
+-        StartCoroutine(HideAfter(totalTime));
+-    }
++    [ClientRpc]
++    void RpcSpinStart(ulong[] steamIds, string[] aliases, int[] colors, int seed, ulong winner, double startTime, float duration, int loops, float totalTime)
++    {
++        // Build deterministic faixa from server snapshot + seed
++        SetupWinUI();
++        SetOverlayVisible(true);
++
++        // Override parameters to ensure consistency
++        this.duracao = duration;
++        this.loopsVisuais = loops;
++
++        // Configure entries directly from snapshot (no local lookups)
++        SetEntriesFromSnapshotData(steamIds, aliases, colors, seed);
++
++        // Schedule start using synchronized network time
++        StopCoroutineSafe(_coStart);
++        _coStart = StartCoroutine(CoSpinAtTime(startTime, winner, totalTime));
++    }
+@@
+-    float TempoTotalUI()
++    float TempoTotalUI()
+     {
+         return Mathf.Max(0.1f, duracao + winShowTime + 0.15f + winStayTime + winHideTime + 0.1f);
+     }
+@@
+-    List<ulong> ColetarSteamIdsValidosServidor()
+-    {
+-        var set = new HashSet<ulong>();
+-
+-        if (PlayerList.singleton != null && PlayerList.singleton.players != null)
+-            foreach (var pd in PlayerList.singleton.players)
+-                if (pd != null) set.Add(pd.playerInfo.steamId);
+-
+-        if (MyNetworkManager.manager != null && MyNetworkManager.manager.allClients != null)
+-            foreach (var pd in MyNetworkManager.manager.allClients)
+-                if (pd != null) set.Add(pd.playerInfo.steamId);
+-
+-        return set.ToList();
+-    }
++    (ulong[] ids, string[] aliases, int[] colors) ColetarRosterSnapshotServidor()
++    {
++        var map = new Dictionary<ulong, (string alias, int color)>();
++
++        // Prefer PlayerList if present
++        if (PlayerList.singleton != null && PlayerList.singleton.players != null)
++        {
++            foreach (var pd in PlayerList.singleton.players)
++            {
++                if (pd == null) continue;
++                var id = pd.playerInfo.steamId;
++                if (!map.ContainsKey(id)) map[id] = (pd.alias, pd.color);
++            }
++        }
++        // Also include from MyNetworkManager if any missing
++        if (MyNetworkManager.manager != null && MyNetworkManager.manager.allClients != null)
++        {
++            foreach (var pd in MyNetworkManager.manager.allClients)
++            {
++                if (pd == null) continue;
++                var id = pd.playerInfo.steamId;
++                if (!map.ContainsKey(id)) map[id] = (pd.alias, pd.color);
++            }
++        }
++
++        var ids = map.Keys.ToArray();
++        var aliases = ids.Select(id => map[id].alias ?? string.Empty).ToArray();
++        var colors = ids.Select(id => map[id].color).ToArray();
++        return (ids, aliases, colors);
++    }
+@@
+-    void ConstruirFaixa()
++    void ConstruirFaixa()
+     {
+         if (viewport == null) { Debug.LogError("[SlotRoleta] viewport nuo atribu??do."); return; }
+         if (content  == null) { Debug.LogError("[SlotRoleta] content nuo atribu??do.");  return; }
+         if (entradas == null || entradas.Count == 0) { Debug.LogError("[SlotRoleta] preencha 'entradas'."); return; }
+@@
+-        int startOffset = UnityEngine.Random.Range(0, entradas.Count);
++        int startOffset = NextInt(0, entradas.Count);
+@@
+-    RectTransform CreateTile(Entrada e, float xLeftPadding)
++    RectTransform CreateTile(Entrada e, float xLeftPadding)
+     {
+         var go = Instantiate(prefabUI, content, false);
+         var rt = go.GetComponent<RectTransform>();
+         FixAnchors(rt, new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f));
+         rt.sizeDelta = new Vector2(itemWidth, itemWidth);
+         rt.anchoredPosition = new Vector2(xLeftPadding + itemWidth * 0.5f, 8f);
+ 
+         var slot = go.GetComponent<UiSlotBatata>();
+-        if (slot != null && e.playerData != null)
+-        {
+-            slot.Setup(e.playerData.alias, e.playerData.color);
+-        }
++        if (slot != null)
++        {
++            if (e.playerData != null)
++                slot.Setup(e.playerData.alias, e.playerData.color);
++            else
++                slot.Setup(e.alias, e.colorIndex);
++        }
+         return rt;
+     }
+@@
+-    public void SetEntriesFromSteamIds(IEnumerable<ulong> steamIds)
++    public void SetEntriesFromSteamIds(IEnumerable<ulong> steamIds)
+     {
+         if (steamIds == null) return;
+ 
+         entradas = new List<Entrada>();
+         foreach (var sid in steamIds)
+         {
+             var pd = PlayerList.singleton.players.FirstOrDefault(p => p.playerInfo.steamId == sid);
+             if (pd == null) continue;
+ 
+             entradas.Add(new Entrada {
++                steamId = sid,
+                 playerData = pd,
+                 sprite = pd.icon,
+                 peso = 1f
+             });
+         }
+@@
+-    public void SpinToWinner(ulong steamId)
++    public void SpinToWinner(ulong steamId)
+     {
+         if (entradas == null || entradas.Count == 0) { Debug.LogWarning("Roleta sem entradas."); return; }
+ 
+-        int vencedorCatalog = entradas.FindIndex(e => e.playerData && e.playerData.playerInfo.steamId == steamId);
++        int vencedorCatalog = entradas.FindIndex(e =>
++            (e.playerData != null && e.playerData.playerInfo.steamId == steamId) ||
++            (e.playerData == null && e.steamId == steamId)
++        );
+         if (vencedorCatalog < 0) { Debug.LogError("[Roleta] steamId nuo esto nas entradas."); return; }
+ 
+         HideWinTextImmediate();
+         SpinToIndex(vencedorCatalog);
+     }
+@@
+-    void PosicionarInicioAleatorio()
++    void PosicionarInicioAleatorio()
+     {
+         if (_spawned.Count == 0) { content.anchoredPosition = Vector2.zero; return; }
+ 
+         int idx = NextInt(0, entradas.Count);
+         float viewportCenter = viewport.rect.width * 0.5f;
+         float chosenCenterX = _spawned[idx].anchoredPosition.x;
+         float startAtCenter = -(chosenCenterX - viewportCenter);
+ 
+         content.anchoredPosition = new Vector2(startAtCenter, 0f);
+     }
+@@
+-    int NextInt(int minInclusive, int maxExclusive)
++    int NextInt(int minInclusive, int maxExclusive)
+     {
+         if (_rng == null) return UnityEngine.Random.Range(minInclusive, maxExclusive);
+         return _rng.Next(minInclusive, maxExclusive);
+     }
+@@
+-    void Shuffle<T>(IList<T> list)
++    void Shuffle<T>(IList<T> list)
+     {
+         if (_rng == null) _rng = new System.Random(Environment.TickCount);
+         for (int i = list.Count - 1; i > 0; i--)
+         {
+             int j = _rng.Next(i + 1);
+             (list[i], list[j]) = (list[j], list[i]);
+         }
+     }
++
++    // ---------- Snapshot helpers & scheduled start ----------
++    Coroutine _coStart;
++
++    void StopCoroutineSafe(Coroutine c)
++    {
++        if (c != null) StopCoroutine(c);
++    }
++
++    void SetEntriesFromSnapshotData(ulong[] steamIds, string[] aliases, int[] colors, int seed)
++    {
++        entradas = new List<Entrada>(steamIds.Length);
++        for (int i = 0; i < steamIds.Length; i++)
++        {
++            entradas.Add(new Entrada
++            {
++                steamId = steamIds[i],
++                alias = (aliases != null && i < aliases.Length) ? aliases[i] : $"{steamIds[i]}",
++                colorIndex = (colors != null && i < colors.Length) ? colors[i] : 0,
++                peso = 1f
++            });
++        }
++
++        // Deterministic RNG for faixa construction & offsets
++        _rng = new System.Random(seed);
++
++        LimparFaixa();
++        ConstruirFaixa();
++        PosicionarInicioAleatorio();
++    }
++
++    System.Collections.IEnumerator CoSpinAtTime(double startTime, ulong winner, float totalTime)
++    {
++        // wait until synchronized network time reaches start
++        while (Mirror.NetworkTime.time < startTime)
++            yield return null;
++
++        // now all clients start together
++        SpinToWinner(winner);
++
++        // Fallback auto-hide aligned to absolute network time
++        double endTime = startTime + (double)TempoTotalUI();
++        double now;
++        while ((now = Mirror.NetworkTime.time) < endTime)
++            yield return null;
++
++        SetOverlayVisible(false);
++    }
+*** End Patch

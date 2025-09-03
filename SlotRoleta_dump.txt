@@ -1,9 +1,10 @@
-ï»¿using TMPro;
+using TMPro;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 using Mirror;
 
 public class SlotRoleta : NetworkBehaviour
@@ -14,14 +15,12 @@ public class SlotRoleta : NetworkBehaviour
         public PlayerData playerData;
         public Sprite sprite;
         [Range(0.0001f, 1000f)] public float peso = 1f;
-
-        public ulong steamId;
-        public string alias;
-        public int color;
     }
 
     [Header("Overlay/Global")]
     public CanvasGroup overlayGroup;
+    [Tooltip("Bloquear inputs enquanto a roleta estiver visível (implemente seu locker próprio se quiser).")]
+    public bool bloquearInputQuandoVisivel = false;
 
     [Header("UI")]
     public RectTransform viewport;
@@ -34,10 +33,10 @@ public class SlotRoleta : NetworkBehaviour
 
     [Header("Faixa")]
     public int loopsVisuais = 3;
-    public float paddingStart = 80f;
-    public float paddingEnd = 0f;
+    public float paddingStart = 80f; 
+    public float paddingEnd = 0f; 
 
-    [Header("AnimaÃ§Ã£o")]
+    [Header("Animação")]
     public float duracao = 3.2f;
     public float overshootPixels = 30f;
 
@@ -51,7 +50,7 @@ public class SlotRoleta : NetworkBehaviour
     [Header("Seed")]
     public int fixedSeed = 0;
 
-    [Header("VitÃ³ria (UI)")]
+    [Header("Vitória (UI)")]
     public TextMeshProUGUI winText;
     public CanvasGroup winGroup;
     public float winShowTime = 0.75f;
@@ -94,7 +93,6 @@ public class SlotRoleta : NetworkBehaviour
     [Command(requiresAuthority = false)]
     void CmdRequestStartSpin() => ServerStartSpin();
 
-    [Server]
     void ServerStartSpin()
     {
         if (_girando) return;
@@ -105,74 +103,15 @@ public class SlotRoleta : NetworkBehaviour
         int winnerIdx = UnityEngine.Random.Range(0, steamIds.Count);
         ulong winner = steamIds[winnerIdx];
 
-        // monta snapshot simples (arrays paralelos)
-        var sids = steamIds.ToArray();
-        var aliases = new string[sids.Length];
-        var colors = new int[sids.Length];
-
-        for (int i = 0; i < sids.Length; i++)
-        {
-            ulong sid = sids[i];
-            var pd =
-                PlayerList.singleton?.players?.FirstOrDefault(p => p != null && p.playerInfo.steamId == sid) ??
-                MyNetworkManager.manager?.allClients?.FirstOrDefault(p => p != null && p.playerInfo.steamId == sid);
-
-            aliases[i] = (pd != null && !string.IsNullOrWhiteSpace(pd.alias))
-                            ? pd.alias
-                            : (pd != null && !string.IsNullOrWhiteSpace(pd.playerInfo.username)
-                                ? pd.playerInfo.username
-                                : $"Player {sid}");
-            colors[i]  = pd != null ? pd.color : 0;
-        }
-
         float total = TempoTotalUI();
 
         RpcSetOverlayVisible(true);
-        RpcPrepareAndSpinSnapshot(sids, aliases, colors, winner, total);
+
+        RpcPrepareAndSpin(steamIds.ToArray(), winner, total);
+
         StartCoroutine(ServerHideAfter(total));
     }
 
-    [ClientRpc]
-    void RpcPrepareAndSpinSnapshot(ulong[] sids, string[] aliases, int[] colors, ulong winner, float totalTime)
-    {
-        SetupWinUI();
-
-        entradas = new List<Entrada>(sids.Length);
-        for (int i = 0; i < sids.Length; i++)
-        {
-            PlayerData pd = null;
-            if (PlayerList.singleton?.players != null)
-                pd = PlayerList.singleton.players.FirstOrDefault(p => p && p.playerInfo.steamId == sids[i]);
-
-            entradas.Add(new Entrada {
-                playerData = pd,
-                sprite = pd ? pd.icon : null,
-                peso = 1f,
-                steamId = sids[i],
-                alias = (aliases != null && i < aliases.Length) ? aliases[i] : $"Player {sids[i]}",
-                color = (colors  != null && i < colors.Length)  ? colors[i]  : 0
-            });
-        }
-
-        LimparFaixa();
-        ConstruirFaixa();
-        PosicionarInicioAleatorio();
-
-        SpinToWinner(winner);
-
-        OnWinTextClosed -= HandleClose;
-        OnWinTextClosed += HandleClose;
-
-        void HandleClose()
-        {
-            SetOverlayVisible(false);
-            OnWinTextClosed -= HandleClose;
-        }
-
-        StartCoroutine(HideAfter(totalTime));
-    }
-
-    [Server]
     System.Collections.IEnumerator ServerHideAfter(float t)
     {
         yield return new WaitForSeconds(t);
@@ -183,12 +122,6 @@ public class SlotRoleta : NetworkBehaviour
     void RpcSetOverlayVisible(bool visible)
     {
         SetOverlayVisible(visible);
-    }
-
-    [Command(requiresAuthority = false)]
-    public void CmdSetOverlayVisible(bool visible)
-    {
-        RpcSetOverlayVisible(visible);
     }
 
     [ClientRpc]
@@ -204,7 +137,7 @@ public class SlotRoleta : NetworkBehaviour
         void HandleClose()
         {
             SetOverlayVisible(false);
-            OnWinTextClosed -= HandleClose;
+            OnWinTextClosed -= HandleClose; // desinscreve
         }
 
         StartCoroutine(HideAfter(totalTime));
@@ -223,6 +156,7 @@ public class SlotRoleta : NetworkBehaviour
         overlayGroup.alpha = visible ? 1f : 0f;
         overlayGroup.interactable = visible;
         overlayGroup.blocksRaycasts = visible;
+
     }
 
     float TempoTotalUI()
@@ -244,7 +178,6 @@ public class SlotRoleta : NetworkBehaviour
 
         return set.ToList();
     }
-
     public void CriarEntrada()
     {
         entradas.Clear();
@@ -264,28 +197,28 @@ public class SlotRoleta : NetworkBehaviour
             entradas.Add(e);
         }
     }
-
+    
     void ConstruirFaixa()
     {
-        if (viewport == null) { Debug.LogError("[SlotRoleta] viewport nÃ£o atribuÃ­do."); return; }
-        if (content  == null) { Debug.LogError("[SlotRoleta] content nÃ£o atribuÃ­do.");  return; }
+        if (viewport == null) { Debug.LogError("[SlotRoleta] viewport não atribuído."); return; }
+        if (content  == null) { Debug.LogError("[SlotRoleta] content não atribuído.");  return; }
         if (entradas == null || entradas.Count == 0) { Debug.LogError("[SlotRoleta] preencha 'entradas'."); return; }
 
         LimparFaixa();
-
+        
         FixAnchors(content, new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0, 0.5f));
-
+        
         float step = itemWidth + itemSpacing;
         float halfView = Mathf.Max(1f, viewport.rect.width * 0.5f);
-
+        
         float padL = Mathf.Max(paddingStart, halfView);
         float padR = Mathf.Max(paddingEnd,   halfView);
-
+        
         int visiveis = Mathf.CeilToInt(viewport.rect.width / step);
         int bufferDireita = Mathf.CeilToInt((padR + overshootPixels + halfView) / step);
-
+        
         int total = (loopsVisuais + 1) * entradas.Count + visiveis + bufferDireita + 2;
-
+        
         List<int> ordem = new List<int>(total);
         int startOffset = UnityEngine.Random.Range(0, entradas.Count);
         while (ordem.Count < total)
@@ -327,12 +260,9 @@ public class SlotRoleta : NetworkBehaviour
         rt.anchoredPosition = new Vector2(xLeftPadding + itemWidth * 0.5f, 8f);
 
         var slot = go.GetComponent<UiSlotBatata>();
-        if (slot != null)
+        if (slot != null && e.playerData != null)
         {
-            string nome = NomeEntrada(e);
-            int cor = (e.playerData != null) ? e.playerData.color : e.color;
-
-            slot.Setup(nome, cor);
+            slot.Setup(e.playerData.alias, e.playerData.color);
         }
         return rt;
     }
@@ -344,25 +274,13 @@ public class SlotRoleta : NetworkBehaviour
         entradas = new List<Entrada>();
         foreach (var sid in steamIds)
         {
-            PlayerData pd = null;
-            if (PlayerList.singleton?.players != null)
-                pd = PlayerList.singleton.players.FirstOrDefault(p => p && p.playerInfo.steamId == sid);
-
-            var alias = (pd != null && !string.IsNullOrWhiteSpace(pd.alias))
-                            ? pd.alias
-                            : (pd != null && !string.IsNullOrWhiteSpace(pd.playerInfo.username)
-                                ? pd.playerInfo.username
-                                : $"Player {sid}");
-
-            var color = pd != null ? pd.color : 0;
+            var pd = PlayerList.singleton.players.FirstOrDefault(p => p.playerInfo.steamId == sid);
+            if (pd == null) continue;
 
             entradas.Add(new Entrada {
                 playerData = pd,
-                sprite = pd ? pd.icon : null,
-                peso = 1f,
-                steamId = sid,
-                alias = alias,
-                color = color
+                sprite = pd.icon,
+                peso = 1f
             });
         }
 
@@ -375,11 +293,8 @@ public class SlotRoleta : NetworkBehaviour
     {
         if (entradas == null || entradas.Count == 0) { Debug.LogWarning("Roleta sem entradas."); return; }
 
-        int vencedorCatalog = entradas.FindIndex(e =>
-            (e.playerData != null && e.playerData.playerInfo.steamId == steamId) ||
-            (e.playerData == null && e.steamId == steamId)
-        );
-        if (vencedorCatalog < 0) { Debug.LogError("[Roleta] steamId nÃ£o estÃ¡ nas entradas."); return; }
+        int vencedorCatalog = entradas.FindIndex(e => e.playerData && e.playerData.playerInfo.steamId == steamId);
+        if (vencedorCatalog < 0) { Debug.LogError("[Roleta] steamId não está nas entradas."); return; }
 
         HideWinTextImmediate();
         SpinToIndex(vencedorCatalog);
@@ -442,7 +357,7 @@ public class SlotRoleta : NetworkBehaviour
                         _girando = false;
                         content.anchoredPosition = new Vector2(targetX, 0f);
                         var vencedor = entradas[vencedorCatalog];
-                        ShowWinText(NomeEntrada(vencedor));
+                        ShowWinText(vencedor.playerData.alias);
                     });
             });
     }
@@ -496,7 +411,7 @@ public class SlotRoleta : NetworkBehaviour
         HideWinTextImmediate();
         LeanTween.cancel(content.gameObject);
         StopAllCoroutines();
-        RebaseParaZero();
+        RebaseParaZero(); 
 
         int vencedorCatalog = SortearCatalogIndexPonderado();
 
@@ -527,7 +442,7 @@ public class SlotRoleta : NetworkBehaviour
             itemCenterX = _spawned[alvoIndex].anchoredPosition.x;
             targetX = -(itemCenterX - viewportCenter);
         }
-
+        
         float xOvershoot = targetX - Mathf.Abs(overshootPixels);
 
         float tMain = Mathf.Max(0.05f, duracao * 0.94f);
@@ -535,7 +450,7 @@ public class SlotRoleta : NetworkBehaviour
 
         _ultimoTick = -999f;
         if (tick != null) StartCoroutine(CoTickCentral());
-
+        
         LeanTween.value(content.gameObject, startX, xOvershoot, tMain)
             .setEase(LeanTweenType.easeOutExpo)
             .setOnUpdate(x => content.anchoredPosition = new Vector2(x, 0f))
@@ -549,11 +464,10 @@ public class SlotRoleta : NetworkBehaviour
                         _girando = false;
                         content.anchoredPosition = new Vector2(targetX, 0f);
                         var vencedor = entradas[vencedorCatalog];
-                        ShowWinText(NomeEntrada(vencedor));
+                        ShowWinText(vencedor.playerData.alias);
                     });
             });
     }
-
     public void ShowOverlay(bool visible)
     {
         if (!overlayGroup) return;
@@ -595,7 +509,7 @@ public class SlotRoleta : NetworkBehaviour
     {
         if (winText == null) return;
 
-        winText.text = $"<size=115%><b>VocÃª foi o escolhido!</b></size> <size=85%>{rotulo}</size>";
+        winText.text = $"<size=115%><b>Você foi o escolhido!</b></size> <size=85%>{rotulo}</size>";
         winText.gameObject.SetActive(true);
 
         if (winGroup == null)
@@ -640,59 +554,7 @@ public class SlotRoleta : NetworkBehaviour
         }
     }
 
-
-    string NomeEntrada(Entrada e)
-    {
-        if (e == null) return "Desconhecido";
-        if (!string.IsNullOrWhiteSpace(e.alias)) return e.alias;
-        if (e.playerData != null)
-        {
-            if (!string.IsNullOrWhiteSpace(e.playerData.alias)) return e.playerData.alias;
-            if (!string.IsNullOrWhiteSpace(e.playerData.playerInfo.username)) return e.playerData.playerInfo.username;
-        }
-        return $"Player {e.steamId}";
-    }
-
-    public void PrepareEntriesSnapshot(ulong[] sids, string[] aliases, int[] colors)
-    {
-        if (sids == null || sids.Length == 0)
-        {
-            Debug.LogWarning("[SlotRoleta] Snapshot vazio.");
-            return;
-        }
-
-        entradas = new List<Entrada>(sids.Length);
-
-        for (int i = 0; i < sids.Length; i++)
-        {
-            ulong sid = sids[i];
-
-            string alias =
-                (aliases != null && i < aliases.Length && !string.IsNullOrWhiteSpace(aliases[i]))
-                    ? aliases[i]
-                    : $"Player {sid}";
-
-            int color =
-                (colors != null && i < colors.Length)
-                    ? colors[i]
-                    : 0;
-
-            entradas.Add(new Entrada
-            {
-                playerData = null,
-                sprite = null,
-                peso = 1f,
-                steamId = sid,
-                alias = alias,
-                color = color
-            });
-        }
-
-        LimparFaixa();
-        ConstruirFaixa();
-        PosicionarInicioAleatorio();
-    }
-
+    // util 
     int NextInt(int minInclusive, int maxExclusive)
     {
         if (_rng == null) return UnityEngine.Random.Range(minInclusive, maxExclusive);

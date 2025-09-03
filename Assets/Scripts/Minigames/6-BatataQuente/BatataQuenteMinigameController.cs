@@ -7,7 +7,7 @@ using UnityEngine;
 
 public class BatataQuenteMinigameController : MinigameController, IObserver
 {
-    #region Tipos
+
     public enum GameMode
     {
         Eliminatorio, // explode/eliminação ao zerar tempo
@@ -20,9 +20,8 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         Selecting,   // roleta rodando (congelado)
         Round        // rodada ativa (timer contando)
     }
-    #endregion
 
-    #region Campos e Estado
+
     [Header("Configurações")]
     [SerializeField] private SettingsMiniGameData settingsData;
     [SerializeField] private float passDistance = 3f;
@@ -55,10 +54,13 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     private ulong potatoHolderId;
 
     private System.Random _rng = new System.Random();
-    #endregion
 
 
     #region Setup
+    public override void SetupMiniGame()
+    {
+        base.SetupMiniGame();
+    }
     public override void OnStartServer()
     {
         base.OnStartServer();
@@ -84,10 +86,6 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         StartSelection();
         Notifica();
     }
-    public override void SetupMiniGame()
-    {
-        base.SetupMiniGame();
-    }
     #endregion
 
 
@@ -101,14 +99,27 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     private void Update()
     {
         if (!matchActive) return;
+        if (phase == Phase.Round && roundTimer > 0f)
+            {
+                roundTimer -= Time.deltaTime;
 
+                if (hudso != null) hudso.MatchTimerUpdate(Mathf.Max(0f, roundTimer));
+
+                RpcUpdateTimer(Mathf.Max(0f, roundTimer));
+
+                if (roundTimer <= 0f)
+                {
+                    HandleTimeout();
+                }
+            }
         switch (phase)
         {
             case Phase.Selecting:
                 
                 if (NetworkTime.time >= selectionEndTime)
                 {
-                    SafeUnfreeze("selection-end");
+                    //"selection-end"
+                    SafeUnfreeze();
                     BeginRoundTimer();
                 }
                 break;
@@ -145,43 +156,95 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     #endregion
 
 
-    #region Seleção SEM coroutine
+    
     [Server]
     private void StartSelection()
     {
-        if (alivePlayers.Count == 0)
-        {
-            potatoHolderId = 0;
-            MatchManager.singleton.SetMatchTimer(0f);
-            phase = Phase.Idle;
-            return;
-        }
-
-        phase = Phase.Selecting;
-        
-        FreezeAll(true);
-
-        ulong[] order = alivePlayers.Select(p => p.playerInfo.steamId).ToArray();
-        PlayerData chosen = WeightedPick(alivePlayers);
-        potatoHolderId = chosen != null ? chosen.playerInfo.steamId : 0;
-
-        if (chosen != null)
-            Debug.Log($"[BatataQuente] Selecionado: {chosen.playerInfo.username} — tempo = {timeLimit:0.#}s para passar.");
-        
-        RpcShowRoulette(order, potatoHolderId, selectionFreezeSeconds);
-        
-        selectionEndTime = NetworkTime.time + selectionFreezeSeconds;
+    if (alivePlayers.Count == 0)
+    {
+        potatoHolderId = 0;
+        MatchManager.singleton.SetMatchTimer(0f);
+        phase = Phase.Idle;
+        return;
     }
 
+    phase = Phase.Selecting;
+
+    FreezeAll(true);
+
+    var vivos = alivePlayers.ToArray();
+
+    ulong[] order  = new ulong[vivos.Length];
+    string[] names = new string[vivos.Length];
+    int[] colors   = new int[vivos.Length];
+
+    for (int i = 0; i < vivos.Length; i++)
+    {
+        var pd = vivos[i];
+        order[i]  = pd.playerInfo.steamId;
+        names[i]  = string.IsNullOrWhiteSpace(pd.alias) ? pd.playerInfo.username : pd.alias;
+        colors[i] = pd.color;
+    }
+
+    PlayerData chosen = WeightedPick(alivePlayers);
+    potatoHolderId = chosen != null ? chosen.playerInfo.steamId : 0;
+
+    if (chosen != null)
+        Debug.Log($"[BatataQuente] Selecionado: {chosen.playerInfo.username} — tempo = {timeLimit:0.#}s para passar.");
+
+    RpcShowRoulette(order, names, colors, potatoHolderId, selectionFreezeSeconds);
+
+    selectionEndTime = NetworkTime.time + selectionFreezeSeconds;
+    }
+    [ClientRpc]
+    private void RpcShowRoulette(
+        ulong[] order,
+        string[] aliases,
+        int[] colors,
+        ulong winnerSteamId,
+        float freezeSeconds)
+    {
+        if (roletaUI == null) return;
+
+        roletaUI.duracao = freezeSeconds;
+        roletaUI.ShowOverlay(true);
+
+        roletaUI.OnWinTextClosed -= HandleClose;
+        roletaUI.OnWinTextClosed += HandleClose;
+
+        roletaUI.PrepareEntriesSnapshot(order, aliases, colors);
+
+        roletaUI.SpinToWinner(winnerSteamId);
+
+        void HandleClose()
+        {
+            roletaUI.ShowOverlay(false);
+            roletaUI.OnWinTextClosed -= HandleClose;
+        }
+    }
     [ClientRpc]
     private void RpcShowRoulette(ulong[] order, ulong winnerSteamId, float freezeSeconds)
     {
         if (roletaUI == null) return;
+
         roletaUI.duracao = freezeSeconds;
+
+        roletaUI.ShowOverlay(true);
+
+        roletaUI.OnWinTextClosed -= HandleClose;
+        roletaUI.OnWinTextClosed += HandleClose;
+
         roletaUI.SetEntriesFromSteamIds(order);
         roletaUI.SpinToWinner(winnerSteamId);
+
+        void HandleClose()
+        {
+            roletaUI.ShowOverlay(false);
+            roletaUI.OnWinTextClosed -= HandleClose;
+        }
     }
-    #endregion
+
+
 
 
     #region Rodada / Timeout / Eliminação
@@ -256,12 +319,11 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         MatchManager.singleton.SetMatchTimer(0f);
         phase = Phase.Idle;
         matchActive = false;
-        SafeUnfreeze("match-end");
+        SafeUnfreeze();
     }
     #endregion
 
 
-    #region Passe da batata (push)
     [Server]
     public void OnPlayerPush(PlayerData attacker, PlayerData target)
     {
@@ -275,12 +337,11 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         if (distSqr > passDistance * passDistance) return;
 
         potatoHolderId = target.playerInfo.steamId;
-        roundTimer = timeLimit;
-        _lastWholeSecondLogged = Mathf.CeilToInt(roundTimer);
+        // roundTimer = timeLimit;
+        // _lastWholeSecondLogged = Mathf.CeilToInt(roundTimer);
 
         Debug.Log($"[BatataQuente] {attacker.playerInfo.username} passou para {target.playerInfo.username}. Tempo resetado para {timeLimit:0.#}s.");
     }
-    #endregion
 
 
     #region Utilitários (freeze/unfreeze/weight)
@@ -297,7 +358,7 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     }
 
     [Server]
-    private void SafeUnfreeze(string reason)
+    private void SafeUnfreeze()
     {
         FreezeAll(false);
        
@@ -376,11 +437,20 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         if (newVal != 0)
         {
             var pd = PlayerList.singleton.players.FirstOrDefault(p => p.playerInfo.steamId == newVal);
-            if (pd != null) name = pd.playerInfo.username;
+            if (pd != null)
+                name = string.IsNullOrWhiteSpace(pd.alias) ? pd.playerInfo.username : pd.alias;
+            else
+                name = $"Player {newVal}";
         }
 
         if (hudso != null)
             hudso.PotatoHolderUpdate(name);
+    }
+    [ClientRpc]
+    private void RpcUpdateTimer(float timeLeft)
+    {
+        if (hudso != null)
+            hudso.MatchTimerUpdate(timeLeft);
     }
 
     public void Atualizacao(ISubject subject) { }
