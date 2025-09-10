@@ -516,4 +516,20 @@ public class ChatManager : MonoBehaviour
         chatText.text = _sb.ToString();
         Canvas.ForceUpdateCanvases();
     }
+
+    // Public static to show toast from any script (will auto-create if needed)
+    public static void ShowToastGlobal(string message)
+    {
+        if (Instance == null)
+        {
+            var go = new GameObject("ChatManager");
+            Instance = go.AddComponent<ChatManager>();
+            DontDestroyOnLoad(go);
+        }
+        if (!string.IsNullOrEmpty(message))
+        {
+            Instance.EnsureToastRoot();
+            Instance.ShowToast(message);
+        }
+    }
 }

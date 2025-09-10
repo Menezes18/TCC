@@ -53,7 +53,13 @@ public class MatchManager : NetworkBehaviour
     
     
     private bool _matchHasStarted;
+    public float MatchTimer => _matchTimer;
 
+    [Server]
+    public void SetMatchTimer(float value)
+    {
+        _matchTimer = value;
+    }
     public bool Freeze => _freezeTimer > 0; 
     
     

@@ -61,5 +61,16 @@ public class PlayerActiveFrame : NetworkBehaviour
 
         IDamageable damage = identity.GetComponent<IDamageable>();
         damage.ReceiveDamage(dmgType, dir);
+        if (dmgType == DamageType.Push)
+        {
+            var controller = FindObjectOfType<BatataQuenteMinigameController>();
+            if (controller != null)
+            {
+                var attacker = transform.root.GetComponent<PlayerData>();
+                var target = identity.GetComponent<PlayerData>();
+                if (attacker != null && target != null)
+                    controller.OnPlayerPush(attacker, target);
+            }
+        }
     }
 }
