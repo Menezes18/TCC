@@ -1,0 +1,194 @@
+# Backlog de Refatoração — Unity/Mirror
+
+> Origem: diagnóstico inicial da IA interna (amostra: PlayerScript, MatchManager, ProjectileScript, PrefabInstancer, MenuController, UIManager, Database, PlayerControlsSO, HUDSO). Foco: reduzir acoplamento, aplicar SOLID de forma incremental, sem alterar comportamento funcional.
+
+---
+
+## Regras Gerais de Execução
+
+* **Não quebrar rede (Mirror):** não mudar assinaturas de `[Command]`, `[ClientRpc]`, `[TargetRpc]`; SyncVars mantêm hooks.
+* **Animator/NetworkAnimator:** nomes de parâmetros centralizados; validar após refactor.
+* **Ordem de inicialização:** preservar `Awake/Start/OnStartLocalPlayer`.
+* **ScriptableObjects (HUDSO/PlayerControlsSO/Database):** manter como hubs de evento nesta fase.
+* **Critérios de aceite padrão (DoD):**
+
+  * Compila sem warnings novos; cena de jogo carrega; smoke test local/host-cliente ok.
+  * Network flow (spawn → match → morte/respawn → fim) intacto.
+  * Logs de asserção para strings/IDs críticos não disparam em 5 min de jogo.
+
+---
+
+## Roadmap por Fases (prioridade prática)
+
+### Fase 1 — **Zero impacto funcional (Alta prioridade)**
+
+**Objetivo:** reduzir risco cognitivo e typos; preparar terreno para SRP.
+
+1. **Constantes de Animator**
+
+* **Arquivos:** `AnimatorParams.cs` (novo)
+* **Tarefa:** substituir literais ("push", "throw", "OPEN", "CLOSE") por `AnimatorParams.Throw`, etc.
+* **DoD:** busca por `"push"|"throw"|"OPEN"|"CLOSE"` retorna zero em scripts fora de `AnimatorParams`.
+* **Risco:** baixo.
+
+2. **Split parcial do Player**
+
+* **Arquivos:** `PlayerScript.cs` → `PlayerScript.Movement.cs`, `PlayerScript.Combat.cs`, `PlayerScript.Network.cs`, `PlayerScript.State.cs` (todas `partial`).
+* **Tarefa:** mover blocos sem alterar código; manter atributos Mirror na mesma `NetworkBehaviour`.
+* **DoD:** diffs apenas de `move`, sem mudanças de lógica; testes de host/cliente ok.
+* **Risco:** baixo.
+
+3. **Helper de guard clauses (`CanAct`)**
+
+* **Arquivos:** `PlayerScript.Combat.cs` (ou `PlayerActionsGuard.cs`).
+* **Tarefa:** centralizar checagens repetidas: chat aberto, painel ativo, `isFrozen`, `State==Death`, etc.; aplicar em 3–4 ações (prova de conceito).
+* **DoD:** repetição de condições reduzida ≥ 50% nos métodos alvo; nenhum comportamento alterado.
+* **Risco:** baixo.
+
+4. **UIManager: consertar singleton**
+
+* **Arquivos:** `UIManager.cs`
+* **Tarefa:** inicializar `stance` em `Awake` **ou** renomear para `Instance` mantendo alias obsoleto (`stance` → `[Obsolete]` que chama `Instance`).
+* **DoD:** `UIManager.Instance != null` em runtime; referências existentes continuam válidas.
+* **Risco:** baixo.
+
+5. **Correção de naming (`CmdPrepareMath` → `CmdPrepareMatch`)**
+
+* **Arquivos:** `MatchManager.cs` (ou onde declarado)
+* **Tarefa:** criar método correto e manter o antigo chamando o novo com `[Obsolete]` por uma sprint.
+* **DoD:** nenhuma referência quebrada; logs sem warnings novos.
+* **Risco:** baixo.
+
+---
+
+### Fase 2 — **SRP sem mudar regras (Alta)**
+
+6. **Wrapper de cooldowns**
+
+* **Arquivos:** `PlayerCooldowns.cs` (novo), tocar `PlayerScript.*`
+* **Tarefa:** encapsular timers (push/roll/throw/blind) com `Tick(delta)`, `ResetAll()`.
+* **DoD:** contadores não expostos como floats soltos; Update/Fixed/Late chamam `Cooldowns.Tick`.
+* **Risco:** baixo.
+
+7. **Abilities modulares (MVP: Push, Throw)**
+
+* **Arquivos:** `IPlayerAbility.cs`, `PushAbility.cs`, `ThrowAbility.cs`, `PlayerContext.cs` (novos)
+* **Tarefa:** mover lógica existente para `Execute/CanExecute`; Player orquestra.
+* **DoD:** comportamento inalterado (comparar gravação A/B); código do Player encolhe ≥ 15%.
+* **Risco:** médio (binding de inputs/animator).
+
+8. **Camera controller dedicado**
+
+* **Arquivos:** `PlayerCameraController.cs` (novo)
+* **Tarefa:** mover lógica de câmera do `LateUpdate` do Player; expor `SetTarget`, `Shake`, etc.
+* **DoD:** sem jitter; espectador/câmera continuam funcionais.
+* **Risco:** médio.
+
+---
+
+### Fase 3 — **OCP/DIP no fluxo de combate (Média)**
+
+9. **Registry de efeitos de dano**
+
+* **Arquivos:** `IDamageEffect.cs`, `DamageRegistry.cs`, ajustes em `PlayerScript`
+* **Tarefa:** mapear `DamageType` → `IDamageEffect` (e.g., Blind, Stagger).
+* **DoD:** `ReceiveDamage` faz apenas lookup + apply; novas variações entram sem `switch/if`.
+* **Risco:** médio.
+
+10. **Provider de spawn points**
+
+* **Arquivos:** `ISpawnPointProvider.cs`, implementação com lógica atual (em `MatchManager` ou classe nova)
+* **Tarefa:** extrair regra de spawn para provider injetável.
+* **DoD:** teleporte/spawn equivalentes; testes em mapas com múltiplas listas.
+* **Risco:** baixo/médio.
+
+11. **TimerService no Match**
+
+* **Arquivos:** `ITimerService.cs`, `TimerService.cs`, `MatchManager`
+* **Tarefa:** centralizar contagem regressiva, pausar/retomar; reduzir floats soltos.
+* **DoD:** relógio de partida e freezes obedecem start/stop central.
+* **Risco:** baixo.
+
+---
+
+### Fase 4 — **Interface Segregation + desacoplamento de UI (Média)**
+
+12. **Segregar capacidades**
+
+* **Arquivos:** `IJumpable.cs`, `IPushable.cs`, `IThrowable.cs`, `IRollable.cs`
+* **Tarefa:** expor contratos mínimos; Player/Abilities implementam os necessários.
+* **DoD:** dependentes referenciam interfaces; acoplamento a concretos cai.
+* **Risco:** baixo.
+
+13. **UI via eventos (HUDSO)**
+
+* **Arquivos:** `HUDSO.cs`, chamadores no Player/Match
+* **Tarefa:** substituir chamadas diretas por eventos consistentes; garantir listeners na UI.
+* **DoD:** HUD reage somente a eventos; remoção de chamadas diretas no Player.
+* **Risco:** médio (ordem de inscrição).
+
+14. **Remover singletons duros (transição)**
+
+* **Arquivos:** `PlayerScript`, `MatchManager`, `PrefabInstancer`, etc.
+* **Tarefa:** campos `[SerializeField]` com fallback ao singleton legado; migrar usos gradualmente.
+* **DoD:** warnings quando fallback foi usado (para rastrear dependências).
+* **Risco:** médio.
+
+---
+
+### Fase 5 — **Refino e Testabilidade (Média/Baixa)**
+
+15. **Pool de projéteis**
+
+* **Arquivos:** `ProjectilePool.cs`, tocar `ProjectileScript`
+* **Tarefa:** substituir `Instantiate/Destroy` por pool; padronizar ativação VFX (sem `SetActive(!active)`).
+* **DoD:** GC spikes reduzidos; FPS estável em stress local.
+* **Risco:** médio.
+
+16. **Testes PlayMode básicos**
+
+* **Arquivos:** `Tests/PlayMode/CooldownsTests.cs`, `StateTransitionsTests.cs`
+* **Tarefa:** validar cooldowns, mudanças de estado sem rede, e guards.
+* **DoD:** testes verdes em CI; servem de rede de segurança para refactors.
+* **Risco:** baixo.
+
+17. **PrefabInstancer robusto**
+
+* **Arquivos:** `PrefabInstancer.cs`
+* **Tarefa:** adicionar null-checks, `OnDestroy` limpando singleton; logs quando ref quebrada.
+* **DoD:** sem NRE em teardown; logs orientativos.
+* **Risco:** baixo.
+
+---
+
+## Tarefas Transversais (sempre-on)
+
+* **Hard-coded strings (cenas, tags):** migrar para `SceneRefs.cs`/`Tags.cs` gradualmente.
+* **`isOwned` vs `isLocalPlayer`:** padronizar uso e documentar convenções.
+* **`FindObjectsByType` no espectador:** encapsular num `SpectatorService` (cache por match).
+* **Documentação de convenções:** 1 arquivo `CONTRIBUTING.md` com padrões de rede/animator/UI.
+
+---
+
+## Plano de Entrega (2–3 sprints sugestão)
+
+* **Sprint 1:** Fase 1 completa + itens 6 e 4 de Fase 2 (Cooldowns).
+* **Sprint 2:** Abilities (7), Camera (8), Registry de dano (9).
+* **Sprint 3:** Spawn Provider (10), TimerService (11), UI eventos (13), Pool (15).
+
+---
+
+## Métricas de Sucesso
+
+* **Complexidade do Player:** linhas reduzidas ≥ 30% até Sprint 2.
+* **Hotspots de typos:** zero ocorrências em CI (busca por literais migrados).
+* **Alocação/GC:** quedas ≥ 50% em spawn/impacto de projéteis.
+* **Tempo de onboarding:** novos devs executam mudança em habilidade sem tocar `PlayerScript` em < 30 min.
+
+---
+
+## Itens em Observação (para discutir antes de agir)
+
+* **GameManager “vazio”:** decidir remoção total vs. migração de responsabilidades.
+* **Mirror em múltiplas partials:** confirmar que todas permanecem no mesmo `NetworkBehaviour`.
+* **Enums de estados/animator:** avaliar `StateMap` único (lógico ↔ animator) para depurar triggers.
