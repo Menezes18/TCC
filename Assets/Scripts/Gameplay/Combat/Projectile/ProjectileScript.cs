@@ -51,16 +51,10 @@ public class ProjectileScript : NetworkBehaviour
                     VFXActivator(); //Phelipe
                 }
             }
-            // Recicla após impacto (simples). Pode-se adicionar multi-hit se necessário.
             _launched = false;
-            // Procurar pool e reciclar
-            var pool = FindFirstObjectByType<ProjectilePool>();
-            if (pool != null)
-                pool.Recycle(gameObject);
-            else
+            if (NetworkServer.active)
             {
-                // fallback: desativar para evitar spam Destroy/Instantiate
-                gameObject.SetActive(false);
+                NetworkServer.Destroy(gameObject);
             }
         }
     }
@@ -69,10 +63,5 @@ public class ProjectileScript : NetworkBehaviour
         _vfx.SetActive(!_vfx.activeInHierarchy);//Phelipe
     }
 
-    [Server]
-    public void ResetForPool()
-    {
-        _launched = false;
-        _velocity = Vector3.zero;
-    }
+    // ResetForPool removido (sem pooling)
 }
