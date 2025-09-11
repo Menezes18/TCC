@@ -142,6 +142,8 @@ public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private IPlayerAbility _pushAbility;
     private ThrowAbility _throwAbility;
     private PlayerCameraController _cameraController;
+    // Fase 3 Item 9: damage registry reference
+    private DamageRegistry _damageRegistry;
 
     [Header("Input Schemes")]
     [SerializeField] private string keyboardMouseScheme = "Keyboard&Mouse";
@@ -226,6 +228,12 @@ public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         _pushAbility = new PushAbility();
         _throwAbility = new ThrowAbility();
         _cameraController = new PlayerCameraController(_cam, db, transform);
+        if (_damageRegistry == null) // ensure external partial already built it otherwise lazy init
+        {
+            _damageRegistry = new DamageRegistry();
+            _damageRegistry.Register(new BlindDamageEffect());
+            _damageRegistry.Register(new PushDamageEffect());
+        }
     }
 
     public override void OnStartLocalPlayer()
