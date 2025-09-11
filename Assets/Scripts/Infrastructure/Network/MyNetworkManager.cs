@@ -47,6 +47,8 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     static ulong nextFakeId = 1;
     public List<IObserverPontos> _observers = new List<IObserverPontos>();
     public event Action onClientsChanged;
+    [SerializeField] private BriefingManager _briefingManager; // Item14 soft refs
+    [SerializeField] private PlayerList _playerList;
     public override void Awake()
     {
         var managers = FindObjectsByType<MyNetworkManager>(FindObjectsInactive.Include, FindObjectsSortMode.InstanceID);
@@ -85,10 +87,12 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             return;
 
         base.OnServerAddPlayer(conn);
-        if (BriefingManager.singleton != null)
+        _briefingManager = SingletonFallback.Resolve(_briefingManager, () => BriefingManager.singleton, this, nameof(_briefingManager));
+        _playerList = SingletonFallback.Resolve(_playerList, () => PlayerList.singleton, this, nameof(_playerList));
+        if (_briefingManager != null)
         {
-            Debug.Log($"🧭 [BRIEFING] Singleton = {BriefingManager.singleton}");
-            Debug.Log($"🧭 [BRIEFING] GameObject = {BriefingManager.singleton.gameObject.name}");
+            Debug.Log($"🧭 [BRIEFING] Singleton = {_briefingManager}");
+            Debug.Log($"🧭 [BRIEFING] GameObject = {_briefingManager.gameObject.name}");
             Invoke("UpdateSlots", 0.8f);
 
         }
@@ -96,7 +100,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
     public void UpdateSlots()
     {
-        BriefingManager.singleton.UpdateAllClientsSlots();
+    _briefingManager?.UpdateAllClientsSlots();
     }
     public void RegisterNewPlayer(PlayerData pd)
     {
@@ -105,7 +109,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
         if (!pointsBoard.ContainsKey(id))
         {
-            int assignedColor = PlayerList.singleton.RequestRandomColor();
+            int assignedColor = _playerList != null ? _playerList.RequestRandomColor() : PlayerList.singleton.RequestRandomColor();
             var dp = new DataPlayer
             {
                 steamID = id,
@@ -166,9 +170,9 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
                 pointsBoard.Remove(sid);
                 onClientsChanged?.Invoke();
                 scoreboard.players.RemoveAll(p => p.steamID == sid);
-                PlayerList.singleton.players.Remove(client);
+                (_playerList ?? PlayerList.singleton)?.players.Remove(client);
             }
-            PlayerList.singleton.RemoveFromList(client);
+            (_playerList ?? PlayerList.singleton)?.RemoveFromList(client);
         }
         base.OnServerDisconnect(conn);
     }
@@ -404,7 +408,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     private void LogProgressSnapshot(bool final = false)
     {
         // Build readable telemetry per player
-        var list = PlayerList.singleton?.players;
+    var list = (_playerList ?? PlayerList.singleton)?.players;
         if (list == null) return;
         List<string> lines = new List<string>();
         float min = 1f, max = 0f, sum = 0f; int count = 0;
@@ -443,8 +447,8 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     // Called by clients right after briefing UI is shown (via RpcShowBriefing)
     public void RecordClientBriefingShown()
     {
-        // Redirect to BriefingManager's Command (requiresAuthority=false)
-        BriefingManager.singleton?.CmdMarkClientReady();
+    // Redirect to BriefingManager's Command (requiresAuthority=false)
+    (_briefingManager ?? BriefingManager.singleton)?.CmdMarkClientReady();
     }
 
     [Server]
@@ -452,8 +456,9 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     {
         foreach (var pd in allClients)
             pd.IsReady = true;
-        BriefingManager.singleton?.UpdateAllClientsSlots();
-        BriefingManager.singleton?.CheckAllReady();
+    var briefing = _briefingManager ?? BriefingManager.singleton;
+    briefing?.UpdateAllClientsSlots();
+    briefing?.CheckAllReady();
     }
 
     // [Server] entrypoint for per-client progress reports
