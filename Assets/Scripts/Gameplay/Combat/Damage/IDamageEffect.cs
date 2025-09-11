@@ -1,5 +1,7 @@
 using UnityEngine;
 
-#if false
-public interface IDamageEffect { }
-#endif
+public interface IDamageEffect
+{
+	DamageType DamageType { get; }
+	void Apply(PlayerContext ctx, Vector3 direction);
+}

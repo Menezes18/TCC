@@ -227,13 +227,7 @@ public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         _context = new PlayerContext(this, _cooldowns, db, _animator, _networkAnimator, _cam);
         _pushAbility = new PushAbility();
         _throwAbility = new ThrowAbility();
-        _cameraController = new PlayerCameraController(_cam, db, transform);
-        if (_damageRegistry == null) // ensure external partial already built it otherwise lazy init
-        {
-            _damageRegistry = new DamageRegistry();
-            _damageRegistry.Register(new BlindDamageEffect());
-            _damageRegistry.Register(new PushDamageEffect());
-        }
+    _cameraController = new PlayerCameraController(_cam, db, transform);
     }
 
     public override void OnStartLocalPlayer()

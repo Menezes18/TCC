@@ -41,8 +41,8 @@ public class MatchManager : NetworkBehaviour
     private ISpawnPointProvider _spawnProvider; // fase 3 item 10
     private ITimerService _timerService; // fase 3 item 11
     
-    [SyncVar (hook = nameof(HookOnFreezeTimerUpdated))] float _freezeTimer;
-    [SyncVar (hook = nameof(HookOnMatchTimerUpdated))] float _matchTimer;
+    [SyncVar (hook = nameof(HookOnFreezeTimerUpdated))] float _freezeTimer; // espelho do TimerService
+    [SyncVar (hook = nameof(HookOnMatchTimerUpdated))] float _matchTimer;   // espelho do TimerService
     [SyncVar (hook = nameof(HookOnGameOver))] string _gameOver;
     
     
@@ -55,14 +55,14 @@ public class MatchManager : NetworkBehaviour
     
     
     private bool _matchHasStarted;
-    public float MatchTimer => _matchTimer;
+    public float MatchTimer => _matchTimer; // legacy access
 
     [Server]
     public void SetMatchTimer(float value)
     {
         _matchTimer = value;
     }
-    public bool Freeze => _freezeTimer > 0; 
+    public bool Freeze => _timerService != null ? _timerService.Freeze > 0 : _freezeTimer > 0; 
     
     
     private void Start()
@@ -70,8 +70,8 @@ public class MatchManager : NetworkBehaviour
 
         if(base.isServer == false) return;
 
-        _matchTimer = -1;
-        _freezeTimer = -1;
+    _matchTimer = -1; // legacy mirrors start invalid
+    _freezeTimer = -1;
         _gameOver = string.Empty;
         
         LeanTween.delayedCall(2.0f, () =>
@@ -104,34 +104,24 @@ public class MatchManager : NetworkBehaviour
         scoreRule.UpdateScores();
         UpdateTemporaryRanking();
         
-        if(_freezeTimer > 0)
-            _freezeTimer -= Time.deltaTime;
+        // Novo fluxo: TimerService
+        _timerService.Tick(Time.deltaTime,
+            onFreezeEnd: () =>
+            {
+                Debug.Log("⏳ [MATCH] FreezeTime acabou, iniciando partida");
+                (scoreRule as MinigameController)?.StartMatch();
+                if (acabarFreezeTime != null) RpcAtivarAcabarFreezeTime();
+            },
+            onMatchEnd: () =>
+            {
+                InternalEndMatch();
+            });
 
-        if (_freezeTimer <= 0 && _freezeTimer != -1)
-        {
-            // efeito talvez
-            // ou som
-            // mas é aqui 
-            Debug.Log("⏳ [MATCH] FreezeTime acabou, iniciando partida");
-            (scoreRule as MinigameController)?.StartMatch();
-            
-            _freezeTimer = -1;
-            if(acabarFreezeTime != null) RpcAtivarAcabarFreezeTime();
+        // Espelha valores em SyncVars apenas se mudaram (reduz churn de rede)
+        if (Mathf.Abs(_freezeTimer - _timerService.Freeze) > 0.001f) _freezeTimer = _timerService.Freeze;
+        if (Mathf.Abs(_matchTimer - _timerService.Match) > 0.001f) _matchTimer = _timerService.Match;
 
-        }
-        
-        if(_freezeTimer >= 0) return;
-        
-        if(_matchTimer > 0)
-            _matchTimer -= Time.deltaTime;
-            
-        if(_matchTimer <= 0 && _matchTimer != -1){
-
-            InternalEndMatch();
-            _matchTimer = -1;
-            
-            
-        }
+        if (_timerService.Freeze >= 0) return; // ainda em freeze
         
     }
 
