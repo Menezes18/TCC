@@ -38,6 +38,8 @@ public class MatchManager : NetworkBehaviour
     
     private IScoreRule scoreRule;
 
+    private ISpawnPointProvider _spawnProvider; // fase 3 item 10
+    private ITimerService _timerService; // fase 3 item 11
     
     [SyncVar (hook = nameof(HookOnFreezeTimerUpdated))] float _freezeTimer;
     [SyncVar (hook = nameof(HookOnMatchTimerUpdated))] float _matchTimer;
@@ -81,8 +83,9 @@ public class MatchManager : NetworkBehaviour
         });
         scoreRule = FindFirstObjectByType<MinigameController>() as IScoreRule;
         (scoreRule as MinigameController)?.SetupMiniGame();
-        //InternalStartMatch();
 
+        _spawnProvider = new RoundRobinSpawnPointProvider(_spawns);
+        _timerService = new TimerService();
     }
 
     [ClientRpc]
@@ -165,18 +168,12 @@ public class MatchManager : NetworkBehaviour
         foreach (PlayerData pd in PlayerList.singleton.players)
         {
             if (_activePlayers.Contains(pd)) return;
-
             PlayerScript ps = pd.transform.GetComponent<PlayerScript>();
-            ps = pd.transform.GetComponent<PlayerScript>();
             NetworkConnection conn = pd.transform.GetComponent<NetworkIdentity>().connectionToClient;
-            Transform randomSpawn = InternalGetRandomSpawnPoint();
-
+            Transform randomSpawn = _spawnProvider != null ? _spawnProvider.GetNext() : InternalGetRandomSpawnPoint();
             Debug.DrawRay(randomSpawn.position,Vector3.up * 100, Color.green, 10);
-            
             ps.TargetRpcTeleport(conn, randomSpawn.position, this.transform.rotation);
-
             _activePlayers.Add(pd);
-
         }
     }
 
@@ -287,4 +284,35 @@ public class MatchManager : NetworkBehaviour
         HUDSO.GameOver(newValue);
     }
     
+}
+
+public interface ISpawnPointProvider
+{
+    Transform GetNext();
+}
+public class RoundRobinSpawnPointProvider : ISpawnPointProvider
+{
+    private readonly System.Collections.Generic.List<Transform> _points;
+    private int _index;
+    public RoundRobinSpawnPointProvider(System.Collections.Generic.List<Transform> points){ _points = points; _index = 0; }
+    public Transform GetNext(){ if(_points==null||_points.Count==0) return null; var t=_points[_index]; _index=( _index +1) % _points.Count; return t; }
+}
+
+public interface ITimerService
+{
+    void Set(float freeze, float match);
+    void Tick(float delta, System.Action onFreezeEnd, System.Action onMatchEnd);
+    float Freeze { get; }
+    float Match { get; }
+}
+public class TimerService : ITimerService
+{
+    public float Freeze { get; private set; } = -1;
+    public float Match { get; private set; } = -1;
+    public void Set(float freeze, float match){ Freeze = freeze; Match = match; }
+    public void Tick(float delta, System.Action onFreezeEnd, System.Action onMatchEnd){
+        if (Freeze > 0) { Freeze -= delta; if (Freeze <= 0){ Freeze = -1; onFreezeEnd?.Invoke(); } }
+        if (Freeze >= 0) return; // ainda congelado
+        if (Match > 0){ Match -= delta; if (Match <= 0){ Match = -1; onMatchEnd?.Invoke(); } }
+    }
 }

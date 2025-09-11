@@ -4,6 +4,47 @@ using System.Collections;
 
 public partial class PlayerScript : NetworkBehaviour
 {
+    // ==== Fase 3 Item 9: Damage Effect Registry (OCP) ====
+    private interface IDamageEffect
+    {
+        DamageType Type { get; }
+        void Apply(PlayerScript p, Vector3 dir);
+    }
+    private class BlindEffect : IDamageEffect
+    {
+        public DamageType Type => DamageType.Poop; // reutiliza enum existente
+        public void Apply(PlayerScript p, Vector3 dir)
+        {
+            p.Status = PlayerStatus.Blinded;
+            p.ApplyBlind(p.db.playerBlindDuration);
+        }
+    }
+    private class PushEffect : IDamageEffect
+    {
+        public DamageType Type => DamageType.Push;
+        public void Apply(PlayerScript p, Vector3 dir)
+        {
+            p.State = PlayerState.Stagger;
+            Vector3 final = dir.normalized * p.db.playerPushStrength;
+            p.ApplyPush(final, p.db.playerStaggerHeight, p.db.playerStaggerStunDuration);
+        }
+    }
+    private System.Collections.Generic.Dictionary<DamageType, IDamageEffect> _damageEffects;
+    private void RegisterDamageEffects()
+    {
+        if (_damageEffects != null) return;
+        _damageEffects = new System.Collections.Generic.Dictionary<DamageType, IDamageEffect>
+        {
+            { DamageType.Poop, new BlindEffect() },
+            { DamageType.Push, new PushEffect() }
+        };
+    }
+    // Called via Unity automatically if declared (ensure one Awake across partials)
+    private void Awake()
+    {
+        RegisterDamageEffects();
+    }
+    // =====================================================
     [Server]
     public void ReceiveDamage(DamageType dmgType, Vector3 dir)
     {
@@ -14,18 +55,11 @@ public partial class PlayerScript : NetworkBehaviour
     [TargetRpc]
     public void TargetRpcReceiveDamage(NetworkConnection coon, DamageType dmgType, Vector3 dir)
     {
-        if (dmgType == DamageType.Poop) {
-            Status = PlayerStatus.Blinded;
-            _blindTimer = db.playerBlindDuration;
-            return;
+        if (_damageEffects == null) RegisterDamageEffects();
+        if (_damageEffects != null && _damageEffects.TryGetValue(dmgType, out var effect))
+        {
+            effect.Apply(this, dir);
         }
-        State = PlayerState.Stagger;
-        Debug.DrawRay(transform.position, dir * 5, Color.cyan, 5);
-        Vector3 final = dir.normalized * db.playerPushStrength;
-        _inertia = final;
-        InertiaCap = final.magnitude;
-        _move.y = db.playerStaggerHeight;
-        _staggerTimer = db.playerStaggerStunDuration;
     }
 
     [Server]
