@@ -21,7 +21,6 @@ public partial class PlayerScript : NetworkBehaviour
         }
         State = PlayerState.Stagger;
         Debug.DrawRay(transform.position, dir * 5, Color.cyan, 5);
-        Vector3 horizontal = new Vector3(_move.x, 0, _move.z);
         Vector3 final = dir.normalized * db.playerPushStrength;
         _inertia = final;
         InertiaCap = final.magnitude;

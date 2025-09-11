@@ -8,7 +8,9 @@ using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using System.Linq;
-
+using System.Collections.Generic; // for future
+// Added for damage effects
+// damage effects in global namespace
 
 public enum PlayerState{
     Default,
@@ -136,6 +138,10 @@ public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
 
     private PlayerInput _playerInput;
+    private PlayerContext _context;
+    private IPlayerAbility _pushAbility;
+    private ThrowAbility _throwAbility;
+    private PlayerCameraController _cameraController;
 
     [Header("Input Schemes")]
     [SerializeField] private string keyboardMouseScheme = "Keyboard&Mouse";
@@ -183,6 +189,7 @@ public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public UnityEvent EventOnJump;
     public UnityEvent EventOnPush;
 
+
     private void Start()
     {
         if (!isLocalPlayer) return;
@@ -213,9 +220,12 @@ public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         ConfigureControlScheme(initial:true);
 
         if (PlayerPrefs.HasKey("MouseSensitivity"))
-        {
             sensibilidade = PlayerPrefs.GetFloat("MouseSensitivity");
-        }
+
+        _context = new PlayerContext(this, _cooldowns, db, _animator, _networkAnimator, _cam);
+        _pushAbility = new PushAbility();
+        _throwAbility = new ThrowAbility();
+        _cameraController = new PlayerCameraController(_cam, db, transform);
     }
 
     public override void OnStartLocalPlayer()
@@ -413,25 +423,7 @@ public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if (!this.isOwned) return;
 
-        Quaternion camRotation = Quaternion.Euler(_pitch, _yaw, 0f);
-
-        _cam.rotation = camRotation;
-        Vector3 desiredPos = cameraTarget.position + _cam.transform.rotation * db.orbitalOffset;
-
-        Vector3 dir = desiredPos - cameraTarget.position;
-        float maxDist = db.orbitalOffset.magnitude;
-
-        if (Physics.SphereCast(cameraTarget.position, db.cameraSphereRadius, dir.normalized,
-                out RaycastHit hit, maxDist, db.cameraColliderMash,
-                QueryTriggerInteraction.Ignore))
-        {
-            float safeDist = Mathf.Clamp(hit.distance - db.cameraSphereRadius, 0.1f, maxDist);
-            _cam.transform.position = cameraTarget.position + dir.normalized * safeDist;
-        }
-        else
-        {
-            _cam.transform.position = desiredPos;
-        }
+    _cameraController?.Tick(_pitch, _yaw);
     }
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
@@ -658,6 +650,7 @@ public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public void SetCameraTarget(Transform newTarget)
     {
         cameraTarget = newTarget;
+    _cameraController?.SetTarget(newTarget);
     }
 
     private Transform FindSpectatorTarget()
@@ -807,6 +800,18 @@ public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         InternalResetProperties();
         State = PlayerState.Default;
 
+    }
+
+    public void ApplyBlind(float duration)
+    {
+        _blindTimer = duration;
+    }
+    public void ApplyPush(Vector3 impulse, float verticalBoost, float staggerStun)
+    {
+        _inertia = impulse;
+        InertiaCap = impulse.magnitude;
+        _move.y = verticalBoost;
+        _staggerTimer = staggerStun;
     }
 
     #endregion
