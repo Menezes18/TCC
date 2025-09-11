@@ -224,7 +224,9 @@ public class PlayerData : NetworkBehaviour{
    {
       if (isLocalPlayer) 
       {
-         MainMenu.instance.UpdateReadyButton(value);
+         var mm = MainMenu.instance; // futuro: serializar se necessário
+         if (mm != null)
+            mm.UpdateReadyButton(value);
       }
    }
    private void OnAvatarImageLoaded(AvatarImageLoaded_t callback)
