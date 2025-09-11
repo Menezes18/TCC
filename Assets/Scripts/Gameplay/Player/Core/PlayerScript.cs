@@ -39,7 +39,8 @@ public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 {
     [SerializeField] Database db;
     [SerializeField] PlayerControlsSO PlayerControlsSO;
-    [SerializeField] HUDSO HUDSO;
+    [SerializeField] HUDSO HUDSO; // legado
+    private IHudEvents _hudEvents; // fase 4 item 13
     [SerializeField] SmoothSyncMirror _smoothSyncMirror;
 
     [SerializeField] CharacterController _controller;
@@ -225,9 +226,10 @@ public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             sensibilidade = PlayerPrefs.GetFloat("MouseSensitivity");
 
         _context = new PlayerContext(this, _cooldowns, db, _animator, _networkAnimator, _cam);
+        _hudEvents = new HudSoAdapter(HUDSO); // simples: adaptador local
         _pushAbility = new PushAbility();
         _throwAbility = new ThrowAbility();
-    _cameraController = new PlayerCameraController(_cam, db, transform);
+        _cameraController = new PlayerCameraController(_cam, db, transform);
     }
 
     public override void OnStartLocalPlayer()
@@ -362,7 +364,8 @@ public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         }
         float blindWeight = CustomMath.ConvertRange(_blindTimer, db.playerBlindDuration, 0);
         float blindRange = db.playerBlindCurve.Evaluate(blindWeight);
-        HUDSO.SetBlindAlpha(blindRange);
+        // via ScriptableObject ainda (HUDSO) + podemos futuramente mover para evento dedicado
+        HUDSO.SetBlindAlpha(blindRange); // mantido para não quebrar listeners existentes
 
         AerialDetection();
 

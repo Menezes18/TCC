@@ -32,7 +32,8 @@ public class MatchManager : NetworkBehaviour
     PlayerList playerList => PlayerList.singleton;
     [SerializeField] Database db;
     [SerializeField] SettingsMiniGameData settingsMiniGameData; 
-    [SerializeField] HUDSO HUDSO;
+    [SerializeField] HUDSO HUDSO; // legado (ScriptableObject). Mantido para compat.
+    private IHudEvents _hudEvents; // novo canal de eventos
     private List<PlayerScoreEntry> _temporaryRanking = new List<PlayerScoreEntry>();
     private HashSet<NetworkConnectionToClient> _readyConnections = new();
     
@@ -83,8 +84,9 @@ public class MatchManager : NetworkBehaviour
         scoreRule = FindFirstObjectByType<MinigameController>() as IScoreRule;
         (scoreRule as MinigameController)?.SetupMiniGame();
 
-    _spawnProvider = new RandomCycleSpawnPointProvider(_spawns);
-    _timerService = new TimerService();
+        _spawnProvider = new RandomCycleSpawnPointProvider(_spawns);
+        _timerService = new TimerService();
+        _hudEvents = new HudSoAdapter(HUDSO); // inicialização simples (poderia futuramente trocar por outra implementação)
     }
 
     [ClientRpc]
@@ -243,19 +245,9 @@ public class MatchManager : NetworkBehaviour
             .ToList();
     }
     
-    void HookOnFreezeTimerUpdated(float oldValue, float newValue)
-    {
-        HUDSO.FreezeTimerUpdated(newValue);
-    }  
-    
-    void HookOnMatchTimerUpdated(float oldValue, float newValue)
-    {
-        HUDSO.MatchTimerUpdate(newValue);
-    }
-    void HookOnGameOver(string oldValue, string newValue)
-    {
-        HUDSO.GameOver(newValue);
-    }
+    void HookOnFreezeTimerUpdated(float oldValue, float newValue) => _hudEvents?.OnFreezeTimer(newValue);
+    void HookOnMatchTimerUpdated(float oldValue, float newValue)  => _hudEvents?.OnMatchTimer(newValue);
+    void HookOnGameOver(string oldValue, string newValue)        => _hudEvents?.OnGameOver(newValue);
     
 }
 
