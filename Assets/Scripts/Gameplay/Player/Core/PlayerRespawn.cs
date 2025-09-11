@@ -5,9 +5,10 @@ using UnityEngine.Events;
 
 public class PlayerRespawn : NetworkBehaviour
 {
-
     [SerializeField] Database db;
     [SerializeField] HUDSO hudso; 
+    [SerializeField] private MatchManager _matchManager; // Item14 soft ref
+    private IHudEvents _hudEvents; // reutiliza adapter
     
     [SyncVar (hook = nameof(HookOnTimerUpdate))] public float timer = -1;
 
@@ -18,6 +19,8 @@ public class PlayerRespawn : NetworkBehaviour
         if (base.isServer == false) return;
         
         timer = -1;
+        _matchManager = SingletonFallback.Resolve(_matchManager, () => MatchManager.singleton, this, nameof(_matchManager));
+        _hudEvents = new HudSoAdapter(hudso);
     }
 
     private void Update()
@@ -35,9 +38,22 @@ public class PlayerRespawn : NetworkBehaviour
             PlayerScript ps = transform.GetComponent<PlayerScript>();
             NetworkConnection conn = transform.GetComponent<NetworkIdentity>().connectionToClient;
 
-            Transform random = MatchManager.singleton.GetRandomSpawnPoint();
-
-            ps.TargetRpcTeleport(conn, random.position, random.rotation);
+            var mm = _matchManager ?? MatchManager.singleton;
+            Transform spawn = null;
+            if (mm != null)
+            {
+                // A API recomendada agora é via fluxo de TeleportPlayer interno; como não temos acesso direto ao provider aqui
+                // usamos o método obsoleto apenas como fallback evitando warning redundante (suprimindo via pragma if needed).
+#pragma warning disable CS0618
+                spawn = mm.GetRandomSpawnPoint();
+#pragma warning restore CS0618
+            }
+            if (spawn == null)
+            {
+                Debug.LogWarning("[Respawn] SpawnPoint nulo (provider não configurado)");
+                return;
+            }
+            ps.TargetRpcTeleport(conn, spawn.position, spawn.rotation);
         }
         
     }
@@ -53,6 +69,6 @@ public class PlayerRespawn : NetworkBehaviour
         if (!isLocalPlayer) return;
         
         if(timer == -1) return;
-        hudso.RespawnTimerUpdate(newVal);
+        hudso.RespawnTimerUpdate(newVal); // manter chamada direta (listeners existentes)
     }
 }

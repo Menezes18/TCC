@@ -9,6 +9,7 @@ using UnityEngine.InputSystem;
         [SerializeField] PlayerControlsSO PlayerControlsSO;
         [SerializeField] Database db;
         [SerializeField] PlayerScript playerScript;
+        [SerializeField] private MatchManager _matchManager; // Item14 soft ref
 
         [SerializeField]
         PlayerInput _playerInput;
@@ -19,6 +20,7 @@ using UnityEngine.InputSystem;
         private void Start(){
             
             playerScript = GetComponent<PlayerScript>();
+            _matchManager = SingletonFallback.Resolve(_matchManager, () => MatchManager.singleton, this, nameof(_matchManager));
             
             if (!playerScript.isLocalPlayer) return;
             
@@ -75,7 +77,7 @@ using UnityEngine.InputSystem;
         }
         private void PlayerInputSO_OnMove(CallbackContext obj)
         {
-            if (playerScript.panel || MatchManager.singleton.Freeze)
+            if (playerScript.panel || ((_matchManager ?? MatchManager.singleton)?.Freeze ?? false))
             {
                 _rawX = 0;
                 _rawY = 0;
