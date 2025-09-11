@@ -9,6 +9,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using System.Linq;
 using System.Collections.Generic; // for future
+// using for DI helper (global namespace static so technically not required if also global)
 // Added for damage effects
 // damage effects in global namespace
 
@@ -153,9 +154,10 @@ public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public bool IsAirborne => State == PlayerState.Ascend || State == PlayerState.Descend;
     [SyncVar(hook = nameof(OnExtraFreezeChanged))]
     public bool _extraFreeze;
+    [SerializeField] private MatchManager _matchManager; // soft ref (Item 14)
     public bool isFrozen
     {
-        get => MatchManager.singleton.Freeze || _extraFreeze;
+        get => (_matchManager ?? MatchManager.singleton)?.Freeze == true || _extraFreeze;
         [Server]
         set => _extraFreeze = value;
     }
@@ -225,6 +227,8 @@ public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (PlayerPrefs.HasKey("MouseSensitivity"))
             sensibilidade = PlayerPrefs.GetFloat("MouseSensitivity");
 
+        // Soft resolve de dependências opcionais
+        _matchManager = SingletonFallback.Resolve(_matchManager, () => MatchManager.singleton, this, nameof(_matchManager));
         _context = new PlayerContext(this, _cooldowns, db, _animator, _networkAnimator, _cam);
         _hudEvents = new HudSoAdapter(HUDSO); // simples: adaptador local
         _pushAbility = new PushAbility();
@@ -525,6 +529,7 @@ public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         }
         Vector3 direction = _cam.forward;
         //
+        // Soft usage (não convertemos ainda PrefabInstancer, apenas anotamos)
         PrefabInstancer.singleton.CmdSpawnProjectile(
             origin.transform.position,
             direction,
