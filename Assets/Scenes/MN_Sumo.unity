@@ -3161,6 +3161,7 @@ MonoBehaviour:
   onBriefingEnded:
     m_PersistentCalls:
       m_Calls: []
+  readyInteractableClient: 0
   slotPrefab: {fileID: 5293966028853611012, guid: cefc84eee2ce2cc4f9b766ae21bc37c3,
     type: 3}
   slotsParent: {fileID: 497170371}
@@ -9609,6 +9610,7 @@ MonoBehaviour:
   _freezeTimer: {fileID: 1873347222}
   _respawnTimer: {fileID: 1012285893}
   _gameover: {fileID: 1929068973}
+  _potatoHolder: {fileID: 0}
   spinDuration: 0.45
   spinEase: 27
   popOvershoot: 1.15
@@ -10039,7 +10041,7 @@ MonoBehaviour:
         m_CallState: 2
       - m_Target: {fileID: 598306365}
         m_TargetAssemblyTypeName: MatchManager, Assembly-CSharp
-        m_MethodName: CmdPrepareMath
+        m_MethodName: CmdPrepareMatch
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
