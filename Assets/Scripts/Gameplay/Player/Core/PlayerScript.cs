@@ -509,22 +509,6 @@ public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     }
 
     public float aimWeigh;
-    private void PlayerControlsSO_OnJump()
-    {
-        if (panel) return;
-        if (_chatOpen) return;
-        if (isFrozen) return;
-        if (_isCarrying) return;
-        if (State != PlayerState.Default) return;
-
-        State = PlayerState.Ascend;
-
-        _ignoreGroundedNextFrame = true;
-        _move.y = db.playerJumpHeight;
-        _inertia = new Vector3(_move.x, 0, _move.z);
-        InertiaCap = _inertia.magnitude;
-
-    }
     // Guard clause refactor lives in partial Combat file (Phase 1 PoC)
     // (state change handler in Partial/PlayerScript.State.cs)
     public GameObject origin;

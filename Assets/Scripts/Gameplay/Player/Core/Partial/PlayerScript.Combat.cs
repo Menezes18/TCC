@@ -26,15 +26,38 @@ public partial class PlayerScript : NetworkBehaviour
 
     private void PlayerControlsSO_OnRoll()
     {
-        if (!CanInitiateRoll()) return;
-
-        if (_roll.magnitude == 0)
-            _roll = Vector3.forward;
-
+        // Agora delega para capacidade (mantendo fallback original via método privado se necessário)
+        if (_context != null && _context.RollCapability != null)
+        {
+            _context.RollCapability.ExecuteRoll(_context);
+            return;
+        }
+        if (!CanInitiateRoll()) return; // fallback legado
+        if (_roll.magnitude == 0) _roll = Vector3.forward;
         State = PlayerState.Roll;
         _rollTimer = db.playerRollDuration;
     }
 
+    private void PlayerControlsSO_OnJump()
+    {
+        if (_context != null && _context.JumpCapability != null)
+        {
+            _context.JumpCapability.ExecuteJump(_context);
+            return;
+        }
+        // fallback legado
+        if (panel) return;
+        if (_chatOpen) return;
+        if (isFrozen) return;
+        if (_isCarrying) return;
+        if (State != PlayerState.Default) return;
+        State = PlayerState.Ascend;
+        _ignoreGroundedNextFrame = true;
+        _move.y = db.playerJumpHeight;
+        _inertia = new Vector3(_move.x, 0, _move.z);
+        InertiaCap = _inertia.magnitude;
+    }
+    
     private void PlayerControlsSO_OnThrow()
     {
     if (_throwAbility == null || _context == null) return;
@@ -44,9 +67,8 @@ public partial class PlayerScript : NetworkBehaviour
 
     private void PlayerControlsSO_OnThrowCancel()
     {
-    // Commit do arremesso somente se estamos em preparação
     if (_throwAbility == null || _context == null) return;
-    if (Status != PlayerStatus.ThrowPrepare) return; // mesma condição anterior implicitamente
+    if (Status != PlayerStatus.ThrowPrepare) return;
     _throwAbility.CommitThrow(_context);
     }
 }

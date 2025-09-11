@@ -11,6 +11,11 @@ public class PlayerContext
     public PlayerCooldowns Cooldowns { get; }
     public Database Db { get; }
     public Transform CameraTransform { get; }
+    // Fase 4 - Item 12: referencias opcionais às capacidades (Interface Segregation)
+    public IPushCapability PushCapability { get; }
+    public IThrowCapability ThrowCapability { get; }
+    public IRollCapability RollCapability { get; }
+    public IJumpCapability JumpCapability { get; }
 
     public PlayerContext(PlayerScript p, PlayerCooldowns cds, Database db, Animator animator, NetworkAnimator netAnimator, Transform cam)
     {
@@ -21,5 +26,9 @@ public class PlayerContext
         NetAnimator = netAnimator;
         CameraTransform = cam;
         Identity = p.netIdentity;
+        if (p is IPushCapability push) PushCapability = push;
+        if (p is IThrowCapability thr) ThrowCapability = thr;
+        if (p is IRollCapability roll) RollCapability = roll;
+        if (p is IJumpCapability jump) JumpCapability = jump;
     }
 }

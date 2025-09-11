@@ -17,12 +17,22 @@ public class ThrowAbility : IPlayerAbility
 
     public void Execute(PlayerContext ctx)
     {
+        if (ctx.ThrowCapability != null)
+        {
+            ctx.ThrowCapability.BeginThrow(ctx);
+            return;
+        }
         ctx.Player.Status = PlayerStatus.ThrowPrepare;
         // O consumo do cooldown final é feito quando realmente lança (cancel trigger atual).
     }
 
     public void CommitThrow(PlayerContext ctx)
     {
+        if (ctx.ThrowCapability != null)
+        {
+            ctx.ThrowCapability.CommitThrow(ctx);
+            return;
+        }
         ctx.Player.Status = PlayerStatus.Throw;
         ctx.Cooldowns.Start(PlayerCooldownType.Throw, ctx.Db.playerThrowCooldown);
     }

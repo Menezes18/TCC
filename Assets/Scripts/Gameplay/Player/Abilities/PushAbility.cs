@@ -16,7 +16,15 @@ public class PushAbility : IPlayerAbility
 
     public void Execute(PlayerContext ctx)
     {
-        ctx.Player.Status = PlayerStatus.Pushing;
-        ctx.Cooldowns.Start(PlayerCooldownType.Push, ctx.Db.playerPushCooldownTimer);
+        // Delegamos para a capacidade (Interface Segregation). Fallback mantém comportamento.
+        if (ctx.PushCapability != null)
+        {
+            ctx.PushCapability.ExecutePush(ctx);
+        }
+        else
+        {
+            ctx.Player.Status = PlayerStatus.Pushing;
+            ctx.Cooldowns.Start(PlayerCooldownType.Push, ctx.Db.playerPushCooldownTimer);
+        }
     }
 }
