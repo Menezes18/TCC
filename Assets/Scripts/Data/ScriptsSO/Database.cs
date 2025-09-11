@@ -64,6 +64,8 @@ public class Database : ScriptableObject{
     public float projectileGravityScale = 1;
     public Vector3 projectileLocalOffset = new Vector3(0f, 1f, 0.5f);
     public float playerThrowCooldown;
+    [Tooltip("Tempo máximo (segundos) antes do projétil desaparecer se não colidir.")]
+    public float projectileLifetime = 6f;
 
 
 

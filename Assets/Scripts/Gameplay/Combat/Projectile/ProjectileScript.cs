@@ -8,6 +8,7 @@ public class ProjectileScript : NetworkBehaviour
     private Vector3 _velocity;
     private bool _launched;
     private Transform _owner;
+    private float _lifeRemaining;
     public GameObject _vfx;//Phelipe
     public Transform Owner
     {
@@ -23,7 +24,8 @@ public class ProjectileScript : NetworkBehaviour
         Vector3 biasedDir = (direction + Vector3.up * db.verticalBias).normalized;
         _velocity = biasedDir * db.projectileSpeed;
 
-        _launched = true;
+    _launched = true;
+    _lifeRemaining = db.projectileLifetime;
     }
 
     [ServerCallback]
@@ -32,6 +34,18 @@ public class ProjectileScript : NetworkBehaviour
         if (!_launched) return;
 
         _velocity += Physics.gravity * db.projectileGravityScale * Time.deltaTime;
+
+        // Lifetime countdown
+        _lifeRemaining -= Time.deltaTime;
+        if (_lifeRemaining <= 0f)
+        {
+            _launched = false;
+            if (NetworkServer.active)
+            {
+                NetworkServer.Destroy(gameObject);
+            }
+            return;
+        }
 
         transform.position += _velocity * Time.deltaTime;
 
