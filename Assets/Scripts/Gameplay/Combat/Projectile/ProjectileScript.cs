@@ -54,16 +54,9 @@ public class ProjectileScript : NetworkBehaviour
             // Recicla após impacto (simples). Pode-se adicionar multi-hit se necessário.
             _launched = false;
             // Procurar pool e reciclar
-            var poolObj = FindFirstObjectByType<MonoBehaviour>(); // fallback linear search
-            ProjectilePool foundPool = null;
-            foreach (var mb in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
-            {
-                if (mb.GetType().Name == "ProjectilePool") { foundPool = (ProjectilePool)mb; break; }
-            }
-            if (foundPool != null)
-            {
-                foundPool.Recycle(gameObject);
-            }
+            var pool = FindFirstObjectByType<ProjectilePool>();
+            if (pool != null)
+                pool.Recycle(gameObject);
             else
             {
                 // fallback: desativar para evitar spam Destroy/Instantiate
