@@ -47,7 +47,6 @@ public class MatchManager : NetworkBehaviour
     
     
     [SerializeField] List<Transform> _spawns;
-    List<Transform> _excludedSpawns = new List<Transform>();
 
     List<PlayerData> _activePlayers = new List<PlayerData>();
     List<PlayerData> _winnerPlayers = new List<PlayerData>();
@@ -70,7 +69,7 @@ public class MatchManager : NetworkBehaviour
 
         if(base.isServer == false) return;
 
-    _matchTimer = -1; // legacy mirrors start invalid
+    _matchTimer = -1; // mirrors start invalid
     _freezeTimer = -1;
         _gameOver = string.Empty;
         
@@ -84,8 +83,8 @@ public class MatchManager : NetworkBehaviour
         scoreRule = FindFirstObjectByType<MinigameController>() as IScoreRule;
         (scoreRule as MinigameController)?.SetupMiniGame();
 
-        _spawnProvider = new RoundRobinSpawnPointProvider(_spawns);
-        _timerService = new TimerService();
+    _spawnProvider = new RandomCycleSpawnPointProvider(_spawns);
+    _timerService = new TimerService();
     }
 
     [ClientRpc]
@@ -148,8 +147,9 @@ public class MatchManager : NetworkBehaviour
     [Server]
     public void InternalStartMatch() 
     {
-        _freezeTimer = db.serverFreezeDuration;
-        _matchTimer = settingsMiniGameData.miniGameDuration;
+        _timerService.Set(db.serverFreezeDuration, settingsMiniGameData.miniGameDuration);
+        _freezeTimer = _timerService.Freeze; // initial mirror for clients connecting
+        _matchTimer  = _timerService.Match;
         _matchHasStarted = true;
     }
 
@@ -160,7 +160,8 @@ public class MatchManager : NetworkBehaviour
             if (_activePlayers.Contains(pd)) return;
             PlayerScript ps = pd.transform.GetComponent<PlayerScript>();
             NetworkConnection conn = pd.transform.GetComponent<NetworkIdentity>().connectionToClient;
-            Transform randomSpawn = _spawnProvider != null ? _spawnProvider.GetNext() : InternalGetRandomSpawnPoint();
+            Transform randomSpawn = _spawnProvider != null ? _spawnProvider.GetNext() : null;
+            if(randomSpawn == null) continue;
             Debug.DrawRay(randomSpawn.position,Vector3.up * 100, Color.green, 10);
             ps.TargetRpcTeleport(conn, randomSpawn.position, this.transform.rotation);
             _activePlayers.Add(pd);
@@ -171,9 +172,9 @@ public class MatchManager : NetworkBehaviour
     public void InternalEndMatch()
     {
         Debug.Log("🏁 [MATCH] Fim de partida – encerrando e atribuindo pontos");
-        _matchHasStarted = false;
-        _matchTimer = -1;
-        _freezeTimer = -1;
+    _matchHasStarted = false;
+    _timerService.Set(-1,-1);
+    _matchTimer = -1; _freezeTimer = -1;
 
         scoreRule.AssignFinalPoints();
 
@@ -221,27 +222,9 @@ public class MatchManager : NetworkBehaviour
         }
             
     }
+    [Obsolete("Use spawn provider via TeleportPlayer flow", false)]
     [Server]
-    public Transform GetRandomSpawnPoint()
-    {
-        return InternalGetRandomSpawnPoint();
-    }
-
-    Transform InternalGetRandomSpawnPoint()
-    {
-        int randomIndex = Random.Range(0, _spawns.Count);
-        Transform random = _spawns[randomIndex];
-
-        _spawns.Remove(random);
-        _excludedSpawns.Add(random);
-
-        if (_spawns.Count == 0){
-            _spawns = _excludedSpawns.ToList();
-            _excludedSpawns.Clear();
-        }
-        
-        return random;
-    }
+    public Transform GetRandomSpawnPoint() => _spawnProvider?.GetNext();
 
     private void UpdateTemporaryRanking()
     {
@@ -280,12 +263,24 @@ public interface ISpawnPointProvider
 {
     Transform GetNext();
 }
-public class RoundRobinSpawnPointProvider : ISpawnPointProvider
+public class RandomCycleSpawnPointProvider : ISpawnPointProvider
 {
-    private readonly System.Collections.Generic.List<Transform> _points;
-    private int _index;
-    public RoundRobinSpawnPointProvider(System.Collections.Generic.List<Transform> points){ _points = points; _index = 0; }
-    public Transform GetNext(){ if(_points==null||_points.Count==0) return null; var t=_points[_index]; _index=( _index +1) % _points.Count; return t; }
+    private readonly System.Collections.Generic.List<Transform> _available;
+    private readonly System.Collections.Generic.List<Transform> _used = new();
+    public RandomCycleSpawnPointProvider(System.Collections.Generic.List<Transform> points){ _available = points != null ? new System.Collections.Generic.List<Transform>(points) : new System.Collections.Generic.List<Transform>(); }
+    public Transform GetNext(){
+        if (_available.Count == 0){
+            // recycle
+            _available.AddRange(_used);
+            _used.Clear();
+        }
+        if (_available.Count == 0) return null;
+        int idx = UnityEngine.Random.Range(0, _available.Count);
+        var t = _available[idx];
+        _available.RemoveAt(idx);
+        _used.Add(t);
+        return t;
+    }
 }
 
 public interface ITimerService
