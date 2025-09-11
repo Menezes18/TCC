@@ -37,12 +37,16 @@ public class SteamLobby : MonoBehaviour
     protected Callback<LobbyMatchList_t> lobbyMatchList;
 
 
+    [SerializeField] private MainMenu _mainMenu; // Item14 soft refs
+    [SerializeField] private PopupManager _popupManager;
     private void Awake()
     {
         if (instance == null)
             instance = this;
 
-            lobbyMatchList = Callback<LobbyMatchList_t>.Create(OnLobbyMatchList);
+        lobbyMatchList = Callback<LobbyMatchList_t>.Create(OnLobbyMatchList);
+        _mainMenu = SingletonFallback.Resolve(_mainMenu, () => MainMenu.instance, this, nameof(_mainMenu));
+        _popupManager = SingletonFallback.Resolve(_popupManager, () => PopupManager.instance, this, nameof(_popupManager));
     }
 
     private void Start()
@@ -93,10 +97,10 @@ public class SteamLobby : MonoBehaviour
     private readonly float _delaySeconds = 2.0f;
     public void CreateLobby()
     {
-        PopupManager.instance.Popup_Show("Criando Partida", false, true);
+        _popupManager?.Popup_Show("Criando Partida", false, true);
         StartCoroutine(DelayAction(_delaySeconds, () => {
         SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypePublic, ((MyNetworkManager)NetworkManager.singleton).maxConnections);
-        MainMenu.instance.gameObject.SetActive(false);
+        if (_mainMenu != null) _mainMenu.gameObject.SetActive(false);
         }));
     }
 
@@ -128,7 +132,7 @@ public class SteamLobby : MonoBehaviour
 
     private void OnJoinRequest(GameLobbyJoinRequested_t callback)
     {
-        PopupManager.instance.Popup_Show("Entrando na Partida", false, true);
+        _popupManager?.Popup_Show("Entrando na Partida", false, true);
         StartCoroutine(DelayAction(_delaySeconds, () => {
         SteamMatchmaking.JoinLobby(callback.m_steamIDLobby);
         }));
@@ -140,7 +144,7 @@ public class SteamLobby : MonoBehaviour
         if (callback.m_bLocked)
         {
             SteamMatchmaking.LeaveLobby((CSteamID)callback.m_ulSteamIDLobby);
-            PopupManager.instance.Popup_Close();
+            _popupManager?.Popup_Close();
             return;
         }
 
@@ -159,7 +163,7 @@ public class SteamLobby : MonoBehaviour
 
     public void Leave()
     {
-        PopupManager.instance.Popup_Show("Saindo da Partida", false, true);
+        _popupManager?.Popup_Show("Saindo da Partida", false, true);
         StartCoroutine(DelayAction(_delaySeconds, () => {
             SteamMatchmaking.LeaveLobby(LobbyID);
             // Use centralized loading when leaving to menu
@@ -185,7 +189,7 @@ public class SteamLobby : MonoBehaviour
 
     IEnumerator FindMatchRoutine()
     {
-        PopupManager.instance.Popup_Show("Procurando Partida...", false, true);
+        _popupManager?.Popup_Show("Procurando Partida...", false, true);
         bool foundMatch = false;
         float elapsedTime = 0f;
         float maxTime = 3f;
@@ -202,7 +206,7 @@ public class SteamLobby : MonoBehaviour
                 {
                     JoinLobby(lobby.lobbyID);
                     foundMatch = true;
-                    MainMenu.instance.gameObject.SetActive(false);
+                    if (_mainMenu != null) _mainMenu.gameObject.SetActive(false);
                     break;
                 }
             }
@@ -211,10 +215,10 @@ public class SteamLobby : MonoBehaviour
 
         if (!foundMatch)
         {
-            PopupManager.instance.Popup_Show("Nenhuma partida encontrada.", false, true);
+            _popupManager?.Popup_Show("Nenhuma partida encontrada.", false, true);
         }
         StartCoroutine(DelayAction(1.7f, () => {
-            PopupManager.instance.Popup_Close();
+            _popupManager?.Popup_Close();
             
         }));
     }

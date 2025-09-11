@@ -529,12 +529,13 @@ public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         }
         Vector3 direction = _cam.forward;
         //
-        // Soft usage (não convertemos ainda PrefabInstancer, apenas anotamos)
-        PrefabInstancer.singleton.CmdSpawnProjectile(
-            origin.transform.position,
-            direction,
-            this.netIdentity
-        );
+        var instancer = PrefabInstancer.singleton; // futuro: serializar
+        if (instancer == null)
+        {
+            Debug.LogWarning("[PlayerScript] PrefabInstancer indisponível (singleton null).");
+            return;
+        }
+        instancer.CmdSpawnProjectile(origin.transform.position, direction, this.netIdentity);
 
         Debug.Log("✅ [SPAWN] Teste: instanciar Player");
         // _throwCooldown = db.playerThrowCooldown;
