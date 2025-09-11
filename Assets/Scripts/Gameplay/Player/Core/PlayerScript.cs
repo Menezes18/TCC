@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using System.Linq;
 
 
 public enum PlayerState{
@@ -32,7 +33,7 @@ public enum PlayerVfx
     Pushingfx,
 
 }
-public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
+public partial class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 {
     [SerializeField] Database db;
     [SerializeField] PlayerControlsSO PlayerControlsSO;
@@ -66,8 +67,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             _status = value;
 
             if (value == PlayerStatus.Throw) {
-                _animator.SetTrigger("throw");
-                _networkAnimator.SetTrigger("throw");
+                _animator.SetTrigger(AnimatorParams.Throw);
+                _networkAnimator.SetTrigger(AnimatorParams.Throw);
             }
 
             if (value != PlayerStatus.Pushing) return;
@@ -76,8 +77,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             // Então tem que passar sempre nos 2
             // animator --> trigger
             // networkAnimator --> trigger
-            _animator.SetTrigger("push");
-            _networkAnimator.SetTrigger("push");
+            _animator.SetTrigger(AnimatorParams.Push);
+            _networkAnimator.SetTrigger(AnimatorParams.Push);
 
         }
     }
@@ -119,14 +120,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     readonly int _MOVEY = Animator.StringToHash("MoveY");
 
     private float _staggerTimer;
-    private float _pushCooldown;
-    private float _rollTimer;
-    private float _rollCooldown;
-    private float _blindTimer;
-    private float _throwCooldown;
+    private float _rollTimer; // duração ativa do roll
+    private float _blindTimer; // status blind
+    private PlayerCooldowns _cooldowns = new PlayerCooldowns();
 
-    public float PushCooldownNormalized => Mathf.Clamp01(_pushCooldown / db.playerPushCooldownTimer);
-    public float ThrowCooldownNormalized => Mathf.Clamp01(_throwCooldown / db.playerThrowCooldown);
+    public float PushCooldownNormalized => _cooldowns.GetNormalized(PlayerCooldownType.Push, db.playerPushCooldownTimer);
+    public float ThrowCooldownNormalized => _cooldowns.GetNormalized(PlayerCooldownType.Throw, db.playerThrowCooldown);
     private float BlindTimer {
         get => _blindTimer;
         set {
@@ -304,15 +303,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (!this.isOwned) return;
         if (!isLocalPlayer) return;
         //
-        if (_pushCooldown > 0) _pushCooldown -= Time.deltaTime;
+        _cooldowns.Tick(Time.deltaTime);
 
         if (_staggerTimer > 0) _staggerTimer -= Time.deltaTime;
 
         if (_rollTimer > 0) _rollTimer -= Time.deltaTime;
 
-        if (_rollCooldown > 0) _rollCooldown -= Time.deltaTime;
-
-        if (_throwCooldown > 0) _throwCooldown -= Time.deltaTime;
+        // roll cooldown agora controla via wrapper quando sair do estado
 
         if (_blindTimer > 0) _blindTimer -= Time.deltaTime;
         
@@ -345,6 +342,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         {
             HUDSO.ShowColorChangePanel(); 
         }
+
+        // ===== Spectate Cycling (Phase1 small improvement) =====
+        if (State == PlayerState.Death && !_menuOpen)
+        {
+            HandleSpectateInput();
+        }
         float blindWeight = CustomMath.ConvertRange(_blindTimer, db.playerBlindDuration, 0);
         float blindRange = db.playerBlindCurve.Evaluate(blindWeight);
         HUDSO.SetBlindAlpha(blindRange);
@@ -369,18 +372,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
              if (_rollTimer <= 0) State = GetDefaultStatus();
          }*/
 
-        if (Status == PlayerStatus.Throw) {
-            if (_throwCooldown <= 0) {
-
-                Status = PlayerStatus.Default;
-            }
-        }
-        if (Status == PlayerStatus.Blinded) {
-            if (_throwCooldown <= 0) {
-
-                Status = PlayerStatus.Default;
-            }
-        }
+        if (Status == PlayerStatus.Throw && _cooldowns.IsReady(PlayerCooldownType.Throw))
+            Status = PlayerStatus.Default;
+        if (Status == PlayerStatus.Blinded && _cooldowns.IsReady(PlayerCooldownType.Throw))
+            Status = PlayerStatus.Default;
 
         StaggerBehaviour();
         AerialBehaviour();
@@ -454,26 +449,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
 
     //
-    private void AerialDetection()
-    {
-        if (State == PlayerState.Death) return;
-        if (State == PlayerState.Stagger) return;
-        if (State == PlayerState.Roll) return;
-
-        if (_move.y > 0)
-            State = PlayerState.Ascend;
-        else if (_move.y < db.gravityGrounded)
-            State = PlayerState.Descend;
-
-        if (_ignoreGroundedNextFrame == true) {
-            _ignoreGroundedNextFrame = false;
-            return;
-        }
-
-        if (_controller.isGrounded == true) {
-            State = PlayerState.Default;
-        }
-    }
     private void StaggerBehaviour()
     {
         if (State != PlayerState.Stagger) return;
@@ -509,62 +484,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
 
     }
-    private void AerialBehaviour()
-    {
-
-        if (State != PlayerState.Ascend && State != PlayerState.Descend) return;
-
-        float vertical = _move.y;
-
-        Vector3 input = new Vector3(_input.x, 0, _input.z);
-        input = Quaternion.Euler(rot) * input;
-        input *= (db.playerAirSpeed * GetSpeedMultiplier()) * Time.deltaTime;
-        _inertia += input;
-        _inertia = Vector3.ClampMagnitude(_inertia, InertiaCap);
-
-        _move = _inertia;
-        _move.y = vertical;
-
-    }
-    private void DefaultBehaviour()
-    {
-        if (State != PlayerState.Default) return;
-        float vertical = _move.y;
-
-        _move = _input;
-        _move = Quaternion.Euler(rot) * _move;
-        _move *= db.playerSpeed * GetSpeedMultiplier();
-
-        _move.y = vertical;
-
-        _move += Vector3.up * db.gravity;
-    }
+    
 
     //
-    public void SetDefaultState()
-    {
-        if (!_controller.isGrounded) {
-            if (_move.y > 0)
-                State = PlayerState.Ascend;
-            else
-                State = PlayerState.Descend;
-        }
-        State = PlayerState.Default;
-    }
-    public void SetStatusDefault()
-    {
-        Status = PlayerStatus.Default;
-    }
-
-    public PlayerState GetDefaultStatus()
-    {
-        if (_move.y > 0)
-            return PlayerState.Ascend;
-        if (_move.y < -1)
-            return PlayerState.Descend;
-
-        return PlayerState.Default;
-    }
+    
 
     //
     private void PlayerControlsSO_OnMove(Vector2 input, Vector2 raw)
@@ -608,80 +531,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         InertiaCap = _inertia.magnitude;
 
     }
-    private void PlayerControlsSO_OnPush()
-    {
-        if (panel) return;
-        if (_chatOpen) return;
-        if (_isCarrying) return;
-        if (isFrozen) return;
-        if (State == PlayerState.Stagger) return;
-        if (Status != PlayerStatus.Default || Status == PlayerStatus.Blinded) return;
-
-        if (_pushCooldown > 0) return;
-
-        Status = PlayerStatus.Pushing;
-        _pushCooldown = db.playerPushCooldownTimer;
-
-    }
-    private void PlayerControlsSO_OnRoll()
-    {
-        if (isFrozen) return;
-        if (panel) return;
-        if (_chatOpen) return;
-        if (IsAirborne) return;
-        if (State == PlayerState.Stagger) return;
-        if (_rollCooldown > 0) return;
-        if (_isCarrying) return;
-
-        if (_roll.magnitude == 0)
-            _roll = Vector3.forward;
-
-        State = PlayerState.Roll;
-        _rollTimer = db.playerRollDuration;
-
-    }
-    private void PlayerControlsSO_OnThrow()
-    {
-        if (isFrozen) return;
-        if (panel) return;
-        if (_chatOpen) return;
-        if (Cursor.visible == true) return;
-        if (State == PlayerState.Death) return;
-        if (State == PlayerState.Stagger) return;
-        if (Status != PlayerStatus.Default) return;
-        if (Status == PlayerStatus.Throw) return;
-        if (_throwCooldown > 0) return;
-        if (_isCarrying) return;
-        Status = PlayerStatus.ThrowPrepare;
-
-    }
-
-    private void PlayerControlsSO_OnThrowCancel()
-    {
-    if (isFrozen) return;
-        if (panel) return;
-        if (_chatOpen) return;
-        if (Cursor.visible == true) return;
-        if (State == PlayerState.Death) return;
-        if (State == PlayerState.Stagger) return;
-        if (Status == PlayerStatus.Pushing) return;
-        if (Status == PlayerStatus.Throw) return;
-        if (_isCarrying) return;
-        Status = PlayerStatus.Throw;
-
-        if (isFrozen) return;
-        if (_isCarrying) return; 
-        Vector3 direction = _cam.forward;
-        // Vector3 origin = transform.TransformPoint(db.projectileLocalOffset);
-        //direction = _cam.forward;
-
-        // PrefabInstancer.singleton.CmdSpawnProjectile(
-        //     origin.transform.position,
-        //    direction,
-        //     this.netIdentity
-        // );
-        _throwCooldown = db.playerThrowCooldown;
-    }
+    // Guard clause refactor lives in partial Combat file (Phase 1 PoC)
+    // (state change handler in Partial/PlayerScript.State.cs)
     public GameObject origin;
     public void PrefabFrameInstancer()
     {
@@ -729,13 +580,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         //LobbyController.singleton.CmdPrepareMath();
     }
     //
-    private void OnStateChanged(PlayerState oldState, PlayerState newState)
-    {
-        Debug.Log($"🔁 [STATE] {oldState} → {newState}");
-
-        if (oldState == PlayerState.Roll)
-            _rollCooldown = db.playerRollCooldownDuration;
-    }
+    // (network damage handlers in Partial/PlayerScript.Network.cs)
 
     //
     public void PassEvent(PlayerVfx fxState) {
@@ -746,58 +591,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         unityEventAct?.Invoke();
     }
-    [Server]
-    public void ReceiveDamage(DamageType dmgType, Vector3 dir)
-    {
-        NetworkConnection coon = transform.GetComponent<NetworkIdentity>().connectionToClient;
-        TargetRpcReceiveDamage(coon, dmgType, dir);
-    }
-
-    [TargetRpc]
-    public void TargetRpcReceiveDamage(NetworkConnection coon, DamageType dmgType, Vector3 dir)
-    {
-        if (dmgType == DamageType.Poop) {
-
-            Status = PlayerStatus.Blinded;
-            _blindTimer = db.playerBlindDuration;
-
-            return;
-        }
-
-
-
-        //
-
-        State = PlayerState.Stagger;
-
-        //isStaggered = true;
-
-        Debug.DrawRay(transform.position, dir * 5, Color.cyan, 5);
-
-
-        Vector3 horizontal = new Vector3(_move.x, 0, _move.z);
-        Vector3 final = dir.normalized * db.playerPushStrength;
-        _inertia = final;
-        InertiaCap = final.magnitude;
-        _move.y = db.playerStaggerHeight;
-        _staggerTimer = db.playerStaggerStunDuration;
-
-        //StartCoroutine(ClearStagger(db.playerStaggerStunDuration));
-
-    }
-
-    [Server]
-    private IEnumerator ClearStagger(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-
-        isStaggered = false;
-    }
-
-    public void OnStaggerChanged(bool oldValue, bool newValue)
-    {
-        _staggerIndicator.gameObject.SetActive(newValue);
-    }
+    
 
     public void OnHitKill()
     {
@@ -879,6 +673,47 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         return null;
     }
 
+    // ===== Spectate Support =====
+    private int _spectateIndex = -1;
+    private PlayerScript[] _spectateCache = Array.Empty<PlayerScript>();
+    private float _spectateRefreshTimer;
+    private const float SPECTATE_REFRESH_INTERVAL = 1.5f;
+
+    private void RefreshSpectateCache()
+    {
+        _spectateCache = FindObjectsByType<PlayerScript>(FindObjectsSortMode.None)
+            .Where(p => p != this && p.State != PlayerState.Death)
+            .ToArray();
+        if (_spectateCache.Length == 0)
+        {
+            _spectateIndex = -1;
+            return;
+        }
+        if (_spectateIndex < 0 || _spectateIndex >= _spectateCache.Length)
+            _spectateIndex = 0;
+        SetCameraTarget(_spectateCache[_spectateIndex].transform);
+    }
+
+    private void HandleSpectateInput()
+    {
+        _spectateRefreshTimer -= Time.deltaTime;
+        if (_spectateRefreshTimer <= 0f)
+        {
+            _spectateRefreshTimer = SPECTATE_REFRESH_INTERVAL;
+            RefreshSpectateCache();
+        }
+        if (_spectateCache.Length == 0) return;
+
+        bool next = Keyboard.current.eKey != null && Keyboard.current.eKey.wasPressedThisFrame;
+        bool prev = Keyboard.current.qKey != null && Keyboard.current.qKey.wasPressedThisFrame;
+        if (!next && !prev) return;
+        if (next)
+            _spectateIndex = (_spectateIndex + 1) % _spectateCache.Length;
+        else if (prev)
+            _spectateIndex = (_spectateIndex - 1 + _spectateCache.Length) % _spectateCache.Length;
+        SetCameraTarget(_spectateCache[_spectateIndex].transform);
+    }
+
 
     [TargetRpc]
     private void RpcRespawn(Vector3 position)
@@ -941,11 +776,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         _inertia = Vector3.zero;
 
         _staggerTimer = 0;
-        _pushCooldown = 0;
         _rollTimer = 0;
-        _rollCooldown = 0;
         _blindTimer = 0;
-        _throwCooldown = 0;
+        _cooldowns.ResetAll();
     }
     [Command]
     void CmdDeath()

@@ -132,12 +132,15 @@ public class MatchManager : NetworkBehaviour
         
     }
 
+    [Obsolete("Correção de nome: use CmdPrepareMatch()", false)]
     [Command(requiresAuthority = false)]
     public void CmdPrepareMath() {
-        
+        CmdPrepareMatch();
+    }
+
+    [Command(requiresAuthority = false)]
+    public void CmdPrepareMatch() {
         if(_matchTimer > 0) return;
-        
-        
         InternalPrepareMath();
     }
     [Server]
