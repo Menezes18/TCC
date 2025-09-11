@@ -51,12 +51,35 @@ public class ProjectileScript : NetworkBehaviour
                     VFXActivator(); //Phelipe
                 }
             }
-            
-            //_launched = false;
+            // Recicla após impacto (simples). Pode-se adicionar multi-hit se necessário.
+            _launched = false;
+            // Procurar pool e reciclar
+            var poolObj = FindFirstObjectByType<MonoBehaviour>(); // fallback linear search
+            ProjectilePool foundPool = null;
+            foreach (var mb in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
+            {
+                if (mb.GetType().Name == "ProjectilePool") { foundPool = (ProjectilePool)mb; break; }
+            }
+            if (foundPool != null)
+            {
+                foundPool.Recycle(gameObject);
+            }
+            else
+            {
+                // fallback: desativar para evitar spam Destroy/Instantiate
+                gameObject.SetActive(false);
+            }
         }
     }
     private void VFXActivator()
     {
         _vfx.SetActive(!_vfx.activeInHierarchy);//Phelipe
+    }
+
+    [Server]
+    public void ResetForPool()
+    {
+        _launched = false;
+        _velocity = Vector3.zero;
     }
 }
