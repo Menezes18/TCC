@@ -56,12 +56,19 @@ public class ScoreboardUI : NetworkBehaviour, IObserver
         int[] pts = new int[ordered.Count];
         int[] colors = new int[ordered.Count];
 
+        var soccer = FindAnyObjectByType<SoccerMinigameController>();
         for (int i = 0; i < ordered.Count; i++)
         {
             ulong id = ordered[i].Key;
             int score = ordered[i].Value;
             var pd = PlayerList.singleton.players.FirstOrDefault(p => p.playerInfo.steamId == id);
             names[i] = pd != null ? pd.alias : id.ToString();
+            if (soccer != null)
+            {
+                int team = soccer.GetTeamOf(id);
+                if (team == 0) names[i] = $"{names[i]} [Azul]";
+                else if (team == 1) names[i] = $"{names[i]} [Vermelho]";
+            }
             colors[i] = pd != null ? pd.color : -1;
             pts[i] = score;
         }
