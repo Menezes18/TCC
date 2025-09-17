@@ -829,6 +829,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [TargetRpc]
     public void TargetRpcApplyImpulse(NetworkConnection coon, Vector3 horizontalDir, float horizontalStrength, float verticalStrength, float stunDuration, bool setStagger)
     {
+        ApplyImpulseLocal(horizontalDir, horizontalStrength, verticalStrength, stunDuration, setStagger);
+    }
+
+    // Permite aplicar impulso localmente (modo offline ou utilitários internos).
+    public void ApplyImpulseLocal(Vector3 horizontalDir, float horizontalStrength, float verticalStrength, float stunDuration, bool setStagger)
+    {
         if (setStagger)
             State = PlayerState.Stagger;
 
