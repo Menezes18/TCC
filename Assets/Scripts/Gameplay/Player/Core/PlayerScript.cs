@@ -168,6 +168,14 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SerializeField, Range(0.3f, 1f)] private float carryingSpeedMultiplier = 0.8f;
     public bool IsCarrying => _isCarrying;
 
+    // Forças externas de solo (ex.: esteira)
+    private Vector3 _externalGroundVelocity; // unidades/seg
+    private float _externalGroundTimer;      // duração restante em segundos
+
+    // Redução de controle (gelo)
+    private float _controlMultiplier = 1f;   // 1 = controle total, 0 = sem controle
+    private float _controlTimer;
+
     // UI
 
     [Header("Prefabs")]
@@ -315,6 +323,26 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (_throwCooldown > 0) _throwCooldown -= Time.deltaTime;
 
         if (_blindTimer > 0) _blindTimer -= Time.deltaTime;
+
+        if (_externalGroundTimer > 0f)
+        {
+            _externalGroundTimer -= Time.deltaTime;
+            if (_externalGroundTimer <= 0f)
+            {
+                _externalGroundTimer = 0f;
+                _externalGroundVelocity = Vector3.zero;
+            }
+        }
+
+        if (_controlTimer > 0f)
+        {
+            _controlTimer -= Time.deltaTime;
+            if (_controlTimer <= 0f)
+            {
+                _controlTimer = 0f;
+                _controlMultiplier = 1f;
+            }
+        }
         
         if (Keyboard.current.pKey.wasPressedThisFrame ) // input
         {
@@ -532,8 +560,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         float vertical = _move.y;
 
         _move = _input;
+        // reduz o controle (ex.: gelo)
+        _move *= Mathf.Clamp01(_controlMultiplier);
         _move = Quaternion.Euler(rot) * _move;
         _move *= db.playerSpeed * GetSpeedMultiplier();
+
+        // adiciona força externa de solo (ex.: esteira) – somente horizontal
+        _move += new Vector3(_externalGroundVelocity.x, 0f, _externalGroundVelocity.z);
 
         _move.y = vertical;
 
@@ -784,6 +817,65 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
         //StartCoroutine(ClearStagger(db.playerStaggerStunDuration));
 
+    }
+
+    [Server]
+    public void ServerApplyImpulse(Vector3 horizontalDir, float horizontalStrength, float verticalStrength, float stunDuration = 0f, bool setStagger = true)
+    {
+        NetworkConnection coon = transform.GetComponent<NetworkIdentity>().connectionToClient;
+        TargetRpcApplyImpulse(coon, horizontalDir, horizontalStrength, verticalStrength, stunDuration, setStagger);
+    }
+
+    [TargetRpc]
+    public void TargetRpcApplyImpulse(NetworkConnection coon, Vector3 horizontalDir, float horizontalStrength, float verticalStrength, float stunDuration, bool setStagger)
+    {
+        ApplyImpulseLocal(horizontalDir, horizontalStrength, verticalStrength, stunDuration, setStagger);
+    }
+
+    // Permite aplicar impulso localmente (modo offline ou utilitários internos).
+    public void ApplyImpulseLocal(Vector3 horizontalDir, float horizontalStrength, float verticalStrength, float stunDuration, bool setStagger)
+    {
+        if (setStagger)
+            State = PlayerState.Stagger;
+
+        Vector3 h = horizontalDir.sqrMagnitude > 0f ? horizontalDir.normalized * Mathf.Max(0f, horizontalStrength) : Vector3.zero;
+        _inertia = h;
+        InertiaCap = h.magnitude;
+        _move.y = verticalStrength;
+        if (stunDuration > 0f)
+            _staggerTimer = Mathf.Max(_staggerTimer, stunDuration);
+    }
+
+    [Server]
+    public void ServerSetExternalGroundVelocity(Vector3 velocity, float duration, bool additive)
+    {
+        NetworkConnection coon = transform.GetComponent<NetworkIdentity>().connectionToClient;
+        TargetRpcSetExternalGroundVelocity(coon, velocity, duration, additive);
+    }
+
+    [TargetRpc]
+    public void TargetRpcSetExternalGroundVelocity(NetworkConnection coon, Vector3 velocity, float duration, bool additive)
+    {
+        if (additive)
+            _externalGroundVelocity += velocity;
+        else
+            _externalGroundVelocity = velocity;
+
+        _externalGroundTimer = Mathf.Max(_externalGroundTimer, duration);
+    }
+
+    [Server]
+    public void ServerSetControlMultiplier(float multiplier, float duration)
+    {
+        NetworkConnection coon = transform.GetComponent<NetworkIdentity>().connectionToClient;
+        TargetRpcSetControlMultiplier(coon, multiplier, duration);
+    }
+
+    [TargetRpc]
+    public void TargetRpcSetControlMultiplier(NetworkConnection coon, float multiplier, float duration)
+    {
+        _controlMultiplier = Mathf.Clamp01(multiplier);
+        _controlTimer = Mathf.Max(_controlTimer, duration);
     }
 
     [Server]
