@@ -25,6 +25,12 @@ public class BallPhysics : NetworkBehaviour, IDamageable
 
 
     private LayerMask _groundMaskCombined;
+    private Rigidbody _rb;
+    private SphereCollider _col;
+    [SyncVar] private ulong _lastTouchSteamId;
+    private double _lastTouchTime;
+
+    public float Radius => radius;
 
     #region UNITY CALLBACKS
 
@@ -33,6 +39,27 @@ public class BallPhysics : NetworkBehaviour, IDamageable
         _cachedTransform = transform;
        
         _groundMaskCombined = groundMask;
+
+        // Garantir componentes necessários para detectar triggers de gol
+        _rb = GetComponent<Rigidbody>();
+        if (_rb == null)
+        {
+            _rb = gameObject.AddComponent<Rigidbody>();
+            _rb.isKinematic = true; // mantemos simulação manual
+            _rb.interpolation = RigidbodyInterpolation.Interpolate;
+            _rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
+        }
+        else
+        {
+            _rb.isKinematic = true; // assegura que a física não empurre a bola
+        }
+
+        _col = GetComponent<SphereCollider>();
+        if (_col == null)
+        {
+            _col = gameObject.AddComponent<SphereCollider>();
+        }
+        _col.isTrigger = false; // gol é trigger; bola deve ser collider normal
     }
 
     [ServerCallback]
@@ -210,5 +237,20 @@ public class BallPhysics : NetworkBehaviour, IDamageable
     {
         _velocity = Vector3.zero;
         _cachedTransform.position = position;
+        _lastTouchSteamId = 0UL;
+        _lastTouchTime = 0.0;
     }
+
+    // ======== Touch Tracking ========
+    [Server]
+    public void ServerRegisterTouch(ulong steamId)
+    {
+        _lastTouchSteamId = steamId;
+        _lastTouchTime = NetworkTime.time;
+    }
+
+    [Server]
+    public ulong GetLastTouchSteamId() => _lastTouchSteamId;
+    [Server]
+    public double GetLastTouchTime() => _lastTouchTime;
 }

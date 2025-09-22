@@ -60,6 +60,14 @@ public class PlayerActiveFrame : NetworkBehaviour
         Debug.Log($"[Cliente] ApplyDamage chamado em {netId} para {identity} alvos");
 
         IDamageable damage = identity.GetComponent<IDamageable>();
+        // Se acertar a bola de futebol, registrar o altimo toque
+        var ball = identity.GetComponent<BallPhysics>();
+        if (ball != null)
+        {
+            var attacker = transform.root.GetComponent<PlayerData>();
+            if (attacker != null)
+                ball.ServerRegisterTouch(attacker.playerInfo.steamId);
+        }
         damage.ReceiveDamage(dmgType, dir);
         if (dmgType == DamageType.Push)
         {
