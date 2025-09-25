@@ -23,10 +23,6 @@ public class LobbyController : NetworkBehaviour
     [SerializeField] Database db;
     [SerializeField] HUDSO HUDSO;
 
-    
-    [SerializeField]
-    private List<string> minigameSceneNames = new List<string>();
-
     // TODO:
     //Melhor chamar quando a pessoa da pronto, arrumar para depos 
     private bool startgame = true;
@@ -126,8 +122,19 @@ public class LobbyController : NetworkBehaviour
     void ChangeToRandomMinigame()
     {
         if (!isServer) return; // only server may change scenes
-        NetworkManager.singleton.ServerChangeScene(MyNetworkManager.manager.minigames[MyNetworkManager.manager.indexScene]);
-        MyNetworkManager.manager.indexScene++;
+        var manager = MyNetworkManager.manager;
+        if (manager == null)
+            return;
+
+        if (!manager.TryGetSceneNameAt(manager.indexScene, out var sceneName))
+        {
+            Debug.LogWarning("🎮 [LOBBY] Nenhuma cena encontrada para o índice atual da rotação.");
+            return;
+        }
+
+        NetworkManager.singleton.ServerChangeScene(sceneName);
+
+        manager.AdvanceScenePointer();
         //MyNetworkManager.manager.ChangeScenePlayer(PlayerList.singleton.players[0],sceneToLoad);
     }
     

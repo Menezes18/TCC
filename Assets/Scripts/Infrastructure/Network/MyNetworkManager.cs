@@ -30,7 +30,6 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public static MyNetworkManager manager { get; internal set; }
 
     public List<PlayerData> allClients = new List<PlayerData>();
-    public List<string> minigames;
     public int indexScene = 0;
     public int minJogadores = 1;
     public Dictionary<ulong, int> lastGameResults = new Dictionary<ulong, int>();
@@ -39,6 +38,20 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public Dictionary<ulong, DataPlayer> pointsBoard = new Dictionary<ulong, DataPlayer>();
     public HSteamNetConnection steamConnection = HSteamNetConnection.Invalid;
     public bool startGame = false;
+
+    [Header("Minigame Flow")]
+    [SerializeField] private MinigameCatalog minigameCatalog;
+
+    [SerializeField, Tooltip("Ordem atual de cenas a serem carregadas pelo fluxo de minigames.")]
+    private List<string> _sceneRotation = new List<string>();
+    [SerializeField, Tooltip("Quando verdadeiro, a ordem em `_sceneRotation` pode ser ajustada manualmente no inspector para fins de debug.")]
+    private bool debugManualRotation = false;
+    private readonly List<string> _activeMinigameIds = new List<string>();
+    private readonly Dictionary<string, MinigameCatalog.MinigameEntry> _catalogById =
+        new Dictionary<string, MinigameCatalog.MinigameEntry>(StringComparer.OrdinalIgnoreCase);
+    private readonly List<string> _workingSceneBuffer = new List<string>();
+
+    public IReadOnlyList<string> SceneRotation => _sceneRotation;
 
     // Telemetry: per-client load progress and start times (server-side)
     private readonly Dictionary<ulong, float> _clientLoadProgress = new();
@@ -68,7 +81,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             DontDestroyOnLoad(gameObject);
         }
 
-        listaAleatoria();
+        InitializeMinigameFlow();
 
         //     if (UIManager.Instance != null)
         // UIManager.Instance.SpawnLocalUI();
@@ -271,25 +284,16 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     }
     public void listaAleatoria()
     {
-        int count = minigames.Count;
-        for (int i = 0; i < count - 1; i++)
-        {
-            int rnd = Random.Range(i, count);
-            // troca elementos
-            string temp = minigames[i];
-            minigames[i] = minigames[rnd];
-            minigames[rnd] = temp;
-        }
+        if (!EnsureCatalogAssigned())
+            return;
 
-        minigames.Add("Vitoria");
-        
+        RebuildMinigameScenes(true);
     }
 
     public void ReiniciarJogo()
     {
         limparPontos();
         limparLista();
-        listaAleatoria();
         startGame = false;
     }
     [Server]
@@ -325,30 +329,219 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public void limparLista()
     {
         indexScene = 0;
-        minigames.Clear();
-        minigames.Add("MN_new_Rua");
-        minigames.Add("MN_Corrida");
-        minigames.Add("MN_Memoria");
-        minigames.Add("MN_Queda");
-        minigames.Add("MN_Sumo");
-        minigames.Add("MN_Fut");
-        minigames.Add("MN_BatataQ");
-        minigames.Add("Vitoria");
-        minigames.RemoveAt(minigames.Count - 1);
+
+        if (!EnsureCatalogAssigned())
+            return;
+
+        ResetActiveMinigamesToDefaults();
+        RebuildMinigameScenes(true);
     }
 
-    public void tirarMiniGames(string minigame)
+    public void tirarMiniGames(string minigameId)
     {
-        Debug.Log($"🎮 [MINIGAME] {minigame}");
-        minigames.Remove(minigame);
-        minigames.RemoveAt(minigames.Count - 1);
-        listaAleatoria();
+        if (string.IsNullOrWhiteSpace(minigameId))
+            return;
+
+        if (!EnsureCatalogAssigned())
+            return;
+
+        if (!_catalogById.ContainsKey(minigameId))
+        {
+            Debug.LogWarning($"🎮 [MINIGAME] Tentativa de remover minigame desconhecido: '{minigameId}'.");
+            return;
+        }
+
+        if (_activeMinigameIds.Remove(minigameId))
+        {
+            Debug.Log($"🎮 [MINIGAME] {minigameId} removido da rotação");
+            RebuildMinigameScenes(true);
+        }
     }
-    public void AdicionarMiniGames(string minigame)
+    public void AdicionarMiniGames(string minigameId)
     {
-        minigames.Add(minigame);
-        minigames.Remove("Vitoria");
-        listaAleatoria();
+        if (string.IsNullOrWhiteSpace(minigameId))
+            return;
+
+        if (!EnsureCatalogAssigned())
+            return;
+
+        if (!_catalogById.TryGetValue(minigameId, out var entry))
+        {
+            Debug.LogWarning($"🎮 [MINIGAME] Tentativa de adicionar minigame desconhecido: '{minigameId}'.");
+            return;
+        }
+
+        if (_activeMinigameIds.Contains(minigameId))
+            return;
+
+        _activeMinigameIds.Add(minigameId);
+        Debug.Log($"🎮 [MINIGAME] {entry.displayName ?? minigameId} adicionado à rotação");
+        RebuildMinigameScenes(true);
+    }
+
+    private void InitializeMinigameFlow()
+    {
+        if (!EnsureCatalogAssigned())
+        {
+            _sceneRotation.Clear();
+            return;
+        }
+
+        _catalogById.Clear();
+        foreach (var entry in minigameCatalog.Entries)
+        {
+            if (entry == null)
+                continue;
+
+            if (string.IsNullOrWhiteSpace(entry.id) || !entry.HasValidScene)
+            {
+                Debug.LogWarning($"[MyNetworkManager] Entrada de minigame ignorada por falta de ID ou cena. ID='{entry?.id}'.", minigameCatalog);
+                continue;
+            }
+
+            _catalogById[entry.id] = entry;
+        }
+
+        ResetActiveMinigamesToDefaults();
+        RebuildMinigameScenes(true);
+    }
+
+    private void ResetActiveMinigamesToDefaults()
+    {
+        _activeMinigameIds.Clear();
+        foreach (var entry in minigameCatalog.GetDefaultEntries())
+        {
+            if (!_activeMinigameIds.Contains(entry.id))
+                _activeMinigameIds.Add(entry.id);
+        }
+
+        if (_activeMinigameIds.Count == 0)
+        {
+            foreach (var entry in minigameCatalog.Entries)
+            {
+                if (entry == null || string.IsNullOrWhiteSpace(entry.id))
+                    continue;
+
+                if (!_activeMinigameIds.Contains(entry.id))
+                    _activeMinigameIds.Add(entry.id);
+            }
+        }
+    }
+
+    private void RebuildMinigameScenes(bool shuffle)
+    {
+        _workingSceneBuffer.Clear();
+
+        foreach (var id in _activeMinigameIds)
+        {
+            if (_catalogById.TryGetValue(id, out var entry) && entry.HasValidScene)
+            {
+                _workingSceneBuffer.Add(entry.SceneIdentifier);
+            }
+        }
+
+        if (debugManualRotation)
+        {
+            EnsureManualRotationConsistency();
+        }
+        else
+        {
+            _sceneRotation.Clear();
+            if (shuffle)
+                ShuffleList(_workingSceneBuffer);
+            _sceneRotation.AddRange(_workingSceneBuffer);
+        }
+
+        AppendVictoryScene();
+
+        indexScene = Mathf.Clamp(indexScene, 0, Mathf.Max(0, _sceneRotation.Count - 1));
+    }
+
+    private void ShuffleList(List<string> list)
+    {
+        for (int i = 0; i < list.Count - 1; i++)
+        {
+            int swapIndex = Random.Range(i, list.Count);
+            (list[i], list[swapIndex]) = (list[swapIndex], list[i]);
+        }
+    }
+
+    private void EnsureManualRotationConsistency()
+    {
+        _sceneRotation.RemoveAll(scene => !_workingSceneBuffer.Contains(scene));
+
+        foreach (var scene in _workingSceneBuffer)
+        {
+            if (!_sceneRotation.Contains(scene))
+                _sceneRotation.Add(scene);
+        }
+    }
+
+    private void AppendVictoryScene()
+    {
+        var victoryScene = GetVictorySceneIdentifier();
+        if (string.IsNullOrWhiteSpace(victoryScene))
+            return;
+
+        _sceneRotation.RemoveAll(scene => string.Equals(scene, victoryScene, StringComparison.OrdinalIgnoreCase));
+        _sceneRotation.Add(victoryScene);
+    }
+
+    private string GetVictorySceneIdentifier()
+    {
+        var identifier = minigameCatalog.VictorySceneIdentifier;
+        return string.IsNullOrWhiteSpace(identifier) ? null : identifier;
+    }
+
+    private bool IsVictoryScene(string sceneName)
+    {
+        var victoryScene = GetVictorySceneIdentifier();
+        return !string.IsNullOrWhiteSpace(victoryScene) &&
+               string.Equals(sceneName, victoryScene, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void HandleVictorySceneLoaded()
+    {
+        indexScene = 0;
+
+        if (!debugManualRotation)
+        {
+            listaAleatoria();
+        }
+    }
+
+    private bool EnsureCatalogAssigned()
+    {
+        if (minigameCatalog != null)
+            return true;
+
+        Debug.LogError("[MyNetworkManager] MinigameCatalog não atribuído. Configure um MinigameCatalog no inspector para gerenciar a rotação de minigames.", this);
+        return false;
+    }
+
+    public void AdvanceScenePointer()
+    {
+        if (_sceneRotation.Count == 0)
+        {
+            indexScene = 0;
+            return;
+        }
+
+        indexScene++;
+        if (indexScene >= _sceneRotation.Count)
+            indexScene = 0;
+    }
+
+    public bool TryGetSceneNameAt(int orderIndex, out string sceneName)
+    {
+        if (orderIndex >= 0 && orderIndex < _sceneRotation.Count)
+        {
+            sceneName = _sceneRotation[orderIndex];
+            return true;
+        }
+
+        sceneName = null;
+        return false;
     }
 
     // ===== Mirror scene hooks to integrate loading UI and wait-for-all =====
@@ -379,6 +572,10 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         // reset telemetry for new scene
         _clientLoadProgress.Clear();
         _clientLoadStartTs.Clear();
+
+        if (IsVictoryScene(sceneName))
+            HandleVictorySceneLoaded();
+
         StartCoroutine(WaitAllConnectionsReadyThenStart());
     }
 
