@@ -19,7 +19,7 @@ public class BouncePad : NetworkBehaviour
     [Tooltip("Tempo mínimo entre ativações por jogador.")]
     [SerializeField] private float hitCooldown = 0.3f;
     private readonly Dictionary<uint, float> _lastHitByNetId = new();
-    private readonly Dictionary<int, float> _lastHitOfflineByInstance = new();
+    private readonly Dictionary<int, float> _lastHitLocalByInstance = new();
 
     private Vector3 GetDir()
     {
@@ -28,36 +28,80 @@ public class BouncePad : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // Em jogo de rede: apenas o servidor processa (para replicar via RPC)
-        if (NetworkClient.active && !NetworkServer.active)
-            return;
-
         var root = other.transform.root;
         var ps = root.GetComponent<PlayerScript>();
         if (ps == null) return;
 
         Vector3 dir = GetDir();
+        var identity = root.GetComponent<NetworkIdentity>();
 
         if (NetworkServer.active)
         {
-            var ni = root.GetComponent<NetworkIdentity>();
-            if (ni == null) return;
-
-            if (_lastHitByNetId.TryGetValue(ni.netId, out var lastServer) && (Time.time - lastServer) < hitCooldown)
-                return;
-
-            _lastHitByNetId[ni.netId] = Time.time;
-            ps.ServerApplyImpulse(dir, horizontalStrength, verticalStrength, stunDuration, setStagger: false);
+            if (identity != null && TryRegisterServerHit(identity))
+            {
+                ApplyBounceServer(ps, dir);
+            }
         }
         else if (!NetworkClient.active)
         {
-            // Modo offline/local: aplica diretamente no jogador local.
-            int key = ps.GetInstanceID();
-            if (_lastHitOfflineByInstance.TryGetValue(key, out var lastLocal) && (Time.time - lastLocal) < hitCooldown)
-                return;
-
-            _lastHitOfflineByInstance[key] = Time.time;
-            ps.ApplyImpulseLocal(dir, horizontalStrength, verticalStrength, stunDuration, setStagger: false);
+            if (TryRegisterLocalHit(ps))
+            {
+                ps.ApplyImpulseLocal(dir, horizontalStrength, verticalStrength, stunDuration, setStagger: false);
+            }
         }
+
+        if (NetworkClient.active && ps.isOwned && identity != null)
+        {
+            if (TryRegisterLocalHit(ps))
+            {
+                CmdRequestBounce(identity);
+            }
+        }
+    }
+
+    [Command(requiresAuthority = false)]
+    private void CmdRequestBounce(NetworkIdentity playerIdentity)
+    {
+        if (playerIdentity == null)
+            return;
+
+        var ps = playerIdentity.GetComponent<PlayerScript>();
+        if (ps == null)
+            return;
+
+        if (!TryRegisterServerHit(playerIdentity))
+            return;
+
+        ApplyBounceServer(ps, GetDir());
+    }
+
+    private void ApplyBounceServer(PlayerScript ps, Vector3 dir)
+    {
+        ps.ServerApplyImpulse(dir, horizontalStrength, verticalStrength, stunDuration, setStagger: false);
+    }
+
+    private bool TryRegisterServerHit(NetworkIdentity identity)
+    {
+        if (identity == null)
+            return false;
+
+        if (_lastHitByNetId.TryGetValue(identity.netId, out var lastServer) && (Time.time - lastServer) < hitCooldown)
+            return false;
+
+        _lastHitByNetId[identity.netId] = Time.time;
+        return true;
+    }
+
+    private bool TryRegisterLocalHit(PlayerScript ps)
+    {
+        if (ps == null)
+            return false;
+
+        int key = ps.GetInstanceID();
+        if (_lastHitLocalByInstance.TryGetValue(key, out var lastLocal) && (Time.time - lastLocal) < hitCooldown)
+            return false;
+
+        _lastHitLocalByInstance[key] = Time.time;
+        return true;
     }
 }

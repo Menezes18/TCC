@@ -18,6 +18,9 @@ public class PlayerActiveFrame : NetworkBehaviour
 
     public void SphereFront()
     {
+        if (!isClient || !isOwned)
+            return;
+
         Collider[] orb = Physics.OverlapSphere(transform.position + transform.forward,
             db.playerPushRadius, db.PlayerMask);
         if (orb.Length == 0) return;
@@ -25,10 +28,19 @@ public class PlayerActiveFrame : NetworkBehaviour
         ApplyDamage(orb, DamageType.Push);
     }
 
-    public void ClearActiveFrame() { _affectedPlayer.Clear(); }
+    public void ClearActiveFrame()
+    {
+        if (_affectedPlayer == null)
+            _affectedPlayer = new List<Collider>();
+        else
+            _affectedPlayer.Clear();
+    }
 
     public void ApplyDamage(Collider[] target, DamageType dmgType)
     {
+        if (_affectedPlayer == null)
+            _affectedPlayer = new List<Collider>();
+
         Vector3 origin = transform.position;
         origin.y = 0;
         
@@ -50,6 +62,7 @@ public class PlayerActiveFrame : NetworkBehaviour
             Vector3 final = (destination - origin).normalized;
 
             CmdRequestPush(identity, dmgType, final);
+            _affectedPlayer.Add(t);
 
         }
     }
@@ -71,7 +84,7 @@ public class PlayerActiveFrame : NetworkBehaviour
         damage.ReceiveDamage(dmgType, dir);
         if (dmgType == DamageType.Push)
         {
-            var controller = FindObjectOfType<BatataQuenteMinigameController>();
+            var controller = FindFirstObjectByType<BatataQuenteMinigameController>();
             if (controller != null)
             {
                 var attacker = transform.root.GetComponent<PlayerData>();
