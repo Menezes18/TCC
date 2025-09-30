@@ -484,27 +484,23 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     //
     private void AerialDetection()
     {
-        if (State == PlayerState.Death || State == PlayerState.Stagger || State == PlayerState.Roll)
-            return;
+        if (State == PlayerState.Death) return;
+        if (State == PlayerState.Stagger) return;
+        if (State == PlayerState.Roll) return;
 
-        bool grounded = _controller.isGrounded;
-
-        if (_ignoreGroundedNextFrame)
-        {
-            _ignoreGroundedNextFrame = false;
-            grounded = false;
-        }
-
-        if (grounded)
-        {
-            State = PlayerState.Default;
-            return;
-        }
-
-        if (_move.y > 0.01f)
+        if (_move.y > 0)
             State = PlayerState.Ascend;
-        else
+        else if (_move.y < db.gravityGrounded)
             State = PlayerState.Descend;
+
+        if (_ignoreGroundedNextFrame == true) {
+            _ignoreGroundedNextFrame = false;
+            return;
+        }
+
+        if (_controller.isGrounded == true) {
+            State = PlayerState.Default;
+        }
     }
     private void StaggerBehaviour()
     {
@@ -574,6 +570,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
         _move.y = vertical;
 
+        _move += Vector3.up * db.gravity;
     }
 
     //

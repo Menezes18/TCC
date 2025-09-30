@@ -87,26 +87,15 @@ public class CharacterSkinElement : MonoBehaviour
         // 3) Busca o CelularTag no cliente
         var celular = client.GetComponent<PlayerScript>()?
                            .GetComponentInChildren<CelularTag>(includeInactive: true);
-
-        if (client.isLocalPlayer)
+        if (celular == null)
         {
-            if (celular == null)
-            {
-                Debug.LogError("[Initialize] Não achei CelularTag via GetComponentInChildren para o player local!");
-            }
-            else
-            {
-                if (CharacterSkinHandler.instance != null)
-                {
-                    CharacterSkinHandler.instance.celularTag = celular;
-                    Debug.Log("[Initialize] CelularTag atribuído a CharacterSkinHandler.instance.celularTag");
-                }
-                celular.currentSkinElement = this;
-            }
+            Debug.LogError("[Initialize] Não achei CelularTag via GetComponentInChildren!");
         }
-        else if (celular != null)
+        else
         {
+            CharacterSkinHandler.instance.celularTag = celular;
             celular.currentSkinElement = this;
+            Debug.Log("[Initialize] CelularTag atribuído a CharacterSkinHandler.instance.celularTag");
         }
 
         // 4) Define steamId e username
