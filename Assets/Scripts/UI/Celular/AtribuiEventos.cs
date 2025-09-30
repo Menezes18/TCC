@@ -1,10 +1,44 @@
+using System;
 using UnityEngine;
 
 public class AtribuiEventos : MonoBehaviour
 {
-    void Start()
+    [SerializeField] private string minigameId;
+
+    private ButtonToggle _toggle;
+
+    private void Awake()
     {
-        this.gameObject.GetComponent<ButtonToggle>().onActivated.AddListener(() => MyNetworkManager.manager.AdicionarMiniGames(gameObject.name));
-        this.gameObject.GetComponent<ButtonToggle>().onDeactivated.AddListener(() => MyNetworkManager.manager.tirarMiniGames(gameObject.name));
+        _toggle = GetComponent<ButtonToggle>();
+
+        if (_toggle == null)
+        {
+            Debug.LogWarning("[AtribuiEventos] Nenhum ButtonToggle encontrado para atribuir eventos.", this);
+            return;
+        }
+
+        _toggle.onActivated.AddListener(OnActivated);
+        _toggle.onDeactivated.AddListener(OnDeactivated);
+    }
+
+    private void OnDestroy()
+    {
+        if (_toggle == null)
+            return;
+
+        _toggle.onActivated.RemoveListener(OnActivated);
+        _toggle.onDeactivated.RemoveListener(OnDeactivated);
+    }
+
+    private string ResolveMinigameId() => string.IsNullOrWhiteSpace(minigameId) ? gameObject.name : minigameId;
+
+    private void OnActivated()
+    {
+        MyNetworkManager.manager?.AdicionarMiniGames(ResolveMinigameId());
+    }
+
+    private void OnDeactivated()
+    {
+        MyNetworkManager.manager?.tirarMiniGames(ResolveMinigameId());
     }
 }

@@ -37,7 +37,7 @@ public class SumoMinigameController : MinigameController, IObserver
 
     public bool _startGame = false;
 
-    public Animator _thor;
+    // public Animator _thor;
 
     public void StartGame()
     {
@@ -90,7 +90,7 @@ public class SumoMinigameController : MinigameController, IObserver
             case HideState.Blinking:
                 timer     -= dt;
                 nextBlink -= dt;
-                 _thor?.SetTrigger("Marretar");
+                //  _thor?.SetTrigger("Marretar");
 
                 if (nextBlink <= 0f)
                 {

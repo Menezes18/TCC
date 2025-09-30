@@ -1,0 +1,161 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37b239f342a6d4c42a6d56c43f3160bf, type: 3}
+  m_Name: SceneValidationConfig
+  m_EditorClassIdentifier: 
+  ruleSets:
+  - displayName: Offline
+    matchMode: 0
+    pattern: Offline
+    requiredComponents:
+    - label: MyNetworkManager (network bootstrap)
+      componentTypeName: MyNetworkManager, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+        PublicKeyToken=null
+      restrictToObjectName: 
+    - label: SteamLobby (matchmaking wrapper)
+      componentTypeName: SteamLobby, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+        PublicKeyToken=null
+      restrictToObjectName: 
+    requiredObjects: []
+  - displayName: RASCUNHO hub
+    matchMode: 0
+    pattern: RASCUNHO
+    requiredComponents:
+    - label: MatchManager (round coordinator)
+      componentTypeName: MatchManager, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+        PublicKeyToken=null
+      restrictToObjectName: 
+    - label: BriefingManager (ready gate)
+      componentTypeName: BriefingManager, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+        PublicKeyToken=null
+      restrictToObjectName: 
+    requiredObjects: []
+  - displayName: Victory
+    matchMode: 0
+    pattern: Vitoria
+    requiredComponents: []
+    requiredObjects: []
+  - displayName: Generic Minigame
+    matchMode: 1
+    pattern: MN_
+    requiredComponents:
+    - label: MatchManager (minigame flow)
+      componentTypeName: MatchManager, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+        PublicKeyToken=null
+      restrictToObjectName: 
+    - label: BriefingManager (minigame ready gate)
+      componentTypeName: BriefingManager, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+        PublicKeyToken=null
+      restrictToObjectName: 
+    - label: MinigameController (game logic)
+      componentTypeName: MinigameController, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+        PublicKeyToken=null
+      restrictToObjectName: 
+    - label: ActionFrameCamera
+      componentTypeName: ActionFrameCamera, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+        PublicKeyToken=null
+      restrictToObjectName: 
+    - label: Spawn
+      componentTypeName: Mirror.NetworkStartPosition, Mirror, Version=0.0.0.0, Culture=neutral,
+        PublicKeyToken=null
+      restrictToObjectName: 
+    requiredObjects: []
+  - displayName: MN_Fut
+    matchMode: 0
+    pattern: MN_Fut
+    requiredComponents:
+    - label: SoccerMinigameController
+      componentTypeName: SoccerMinigameController, Assembly-CSharp, Version=0.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      restrictToObjectName: 
+    requiredObjects: []
+  - displayName: MN_BatataQ
+    matchMode: 0
+    pattern: MN_BatataQ
+    requiredComponents:
+    - label: BatataQuenteMinigameController
+      componentTypeName: BatataQuenteMinigameController, Assembly-CSharp, Version=0.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      restrictToObjectName: 
+    requiredObjects: []
+  - displayName: MN_Corrida
+    matchMode: 0
+    pattern: MN_Corrida
+    requiredComponents:
+    - label: RaceMinigameController
+      componentTypeName: RaceMinigameController, Assembly-CSharp, Version=0.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      restrictToObjectName: 
+    requiredObjects: []
+  - displayName: MN_Run
+    matchMode: 0
+    pattern: MN_Run
+    requiredComponents:
+    - label: RaceMinigameController
+      componentTypeName: RaceMinigameController, Assembly-CSharp, Version=0.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      restrictToObjectName: 
+    requiredObjects: []
+  - displayName: MN_Memoria
+    matchMode: 0
+    pattern: MN_Memoria
+    requiredComponents:
+    - label: MemoriaMinigameController
+      componentTypeName: MemoriaMinigameController, Assembly-CSharp, Version=0.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      restrictToObjectName: 
+    requiredObjects: []
+  - displayName: MN_new_Rua
+    matchMode: 0
+    pattern: MN_new_Rua
+    requiredComponents:
+    - label: StreetMinigameController
+      componentTypeName: StreetMinigameController, Assembly-CSharp, Version=0.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      restrictToObjectName: 
+    requiredObjects: []
+  - displayName: MN_Rua
+    matchMode: 0
+    pattern: MN_Rua
+    requiredComponents:
+    - label: StreetMinigameController
+      componentTypeName: StreetMinigameController, Assembly-CSharp, Version=0.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      restrictToObjectName: 
+    requiredObjects: []
+  - displayName: MN_Queda
+    matchMode: 0
+    pattern: MN_Queda
+    requiredComponents:
+    - label: QuedaMinigameController
+      componentTypeName: QuedaMinigameController, Assembly-CSharp, Version=0.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      restrictToObjectName: 
+    requiredObjects: []
+  - displayName: MN_Round6
+    matchMode: 0
+    pattern: MN_Round6
+    requiredComponents:
+    - label: GlassMinigameController
+      componentTypeName: GlassMinigameController, Assembly-CSharp, Version=0.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      restrictToObjectName: 
+    requiredObjects: []
+  - displayName: MN_Sumo
+    matchMode: 0
+    pattern: MN_Sumo
+    requiredComponents:
+    - label: SumoMinigameController
+      componentTypeName: SumoMinigameController, Assembly-CSharp, Version=0.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      restrictToObjectName: 
+    requiredObjects: []
