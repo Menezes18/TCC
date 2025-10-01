@@ -64,7 +64,7 @@ public class BouncePad : NetworkBehaviour
     private void TryBounce(PlayerScript ps)
     {
         Vector3 dir = GetDir();
-        var identity = root.GetComponent<NetworkIdentity>();
+        // var identity = root.GetComponent<NetworkIdentity>();
 
         if (NetworkServer.active)
         {

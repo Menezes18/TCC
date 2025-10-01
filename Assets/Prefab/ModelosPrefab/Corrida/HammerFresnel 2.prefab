@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 5046189912487512780}
   - component: {fileID: 5379657300984680314}
   - component: {fileID: 9055715299763999814}
-  - component: {fileID: 8372065022002590119}
   m_Layer: 0
   m_Name: Cylinder.004
   m_TagString: Untagged
@@ -87,27 +86,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &8372065022002590119
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 77453071416204475}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 2, y: 2.288839, z: 1.9999998}
-  m_Center: {x: -2.3632207e-11, y: 2.842171e-14, z: 0}
 --- !u!1 &110427915218904401
 GameObject:
   m_ObjectHideFlags: 0
@@ -369,6 +347,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2565329700943913177}
+  - component: {fileID: 333557028084479674}
+  - component: {fileID: 2672329523857662987}
+  - component: {fileID: 5560685972253908330}
   m_Layer: 0
   m_Name: HammerFresnel 2
   m_TagString: Untagged
@@ -386,12 +367,73 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0.5000045, y: 0.5000045, z: 0.49999553, w: -0.49999553}
   m_LocalPosition: {x: -58, y: -13, z: 11}
-  m_LocalScale: {x: 0.8470631, y: 0.8470631, z: 0.84706306}
+  m_LocalScale: {x: 0.8470632, y: 0.8470631, z: 0.84706306}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1825950562622581767}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 269.999, z: -90}
+--- !u!114 &333557028084479674
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2390264722077789809}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b83ccb8b6c9c814dba7b6f56f207f65, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  rotateTarget: {fileID: 0}
+  angularSpeed: 400
+  clockwise: 0
+  pivot: {fileID: 0}
+  knockbackStrength: 30
+  liftStrength: 10
+  stunDuration: 0.2
+  hitCooldown: 0.5
+--- !u!114 &2672329523857662987
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2390264722077789809}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sceneId: 0
+  _assetId: 261327292
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
+--- !u!65 &5560685972253908330
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2390264722077789809}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 4.5459466, y: 4.380505, z: 5.1605735}
+  m_Center: {x: 0.07091818, y: 6.536304, z: 0.047281045}
 --- !u!1 &6228201154992031585
 GameObject:
   m_ObjectHideFlags: 0
