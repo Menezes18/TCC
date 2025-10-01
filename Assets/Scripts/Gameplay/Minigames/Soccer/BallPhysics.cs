@@ -99,6 +99,7 @@ public class BallPhysics : NetworkBehaviour, IDamageable
             Vector3 dir = horizontal.normalized;
             _velocity += dir * pushForce;
             _velocity.y += upwardForce;
+            Debug.Log($"[Server][BallPhysics] Applied push. dir={dir} pushForce={pushForce} up={upwardForce} vel={_velocity}");
         }
 
         _pendingPushDirSum = Vector3.zero;
@@ -239,6 +240,7 @@ public class BallPhysics : NetworkBehaviour, IDamageable
         // Agrega o empurrão para aplicar uma única vez por FixedUpdate
         _pendingPushDirSum += horizontalDir;
         _hasPendingPush = true;
+        Debug.Log($"[Server][BallPhysics] ReceiveDamage Push dir={horizontalDir} time={NetworkTime.time}");
     }
 
     #endregion
