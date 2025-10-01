@@ -124,6 +124,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private float _rollCooldown;
     private float _blindTimer;
     private float _throwCooldown;
+    private float _groundSnapLockTimer; // evita clamp vertical logo após impulso
 
     public float PushCooldownNormalized => Mathf.Clamp01(_pushCooldown / db.playerPushCooldownTimer);
     public float ThrowCooldownNormalized => Mathf.Clamp01(_throwCooldown / db.playerThrowCooldown);
@@ -167,6 +168,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SyncVar(hook = nameof(OnCarryingChanged))] private bool _isCarrying;
     [SerializeField, Range(0.3f, 1f)] private float carryingSpeedMultiplier = 0.8f;
     public bool IsCarrying => _isCarrying;
+    
+    // Estado de "no ar" sincronizado para o servidor (para trampolim/hazards server-authoritative)
+    [SyncVar] private bool _isAirborneServer;
+    private bool _lastAirborneSent;
 
     // Forças externas de solo (ex.: esteira)
     private Vector3 _externalGroundVelocity; // unidades/seg
@@ -334,6 +339,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (_throwCooldown > 0) _throwCooldown -= Time.deltaTime;
 
         if (_blindTimer > 0) _blindTimer -= Time.deltaTime;
+        if (_groundSnapLockTimer > 0f) _groundSnapLockTimer -= Time.deltaTime;
 
         if (_externalGroundTimer > 0f)
         {
@@ -459,7 +465,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             _controller.Move(_move * Time.deltaTime);
         }
 
-        if (_controller.isGrounded) {
+        if (_controller.isGrounded && _groundSnapLockTimer <= 0f) {
             _move.y = db.gravityGrounded;
         }
 
@@ -524,6 +530,17 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
         if (_controller.isGrounded == true) {
             State = PlayerState.Default;
+        }
+        
+        // Atualiza flag de "no ar" para o servidor, quando for o dono local
+        bool airborneNow = (State == PlayerState.Ascend || State == PlayerState.Descend);
+        if (isLocalPlayer && this.isOwned)
+        {
+            if (_lastAirborneSent != airborneNow)
+            {
+                _lastAirborneSent = airborneNow;
+                CmdSetAirborne(airborneNow);
+            }
         }
     }
     private void StaggerBehaviour()
@@ -865,9 +882,20 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         Vector3 h = horizontalDir.sqrMagnitude > 0f ? horizontalDir.normalized * Mathf.Max(0f, horizontalStrength) : Vector3.zero;
         _inertia = h;
         InertiaCap = h.magnitude;
-        _move.y = verticalStrength;
+        _move.y = Mathf.Max(_move.y, verticalStrength);
+        _ignoreGroundedNextFrame = true;         // garante detecção aérea na próxima verificação
+        _groundSnapLockTimer = Mathf.Max(_groundSnapLockTimer, 0.1f); // evita clamp no frame do impulso
         if (stunDuration > 0f)
             _staggerTimer = Mathf.Max(_staggerTimer, stunDuration);
+    }
+
+    // Exposto para hazards no servidor consultarem um estado consistente
+    public bool IsAirborneServerFlag => _isAirborneServer;
+
+    [Command]
+    private void CmdSetAirborne(bool airborne)
+    {
+        _isAirborneServer = airborne;
     }
 
     [Server]
