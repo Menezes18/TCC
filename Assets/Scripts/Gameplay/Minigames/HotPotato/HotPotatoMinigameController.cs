@@ -298,7 +298,11 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         eliminationOrder.Add(pd);
 
         var ps = pd.GetComponent<PlayerScript>();
-        if (ps != null) ps.isFrozen = true;
+        if (ps != null)
+        {
+            ps.isFrozen = true;
+            ps.InternalDeath(true);
+        }
 
         Notifica();
 
@@ -432,8 +436,9 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
 
     private void OnHolderChanged(ulong oldVal, ulong newVal)
     {
-        string name = string.Empty;
+        if (!isServer) return;
 
+        string name = string.Empty;
         if (newVal != 0)
         {
             var pd = PlayerList.singleton.players.FirstOrDefault(p => p.playerInfo.steamId == newVal);
@@ -443,6 +448,12 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
                 name = $"Player {newVal}";
         }
 
+        RpcUpdatePotatoHolder(name);
+    }
+
+    [ClientRpc]
+    private void RpcUpdatePotatoHolder(string name)
+    {
         if (hudso != null)
             hudso.PotatoHolderUpdate(name);
     }
