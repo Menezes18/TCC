@@ -858,7 +858,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         Vector3 h = horizontalDir.sqrMagnitude > 0f ? horizontalDir.normalized * Mathf.Max(0f, horizontalStrength) : Vector3.zero;
         _inertia = h;
         InertiaCap = h.magnitude;
-        _move.y = verticalStrength;
+        _move.y = Mathf.Max(_move.y, verticalStrength);
         _ignoreGroundedNextFrame = true;         // garante detecção aérea na próxima verificação
         _groundSnapLockTimer = Mathf.Max(_groundSnapLockTimer, 0.1f); // evita clamp no frame do impulso
         if (stunDuration > 0f)

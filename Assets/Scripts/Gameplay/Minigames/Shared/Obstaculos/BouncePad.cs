@@ -20,6 +20,8 @@ public class BouncePad : NetworkBehaviour
     [SerializeField] private float hitCooldown = 0.3f;
     private readonly Dictionary<uint, float> _lastHitByNetId = new();
     private readonly Dictionary<int, float> _lastHitOfflineByInstance = new();
+    // Predição local por cliente (cooldown do dono para evitar múltiplas aplicações)
+    private readonly Dictionary<int, float> _lastClientPredHit = new();
 
     private Vector3 GetDir()
     {
@@ -28,13 +30,10 @@ public class BouncePad : NetworkBehaviour
 
     private bool IsAirborneAuthorized(PlayerScript ps)
     {
-        // No servidor, confiar no flag sincronizado pelo dono (mais confiável que ler State)
         if (NetworkServer.active) return ps.IsAirborneServerFlag;
-        // Offline/local: usar estado local
         return ps.IsAirborne;
     }
 
-    // Heurística adicional: detectar queda pela variação de Y entre frames
     private readonly Dictionary<uint, float> _lastYByNetId = new();
     private readonly Dictionary<int, float> _lastYOfflineByInstance = new();
 
@@ -44,7 +43,7 @@ public class BouncePad : NetworkBehaviour
         if (_lastYByNetId.TryGetValue(netId, out float lastY))
         {
             _lastYByNetId[netId] = y;
-            return y < lastY - 0.003f; // pequena folga para ruído
+            return y < lastY - 0.003f; 
         }
         _lastYByNetId[netId] = y;
         return false;
@@ -90,16 +89,32 @@ public class BouncePad : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // Em jogo de rede: apenas o servidor processa (para replicar via RPC)
         if (NetworkClient.active && !NetworkServer.active)
+        {
+            // Predição no cliente para reduzir delay visual
+            var rootC = other.transform.root;
+            var psC = rootC.GetComponent<PlayerScript>();
+            if (psC == null) return;
+            if (!psC.isOwned) return;
+
+            bool authorizedC = psC.IsAirborne;
+            bool descendingC = IsDescendingOffline(psC.transform, psC.GetInstanceID());
+            if (!(authorizedC || descendingC)) return;
+
+            int keyC = psC.GetInstanceID();
+            if (_lastClientPredHit.TryGetValue(keyC, out var lastLocalPred) && (Time.time - lastLocalPred) < hitCooldown)
+                return;
+
+            _lastClientPredHit[keyC] = Time.time;
+            Vector3 dirPred = GetDir();
+            psC.ApplyImpulseLocal(dirPred, horizontalStrength, verticalStrength, stunDuration, setStagger: false);
             return;
+        }
 
         var root = other.transform.root;
         var ps = root.GetComponent<PlayerScript>();
         if (ps == null) return;
 
-        // Só aplica quando o jogador está no ar (Ascend/Descend)
-        // ou quando o servidor detecta queda por variação de Y (cobre race entre Enter e flag)
         bool authorized = IsAirborneAuthorized(ps);
         bool descending = false;
         if (NetworkServer.active)
@@ -119,16 +134,32 @@ public class BouncePad : NetworkBehaviour
 
     private void OnTriggerStay(Collider other)
     {
-        // Mesmo comportamento do Enter para garantir reativação confiável
         if (NetworkClient.active && !NetworkServer.active)
+        {
+            // Predição no cliente para reduzir delay visual
+            var rootC = other.transform.root;
+            var psC = rootC.GetComponent<PlayerScript>();
+            if (psC == null) return;
+            if (!psC.isOwned) return;
+
+            bool authorizedC = psC.IsAirborne;
+            bool descendingC = IsDescendingOffline(psC.transform, psC.GetInstanceID());
+            if (!(authorizedC || descendingC)) return;
+
+            int keyC = psC.GetInstanceID();
+            if (_lastClientPredHit.TryGetValue(keyC, out var lastLocalPred) && (Time.time - lastLocalPred) < hitCooldown)
+                return;
+
+            _lastClientPredHit[keyC] = Time.time;
+            Vector3 dirPred = GetDir();
+            psC.ApplyImpulseLocal(dirPred, horizontalStrength, verticalStrength, stunDuration, setStagger: false);
             return;
+        }
 
         var root = other.transform.root;
         var ps = root.GetComponent<PlayerScript>();
         if (ps == null) return;
 
-        // Só aplica quando o jogador está no ar (Ascend/Descend)
-        // ou quando detecta queda por variação de Y
         bool authorized = IsAirborneAuthorized(ps);
         bool descending = false;
         if (NetworkServer.active)
@@ -162,6 +193,7 @@ public class BouncePad : NetworkBehaviour
         else if (!NetworkClient.active)
         {
             _lastYOfflineByInstance.Remove(ps.GetInstanceID());
+            _lastClientPredHit.Remove(ps.GetInstanceID());
         }
     }
 }
