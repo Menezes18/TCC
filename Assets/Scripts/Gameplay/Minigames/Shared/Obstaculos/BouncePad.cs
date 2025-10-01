@@ -34,6 +34,34 @@ public class BouncePad : NetworkBehaviour
         return ps.IsAirborne;
     }
 
+    // Heurística adicional: detectar queda pela variação de Y entre frames
+    private readonly Dictionary<uint, float> _lastYByNetId = new();
+    private readonly Dictionary<int, float> _lastYOfflineByInstance = new();
+
+    private bool IsDescendingServer(Transform root, uint netId)
+    {
+        float y = root.position.y;
+        if (_lastYByNetId.TryGetValue(netId, out float lastY))
+        {
+            _lastYByNetId[netId] = y;
+            return y < lastY - 0.003f; // pequena folga para ruído
+        }
+        _lastYByNetId[netId] = y;
+        return false;
+    }
+
+    private bool IsDescendingOffline(Transform root, int instanceId)
+    {
+        float y = root.position.y;
+        if (_lastYOfflineByInstance.TryGetValue(instanceId, out float lastY))
+        {
+            _lastYOfflineByInstance[instanceId] = y;
+            return y < lastY - 0.003f;
+        }
+        _lastYOfflineByInstance[instanceId] = y;
+        return false;
+    }
+
     private void TryBounce(PlayerScript ps)
     {
         Vector3 dir = GetDir();
@@ -71,7 +99,20 @@ public class BouncePad : NetworkBehaviour
         if (ps == null) return;
 
         // Só aplica quando o jogador está no ar (Ascend/Descend)
-        if (!IsAirborneAuthorized(ps)) return;
+        // ou quando o servidor detecta queda por variação de Y (cobre race entre Enter e flag)
+        bool authorized = IsAirborneAuthorized(ps);
+        bool descending = false;
+        if (NetworkServer.active)
+        {
+            var ni = ps.GetComponent<NetworkIdentity>();
+            if (ni != null)
+                descending = IsDescendingServer(ps.transform, ni.netId);
+        }
+        else if (!NetworkClient.active)
+        {
+            descending = IsDescendingOffline(ps.transform, ps.GetInstanceID());
+        }
+        if (!(authorized || descending)) return;
 
         TryBounce(ps);
     }
@@ -87,8 +128,40 @@ public class BouncePad : NetworkBehaviour
         if (ps == null) return;
 
         // Só aplica quando o jogador está no ar (Ascend/Descend)
-        if (!IsAirborneAuthorized(ps)) return;
+        // ou quando detecta queda por variação de Y
+        bool authorized = IsAirborneAuthorized(ps);
+        bool descending = false;
+        if (NetworkServer.active)
+        {
+            var ni = ps.GetComponent<NetworkIdentity>();
+            if (ni != null)
+                descending = IsDescendingServer(ps.transform, ni.netId);
+        }
+        else if (!NetworkClient.active)
+        {
+            descending = IsDescendingOffline(ps.transform, ps.GetInstanceID());
+        }
+        if (!(authorized || descending)) return;
+
 
         TryBounce(ps);
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        var root = other.transform.root;
+        var ps = root.GetComponent<PlayerScript>();
+        if (ps == null) return;
+
+        if (NetworkServer.active)
+        {
+            var ni = ps.GetComponent<NetworkIdentity>();
+            if (ni != null)
+                _lastYByNetId.Remove(ni.netId);
+        }
+        else if (!NetworkClient.active)
+        {
+            _lastYOfflineByInstance.Remove(ps.GetInstanceID());
+        }
     }
 }
