@@ -168,6 +168,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SyncVar(hook = nameof(OnCarryingChanged))] private bool _isCarrying;
     [SerializeField, Range(0.3f, 1f)] private float carryingSpeedMultiplier = 0.8f;
     public bool IsCarrying => _isCarrying;
+    
+    // Estado de "no ar" sincronizado para o servidor (para trampolim/hazards server-authoritative)
+    [SyncVar] private bool _isAirborneServer;
+    private bool _lastAirborneSent;
 
     // Forças externas de solo (ex.: esteira)
     private Vector3 _externalGroundVelocity; // unidades/seg
@@ -502,6 +506,17 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
         if (_controller.isGrounded == true) {
             State = PlayerState.Default;
+        }
+        
+        // Atualiza flag de "no ar" para o servidor, quando for o dono local
+        bool airborneNow = (State == PlayerState.Ascend || State == PlayerState.Descend);
+        if (isLocalPlayer && this.isOwned)
+        {
+            if (_lastAirborneSent != airborneNow)
+            {
+                _lastAirborneSent = airborneNow;
+                CmdSetAirborne(airborneNow);
+            }
         }
     }
     private void StaggerBehaviour()
@@ -848,6 +863,15 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         _groundSnapLockTimer = Mathf.Max(_groundSnapLockTimer, 0.1f); // evita clamp no frame do impulso
         if (stunDuration > 0f)
             _staggerTimer = Mathf.Max(_staggerTimer, stunDuration);
+    }
+
+    // Exposto para hazards no servidor consultarem um estado consistente
+    public bool IsAirborneServerFlag => _isAirborneServer;
+
+    [Command]
+    private void CmdSetAirborne(bool airborne)
+    {
+        _isAirborneServer = airborne;
     }
 
     [Server]

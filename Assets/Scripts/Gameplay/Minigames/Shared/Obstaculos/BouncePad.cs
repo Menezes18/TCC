@@ -26,9 +26,12 @@ public class BouncePad : NetworkBehaviour
         return useLocalForward ? transform.forward : (worldDirection.sqrMagnitude > 0 ? worldDirection.normalized : Vector3.forward);
     }
 
-    private bool IsAirborne(PlayerScript ps)
+    private bool IsAirborneAuthorized(PlayerScript ps)
     {
-        return ps.State == PlayerState.Ascend || ps.State == PlayerState.Descend;
+        // No servidor, confiar no flag sincronizado pelo dono (mais confiável que ler State)
+        if (NetworkServer.active) return ps.IsAirborneServerFlag;
+        // Offline/local: usar estado local
+        return ps.IsAirborne;
     }
 
     private void TryBounce(PlayerScript ps)
@@ -68,7 +71,7 @@ public class BouncePad : NetworkBehaviour
         if (ps == null) return;
 
         // Só aplica quando o jogador está no ar (Ascend/Descend)
-        if (!IsAirborne(ps)) return;
+        if (!IsAirborneAuthorized(ps)) return;
 
         TryBounce(ps);
     }
@@ -84,9 +87,8 @@ public class BouncePad : NetworkBehaviour
         if (ps == null) return;
 
         // Só aplica quando o jogador está no ar (Ascend/Descend)
-        if (!IsAirborne(ps)) return;
+        if (!IsAirborneAuthorized(ps)) return;
 
         TryBounce(ps);
     }
 }
-
