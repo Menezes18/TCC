@@ -5,18 +5,18 @@ using UnityEngine;
 [AddComponentMenu("Minigames/Obstaculos/Bounce Pad (Trampolim)")]
 public class BouncePad : NetworkBehaviour
 {
-    [Header("Forças do salto")]
-    [Tooltip("Intensidade do empurrão horizontal aplicado no jogador ao tocar o trampolim.")]
+    [Header("Forcas do salto")]
+    [Tooltip("Intensidade do empurrao horizontal aplicado no jogador ao tocar o trampolim.")]
     [SerializeField] private float horizontalStrength = 4f;
     [Tooltip("Intensidade do impulso vertical (altura do salto).")]
     [SerializeField] private float verticalStrength = 8f;
-    [Tooltip("Duração do atordoamento (Stagger) opcional após o salto. 0 = sem atordoar.")]
+    [Tooltip("Duracao do atordoamento (Stagger) opcional apos o salto. 0 = sem atordoar.")]
     [SerializeField] private float stunDuration = 0.0f;
     [SerializeField] private bool useLocalForward = true;
     [SerializeField] private Vector3 worldDirection = Vector3.forward;
 
-    [Header("Repetição (anti-spam)")]
-    [Tooltip("Tempo mínimo entre ativações por jogador.")]
+    [Header("Repeticao (anti-spam)")]
+    [Tooltip("Tempo minimo entre ativacoes por jogador.")]
     [SerializeField] private float hitCooldown = 0.3f;
     private readonly Dictionary<uint, float> _lastHitByNetId = new();
     private readonly Dictionary<int, float> _lastHitOfflineByInstance = new();
@@ -24,6 +24,37 @@ public class BouncePad : NetworkBehaviour
     private Vector3 GetDir()
     {
         return useLocalForward ? transform.forward : (worldDirection.sqrMagnitude > 0 ? worldDirection.normalized : Vector3.forward);
+    }
+
+    private bool IsAirborne(PlayerScript ps)
+    {
+        return ps.State == PlayerState.Ascend || ps.State == PlayerState.Descend;
+    }
+
+    private void TryBounce(PlayerScript ps)
+    {
+        Vector3 dir = GetDir();
+
+        if (NetworkServer.active)
+        {
+            var ni = ps.GetComponent<NetworkIdentity>();
+            if (ni == null) return;
+
+            if (_lastHitByNetId.TryGetValue(ni.netId, out var lastServer) && (Time.time - lastServer) < hitCooldown)
+                return;
+
+            _lastHitByNetId[ni.netId] = Time.time;
+            ps.ServerApplyImpulse(dir, horizontalStrength, verticalStrength, stunDuration, setStagger: false);
+        }
+        else if (!NetworkClient.active)
+        {
+            int key = ps.GetInstanceID();
+            if (_lastHitOfflineByInstance.TryGetValue(key, out var lastLocal) && (Time.time - lastLocal) < hitCooldown)
+                return;
+
+            _lastHitOfflineByInstance[key] = Time.time;
+            ps.ApplyImpulseLocal(dir, horizontalStrength, verticalStrength, stunDuration, setStagger: false);
+        }
     }
 
     private void OnTriggerEnter(Collider other)
@@ -36,28 +67,26 @@ public class BouncePad : NetworkBehaviour
         var ps = root.GetComponent<PlayerScript>();
         if (ps == null) return;
 
-        Vector3 dir = GetDir();
+        // Só aplica quando o jogador está no ar (Ascend/Descend)
+        if (!IsAirborne(ps)) return;
 
-        if (NetworkServer.active)
-        {
-            var ni = root.GetComponent<NetworkIdentity>();
-            if (ni == null) return;
+        TryBounce(ps);
+    }
 
-            if (_lastHitByNetId.TryGetValue(ni.netId, out var lastServer) && (Time.time - lastServer) < hitCooldown)
-                return;
+    private void OnTriggerStay(Collider other)
+    {
+        // Mesmo comportamento do Enter para garantir reativação confiável
+        if (NetworkClient.active && !NetworkServer.active)
+            return;
 
-            _lastHitByNetId[ni.netId] = Time.time;
-            ps.ServerApplyImpulse(dir, horizontalStrength, verticalStrength, stunDuration, setStagger: false);
-        }
-        else if (!NetworkClient.active)
-        {
-            // Modo offline/local: aplica diretamente no jogador local.
-            int key = ps.GetInstanceID();
-            if (_lastHitOfflineByInstance.TryGetValue(key, out var lastLocal) && (Time.time - lastLocal) < hitCooldown)
-                return;
+        var root = other.transform.root;
+        var ps = root.GetComponent<PlayerScript>();
+        if (ps == null) return;
 
-            _lastHitOfflineByInstance[key] = Time.time;
-            ps.ApplyImpulseLocal(dir, horizontalStrength, verticalStrength, stunDuration, setStagger: false);
-        }
+        // Só aplica quando o jogador está no ar (Ascend/Descend)
+        if (!IsAirborne(ps)) return;
+
+        TryBounce(ps);
     }
 }
+
