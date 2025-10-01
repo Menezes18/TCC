@@ -82,8 +82,12 @@ public class FallGuysDoor : NetworkBehaviour
         }
         else
         {
-            Vector3 dir = -ps.transform.forward; dir.y = 0f;
-            if (dir == Vector3.zero) dir = (ps.transform.position - transform.position).normalized;
+            // Direção do empurrão: do centro da porta para o ponto de impacto do player
+            Vector3 hitPoint = other.ClosestPoint(doorVisual != null ? doorVisual.position : transform.position);
+            Vector3 dir = (ps.transform.position - hitPoint).normalized;
+            dir.y = 0f;
+            if (dir == Vector3.zero)
+                dir = (ps.transform.position - transform.position).normalized;
             ps.ServerApplyImpulse(dir, backStrength, liftStrength, stunDuration, setStagger: true);
         }
     }

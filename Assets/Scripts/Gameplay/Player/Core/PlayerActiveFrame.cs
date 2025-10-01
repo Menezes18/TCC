@@ -8,6 +8,10 @@ public enum DamageType
     Poop
 }
 
+// [PATCH] Prevent duplicate push Commands from multiple clients.
+// Gating SphereFront to only run on the owning client avoids N× duplication
+// when NetworkAnimator plays animations (and animation events) on all peers.
+// Also restore default Command authority requirements for safety.
 public class PlayerActiveFrame : NetworkBehaviour
 {
 
@@ -18,6 +22,12 @@ public class PlayerActiveFrame : NetworkBehaviour
 
     public void SphereFront()
     {
+        // Only the owning client should execute detection and send the Command.
+        // Prevents every remote client from also sending push requests when
+        // animation events fire on their replicated Animators.
+        if (!isOwned)
+            return;
+
         Collider[] orb = Physics.OverlapSphere(transform.position + transform.forward,
             db.playerPushRadius, db.PlayerMask);
         if (orb.Length == 0) return;
@@ -54,10 +64,11 @@ public class PlayerActiveFrame : NetworkBehaviour
         }
     }
     
-    [Command(requiresAuthority = false)]
+    // Owner-only Command: we only expect the pushing player's client to call this.
+    [Command]
     private void CmdRequestPush(NetworkIdentity identity, DamageType dmgType, Vector3 dir)
     {
-        Debug.Log($"[Cliente] ApplyDamage chamado em {netId} para {identity} alvos");
+        Debug.Log($"[Server] CmdRequestPush from {connectionToClient?.identity?.netId} -> target {identity?.netId}, type {dmgType}");
 
         IDamageable damage = identity.GetComponent<IDamageable>();
         // Se acertar a bola de futebol, registrar o altimo toque

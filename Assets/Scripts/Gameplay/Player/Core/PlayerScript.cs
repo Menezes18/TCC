@@ -124,6 +124,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private float _rollCooldown;
     private float _blindTimer;
     private float _throwCooldown;
+    private float _groundSnapLockTimer; // evita clamp vertical logo após impulso
 
     public float PushCooldownNormalized => Mathf.Clamp01(_pushCooldown / db.playerPushCooldownTimer);
     public float ThrowCooldownNormalized => Mathf.Clamp01(_throwCooldown / db.playerThrowCooldown);
@@ -167,6 +168,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SyncVar(hook = nameof(OnCarryingChanged))] private bool _isCarrying;
     [SerializeField, Range(0.3f, 1f)] private float carryingSpeedMultiplier = 0.8f;
     public bool IsCarrying => _isCarrying;
+    
+    // Estado de "no ar" sincronizado para o servidor (para trampolim/hazards server-authoritative)
+    [SyncVar] private bool _isAirborneServer;
+    private bool _lastAirborneSent;
 
     // Forças externas de solo (ex.: esteira)
     private Vector3 _externalGroundVelocity; // unidades/seg
@@ -184,6 +189,14 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public MainMenu mainMenu;
     [SerializeField] private GameObject cooldownUIPrefab;
     GameObject cooldownUIInstance;
+
+    // Spectator System
+    [Header("Spectator")]
+    [SerializeField] private GameObject playerModelRoot; // Assign the visual model root in inspector
+    private bool _isSpectating = false;
+    private System.Collections.Generic.List<PlayerScript> _alivePlayersCache = new System.Collections.Generic.List<PlayerScript>();
+    private int _currentSpectatorIndex = 0;
+    public bool IsSpectating => _isSpectating;
 
     // Event
     public UnityEvent EventOnDeath;
@@ -204,6 +217,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         PlayerControlsSO.OnThrow += PlayerControlsSO_OnThrow;
         PlayerControlsSO.OnThrowCancel += PlayerControlsSO_OnThrowCancel;
         PlayerControlsSO.OnDebug += PlayerControlsSOOnOnDebug;
+
+        // Spectator controls (using roll for next and push for previous while dead)
+        // We'll handle spectator switching in Update based on state
 
         //
         Cursor.visible = false;
@@ -323,6 +339,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (_throwCooldown > 0) _throwCooldown -= Time.deltaTime;
 
         if (_blindTimer > 0) _blindTimer -= Time.deltaTime;
+        if (_groundSnapLockTimer > 0f) _groundSnapLockTimer -= Time.deltaTime;
 
         if (_externalGroundTimer > 0f)
         {
@@ -344,6 +361,19 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             }
         }
         
+        // Spectator controls - cycle through alive players
+        if (_isSpectating)
+        {
+            if (Keyboard.current.qKey.wasPressedThisFrame)
+            {
+                CycleToPreviousSpectatorTarget();
+            }
+            else if (Keyboard.current.eKey.wasPressedThisFrame)
+            {
+                CycleToNextSpectatorTarget();
+            }
+        }
+
         if (Keyboard.current.pKey.wasPressedThisFrame ) // input
         {
             // Bloqueia alternar "pronto" enquanto o briefing não liberar interação
@@ -435,7 +465,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             _controller.Move(_move * Time.deltaTime);
         }
 
-        if (_controller.isGrounded) {
+        if (_controller.isGrounded && _groundSnapLockTimer <= 0f) {
             _move.y = db.gravityGrounded;
         }
 
@@ -500,6 +530,17 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
         if (_controller.isGrounded == true) {
             State = PlayerState.Default;
+        }
+        
+        // Atualiza flag de "no ar" para o servidor, quando for o dono local
+        bool airborneNow = (State == PlayerState.Ascend || State == PlayerState.Descend);
+        if (isLocalPlayer && this.isOwned)
+        {
+            if (_lastAirborneSent != airborneNow)
+            {
+                _lastAirborneSent = airborneNow;
+                CmdSetAirborne(airborneNow);
+            }
         }
     }
     private void StaggerBehaviour()
@@ -841,9 +882,20 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         Vector3 h = horizontalDir.sqrMagnitude > 0f ? horizontalDir.normalized * Mathf.Max(0f, horizontalStrength) : Vector3.zero;
         _inertia = h;
         InertiaCap = h.magnitude;
-        _move.y = verticalStrength;
+        _move.y = Mathf.Max(_move.y, verticalStrength);
+        _ignoreGroundedNextFrame = true;         // garante detecção aérea na próxima verificação
+        _groundSnapLockTimer = Mathf.Max(_groundSnapLockTimer, 0.1f); // evita clamp no frame do impulso
         if (stunDuration > 0f)
             _staggerTimer = Mathf.Max(_staggerTimer, stunDuration);
+    }
+
+    // Exposto para hazards no servidor consultarem um estado consistente
+    public bool IsAirborneServerFlag => _isAirborneServer;
+
+    [Command]
+    private void CmdSetAirborne(bool airborne)
+    {
+        _isAirborneServer = airborne;
     }
 
     [Server]
@@ -939,18 +991,40 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     #endregion
     #region System Network
 
-    // mudar isso 
+    // Spectator System
 
     [TargetRpc]
     private void RpcSpectate()
     {
-        if (_playerInput == null) return;
-        _playerInput.enabled = false;
+        Debug.Log("👁️ [SPECTATOR] Entering spectator mode");
+        _isSpectating = true;
 
-        if (_cam == null) return;
-        Transform newTarget = FindSpectatorTarget();
-        if (newTarget == null) return;
-        SetCameraTarget(newTarget);
+        // Disable player input for movement
+        if (_playerInput != null)
+            _playerInput.enabled = false;
+
+        // Hide player model
+        HidePlayerModel();
+
+        // Disable player controller to prevent collision/physics
+        if (_controller != null)
+            _controller.enabled = false;
+
+        // Find and spectate first alive player
+        if (_cam != null)
+        {
+            UpdateAlivePlayersList();
+            if (_alivePlayersCache.Count > 0)
+            {
+                _currentSpectatorIndex = 0;
+                SetCameraTarget(_alivePlayersCache[0].cameraTarget);
+                Debug.Log($"👁️ [SPECTATOR] Now spectating: {_alivePlayersCache[0].name}");
+            }
+            else
+            {
+                Debug.LogWarning("👁️ [SPECTATOR] No alive players to spectate");
+            }
+        }
     }
 
     public void SetCameraTarget(Transform newTarget)
@@ -958,17 +1032,89 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         cameraTarget = newTarget;
     }
 
-    private Transform FindSpectatorTarget()
+    private void UpdateAlivePlayersList()
     {
-    PlayerScript[] players = FindObjectsByType<PlayerScript>(FindObjectsSortMode.None);
-        foreach (var player in players)
+        _alivePlayersCache.Clear();
+        PlayerScript[] allPlayers = FindObjectsByType<PlayerScript>(FindObjectsSortMode.None);
+        
+        foreach (var player in allPlayers)
         {
-            if (player != this && player.State != PlayerState.Death)
+            if (player != this && player.State != PlayerState.Death && !player._isSpectating)
             {
-                return player.transform;
+                _alivePlayersCache.Add(player);
             }
         }
-        return null;
+        
+        Debug.Log($"👁️ [SPECTATOR] Found {_alivePlayersCache.Count} alive players");
+    }
+
+    private void CycleToNextSpectatorTarget()
+    {
+        if (_alivePlayersCache.Count == 0)
+        {
+            UpdateAlivePlayersList();
+            if (_alivePlayersCache.Count == 0) return;
+        }
+
+        _currentSpectatorIndex = (_currentSpectatorIndex + 1) % _alivePlayersCache.Count;
+        SetCameraTarget(_alivePlayersCache[_currentSpectatorIndex].cameraTarget);
+        Debug.Log($"👁️ [SPECTATOR] Switched to: {_alivePlayersCache[_currentSpectatorIndex].name}");
+    }
+
+    private void CycleToPreviousSpectatorTarget()
+    {
+        if (_alivePlayersCache.Count == 0)
+        {
+            UpdateAlivePlayersList();
+            if (_alivePlayersCache.Count == 0) return;
+        }
+
+        _currentSpectatorIndex--;
+        if (_currentSpectatorIndex < 0)
+            _currentSpectatorIndex = _alivePlayersCache.Count - 1;
+        
+        SetCameraTarget(_alivePlayersCache[_currentSpectatorIndex].cameraTarget);
+        Debug.Log($"👁️ [SPECTATOR] Switched to: {_alivePlayersCache[_currentSpectatorIndex].name}");
+    }
+
+    private void HidePlayerModel()
+    {
+        // Hide all renderers in the player model
+        if (playerModelRoot != null)
+        {
+            playerModelRoot.SetActive(false);
+            Debug.Log("👁️ [SPECTATOR] Player model hidden");
+        }
+        else
+        {
+            // Fallback: disable all SkinnedMeshRenderers and MeshRenderers on this object
+            var renderers = GetComponentsInChildren<Renderer>();
+            foreach (var renderer in renderers)
+            {
+                renderer.enabled = false;
+            }
+            Debug.Log($"👁️ [SPECTATOR] Disabled {renderers.Length} renderers");
+        }
+    }
+
+    private void ShowPlayerModel()
+    {
+        // Show all renderers in the player model
+        if (playerModelRoot != null)
+        {
+            playerModelRoot.SetActive(true);
+            Debug.Log("✅ [RESPAWN] Player model shown");
+        }
+        else
+        {
+            // Fallback: enable all SkinnedMeshRenderers and MeshRenderers on this object
+            var renderers = GetComponentsInChildren<Renderer>();
+            foreach (var renderer in renderers)
+            {
+                renderer.enabled = true;
+            }
+            Debug.Log($"✅ [RESPAWN] Enabled {renderers.Length} renderers");
+        }
     }
 
 
@@ -985,6 +1131,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         {
             transform.position = position;
         }
+
+        // Show player model again after respawn
+        ShowPlayerModel();
 
         Debug.Log($"🎮 [CLIENT] Player {netId} respawned @ {position}");
     }
@@ -1011,18 +1160,21 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     public void InternalDeath(bool permaDeath)
     {
-        _controller.enabled = false;
+        State = PlayerState.Death;
+        
         if (permaDeath)
         {
+            // Enter spectator mode (permanent death)
             RpcSpectate();
         }
         else
         {
+            // Temporary death, will respawn
+            _controller.enabled = false;
+            HidePlayerModel(); // Hide model during death
             InternalResetProperties();
             CmdDeath();
         }
-
-        State = PlayerState.Death;
     }
 
     void InternalResetProperties()
@@ -1063,9 +1215,36 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
         if (base.isOwned == false) return;
 
+        // Exit spectator mode if in spectator
+        if (_isSpectating)
+        {
+            ExitSpectatorMode();
+        }
+
+        // Show player model again
+        ShowPlayerModel();
+
+        // Re-enable controller
+        if (_controller != null)
+            _controller.enabled = true;
+
+        // Re-enable input
+        if (_playerInput != null)
+            _playerInput.enabled = true;
+
+        // Reset camera target to self
+        cameraTarget = transform;
+
         InternalResetProperties();
         State = PlayerState.Default;
+    }
 
+    private void ExitSpectatorMode()
+    {
+        Debug.Log("✅ [SPECTATOR] Exiting spectator mode");
+        _isSpectating = false;
+        _alivePlayersCache.Clear();
+        _currentSpectatorIndex = 0;
     }
 
     #endregion
