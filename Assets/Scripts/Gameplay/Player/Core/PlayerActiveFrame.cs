@@ -82,3 +82,4 @@ public class PlayerActiveFrame : NetworkBehaviour
         }
     }
 }
+

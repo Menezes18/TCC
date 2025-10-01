@@ -30,6 +30,10 @@ public class BallPhysics : NetworkBehaviour, IDamageable
     [SyncVar] private ulong _lastTouchSteamId;
     private double _lastTouchTime;
 
+    // Agregação de empurrões por frame (server-authoritative)
+    private Vector3 _pendingPushDirSum = Vector3.zero;
+    private bool _hasPendingPush;
+
     public float Radius => radius;
 
     #region UNITY CALLBACKS
@@ -66,6 +70,7 @@ public class BallPhysics : NetworkBehaviour, IDamageable
     private void FixedUpdate()
     {
         float dt = Time.fixedDeltaTime;
+        ProcessPendingPushes();
         SimulateGravity(dt);
         ApplyFriction(dt);
         MoveAndCollide(dt);
@@ -81,6 +86,24 @@ public class BallPhysics : NetworkBehaviour, IDamageable
     #endregion
 
     #region PHYSICS METHODS
+
+    [Server]
+    private void ProcessPendingPushes()
+    {
+        if (!_hasPendingPush)
+            return;
+
+        Vector3 horizontal = new Vector3(_pendingPushDirSum.x, 0f, _pendingPushDirSum.z);
+        if (horizontal.sqrMagnitude > 0.0001f)
+        {
+            Vector3 dir = horizontal.normalized;
+            _velocity += dir * pushForce;
+            _velocity.y += upwardForce;
+        }
+
+        _pendingPushDirSum = Vector3.zero;
+        _hasPendingPush = false;
+    }
 
     [Server]
     private void SimulateGravity(float dt)
@@ -101,6 +124,7 @@ public class BallPhysics : NetworkBehaviour, IDamageable
         {
             float deceleration = frictionCoefficient * dt;
             float newSpeed = Mathf.MoveTowards(speed, 0f, deceleration);
+            
             horizontalVel = horizontalVel.normalized * newSpeed;
             _velocity.x = horizontalVel.x;
             _velocity.z = horizontalVel.z;
@@ -212,8 +236,9 @@ public class BallPhysics : NetworkBehaviour, IDamageable
         if (horizontalDir.sqrMagnitude < Mathf.Epsilon)
             return;
 
-        _velocity += horizontalDir * pushForce;
-        _velocity.y += upwardForce;
+        // Agrega o empurrão para aplicar uma única vez por FixedUpdate
+        _pendingPushDirSum += horizontalDir;
+        _hasPendingPush = true;
     }
 
     #endregion
