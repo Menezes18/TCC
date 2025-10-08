@@ -33,7 +33,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -4.2481766, y: 1.25, z: -8.61}
-  m_LocalScale: {x: 2, y: 1, z: 2}
+  m_LocalScale: {x: 6, y: 1, z: 6}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -45,7 +45,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7092377265742666166}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: 3756806352553045086, guid: 942fe1fba736167468df7578bd20d0e8, type: 3}
 --- !u!23 &1631509422882459229
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -66,6 +66,8 @@ MeshRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -87,6 +89,7 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
@@ -110,8 +113,8 @@ BoxCollider:
   m_ProvidesContacts: 1
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 0.5, z: 1}
-  m_Center: {x: 0, y: 0.68, z: 0}
+  m_Size: {x: 1, y: 0.43808746, z: 1}
+  m_Center: {x: 0, y: 0.31138992, z: 0}
 --- !u!114 &6785148615054311653
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -182,7 +185,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Size: {x: 1, y: 0.22, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &5083039695528902246
 MonoBehaviour:
@@ -199,9 +202,6 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  _chaoTirado: 0
-  dataChao: {fileID: 11400000, guid: 2301825e296eb0740969096bd7b7f574, type: 2}
-  posIncial: {x: 0, y: 0, z: 0}
   currentColor: {r: 0, g: 0, b: 0, a: 0}
   colors:
   - {r: 1, g: 0, b: 0, a: 1}
