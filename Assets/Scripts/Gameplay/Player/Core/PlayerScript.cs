@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
-
+using System.Collections.Generic;
 
 public enum PlayerState{
     Default,
@@ -156,6 +156,18 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     public Transform cameraTarget;
 
+    [Header("Panel Camera")]
+    [SerializeField] private PanelCameraSO panelCamera;
+    private bool _lastPanelState;
+    private float _panelExitTimer;
+    private float _savedYawBeforePanel, _savedPitchBeforePanel;
+    private float _panelFixedYaw, _panelFixedPitch;
+    private float _panelRotateX;
+    private Transform _panelAnchor;
+
+    public void SetPanelCameraAnchor(Transform anchor) { _panelAnchor = anchor; }
+    public void ClearPanelCameraAnchor() { _panelAnchor = null; }
+
     [SyncVar(hook = nameof(OnStaggerChanged))]
     private bool isStaggered;
 
@@ -194,7 +206,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [Header("Spectator")]
     [SerializeField] private GameObject playerModelRoot; // Assign the visual model root in inspector
     private bool _isSpectating = false;
-    private System.Collections.Generic.List<PlayerScript> _alivePlayersCache = new System.Collections.Generic.List<PlayerScript>();
+    private List<PlayerScript> _alivePlayersCache = new System.Collections.Generic.List<PlayerScript>();
     private int _currentSpectatorIndex = 0;
     public bool IsSpectating => _isSpectating;
 
@@ -217,6 +229,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         PlayerControlsSO.OnThrow += PlayerControlsSO_OnThrow;
         PlayerControlsSO.OnThrowCancel += PlayerControlsSO_OnThrowCancel;
         PlayerControlsSO.OnDebug += PlayerControlsSOOnOnDebug;
+        PlayerControlsSO.OnRotatePanel += PlayerControlsSO_OnRotatePanel;
 
         // Spectator controls (using roll for next and push for previous while dead)
         // We'll handle spectator switching in Update based on state
@@ -315,6 +328,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         PlayerControlsSO.OnRoll -= PlayerControlsSO_OnRoll;
         PlayerControlsSO.OnThrow -= PlayerControlsSO_OnThrow;
         PlayerControlsSO.OnThrowCancel -= PlayerControlsSO_OnThrowCancel;
+        PlayerControlsSO.OnRotatePanel -= PlayerControlsSO_OnRotatePanel;
 
         //UI
         PlayerControlsSO.OnMenu -= EventOnCelularMenu;
@@ -469,27 +483,87 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             _move.y = db.gravityGrounded;
         }
 
-        transform.rotation = Quaternion.Euler(rot);
+        // While panel is open, allow rotating character with A/D and decouple from camera yaw
+        if (!panel)
+        {
+            transform.rotation = Quaternion.Euler(rot);
+        }
+        else
+        {
+            transform.Rotate(0f, _panelRotateX * GetPanelRotateSpeed() * Time.deltaTime, 0f);
+        }
 
     }
     private void LateUpdate()
     {
         if (!this.isOwned) return;
 
+        // Detect panel state change and set fixed yaw/pitch when entering
+        if (panel != _lastPanelState)
+        {
+            if (panel)
+            {
+                _savedYawBeforePanel = _yaw;
+                _savedPitchBeforePanel = _pitch;
+                Vector3 anchorPos = (_panelAnchor != null ? _panelAnchor.position : cameraTarget.position);
+                Vector3 flatDir = transform.position - anchorPos; flatDir.y = 0f;
+                if (flatDir.sqrMagnitude < 0.0001f) flatDir = transform.forward;
+                _panelFixedYaw = Mathf.Atan2(flatDir.x, flatDir.z) * Mathf.Rad2Deg;
+                _panelFixedPitch = Mathf.Clamp(GetPanelPitch(), db.minMouseY, db.maxMouseX);
+                _panelExitTimer = 0f;
+            }
+            else
+            {
+                _panelExitTimer = 0f;
+                _panelRotateX = 0f;
+            }
+            _lastPanelState = panel;
+        }
+
+        // Choose anchor for camera during panel
+        Transform anchorRef = (panel && _panelAnchor != null) ? _panelAnchor : cameraTarget;
+
+        // Steer camera to fixed view when panel open; otherwise return smoothly
+        if (panel)
+        {
+            _yaw = Mathf.LerpAngle(_yaw, _panelFixedYaw, Time.deltaTime * GetPanelLerp());
+            _pitch = Mathf.Lerp(_pitch, _panelFixedPitch, Time.deltaTime * GetPanelLerp());
+        }
+        else if (_panelExitTimer < GetPanelExitDuration())
+        {
+            _yaw = Mathf.LerpAngle(_yaw, _savedYawBeforePanel, Time.deltaTime * GetPanelLerp());
+            _pitch = Mathf.Lerp(_pitch, _savedPitchBeforePanel, Time.deltaTime * GetPanelLerp());
+            _panelExitTimer += Time.deltaTime;
+        }
+
         Quaternion camRotation = Quaternion.Euler(_pitch, _yaw, 0f);
-
         _cam.rotation = camRotation;
-        Vector3 desiredPos = cameraTarget.position + _cam.transform.rotation * db.orbitalOffset;
 
-        Vector3 dir = desiredPos - cameraTarget.position;
-        float maxDist = db.orbitalOffset.magnitude;
+        Vector3 offset;
+        if (panel)
+        {
+            offset = GetPanelOrbitalOffset();
+        }
+        else if (_panelExitTimer < GetPanelExitDuration())
+        {
+            float t = Mathf.Clamp01(_panelExitTimer / GetPanelExitDuration());
+            offset = Vector3.Lerp(GetPanelOrbitalOffset(), db.orbitalOffset, t);
+        }
+        else
+        {
+            offset = db.orbitalOffset;
+        }
 
-        if (Physics.SphereCast(cameraTarget.position, db.cameraSphereRadius, dir.normalized,
+        Vector3 desiredPos = anchorRef.position + camRotation * offset;
+        Vector3 dir = desiredPos - anchorRef.position;
+        float maxDist = offset.magnitude;
+
+        if (Physics.SphereCast(anchorRef.position, db.cameraSphereRadius, dir.normalized,
                 out RaycastHit hit, maxDist, db.cameraColliderMash,
                 QueryTriggerInteraction.Ignore))
         {
             float safeDist = Mathf.Clamp(hit.distance - db.cameraSphereRadius, 0.1f, maxDist);
-            _cam.transform.position = cameraTarget.position + dir.normalized * safeDist;
+            _cam.transform.position = anchorRef.position + dir.normalized * safeDist;
         }
         else
         {
@@ -502,6 +576,19 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (hit.gameObject.CompareTag("KillPlane"))
             InternalDeath(false);
     }
+
+    private void PlayerControlsSO_OnRotatePanel(float x)
+    {
+        // cache horizontal input for smooth hold-based rotation during panel mode
+        _panelRotateX = x;
+    }
+
+    // Panel camera config helpers (use SO if assigned, else defaults)
+    private Vector3 GetPanelOrbitalOffset() => panelCamera != null ? panelCamera.panelOrbitalOffset : new Vector3(0.12f, 0.08f, -2.29f);
+    private float GetPanelLerp() => panelCamera != null ? panelCamera.panelCamLerp : 6f;
+    private float GetPanelPitch() => panelCamera != null ? panelCamera.panelPitch : 8f;
+    private float GetPanelExitDuration() => panelCamera != null ? panelCamera.panelExitDuration : 0.5f;
+    private float GetPanelRotateSpeed() => panelCamera != null ? panelCamera.panelRotateSpeed : 300f;
     
     [Server] public void ServerSetCarrying(bool value) { _isCarrying = value; }
     private void OnCarryingChanged(bool oldVal, bool newVal)
