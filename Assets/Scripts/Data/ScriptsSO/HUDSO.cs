@@ -42,6 +42,31 @@ public class HUDSO : ScriptableObject{
     //
     
     public event Action<string> EventOnGameOver;
-    public void GameOver(string value) {this.EventOnGameOver?.Invoke(value);}
+    public void GameOver(string value) {this.EventOnGameOver?.Invoke(value);}    
+
+    // Minigame Selection Panel
+    public event Action EventOnShowMinigameSelectionPanel;
+    public event Action EventOnHideMinigameSelectionPanel;
+
+    [SerializeField] private bool _minigameSelectionOpen;
+    public bool MinigameSelectionOpen => _minigameSelectionOpen;
+
+    public void ShowMinigameSelectionPanel()
+    {
+        _minigameSelectionOpen = true;
+        this.EventOnShowMinigameSelectionPanel?.Invoke();
+    }
+
+    public void HideMinigameSelectionPanel()
+    {
+        _minigameSelectionOpen = false;
+        this.EventOnHideMinigameSelectionPanel?.Invoke();
+    }
+
+    public void ToggleMinigameSelectionPanel()
+    {
+        if (_minigameSelectionOpen) HideMinigameSelectionPanel();
+        else ShowMinigameSelectionPanel();
+    }
 }
 

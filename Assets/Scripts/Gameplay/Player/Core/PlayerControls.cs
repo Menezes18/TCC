@@ -51,7 +51,7 @@ using UnityEngine.InputSystem;
         
         private void Update(){
 
-            if (playerScript.panel || playerScript.isFrozen)
+            if (playerScript.panel || playerScript.isFrozen || playerScript.UILocked)
             {
                 _rawX = 0;
                 _rawY = 0;
@@ -75,7 +75,7 @@ using UnityEngine.InputSystem;
         }
         private void PlayerInputSO_OnMove(CallbackContext obj)
         {
-            if (playerScript.panel || MatchManager.singleton.Freeze)
+            if (playerScript.panel || MatchManager.singleton.Freeze || playerScript.UILocked)
             {
                 if (playerScript.panel)
                 {
@@ -93,10 +93,12 @@ using UnityEngine.InputSystem;
         private void PlayerInputSO_OnLook(CallbackContext obj)
         {
             if (!playerScript.isLocalPlayer) return;
+            if (playerScript.UILocked) return; 
             PlayerControlsSO.Look(obj.ReadValue<Vector2>());
         }
         private void PlayerInputSO_OnJump(CallbackContext obj)
         {
+            if (playerScript.UILocked) return;
             if(obj.performed){
                 PlayerControlsSO.Jump();
             }
@@ -112,6 +114,7 @@ using UnityEngine.InputSystem;
         
         private void PlayerInputSO_OnThrow(CallbackContext obj)
         {
+            if (playerScript.UILocked) return;
             if (obj.started){
                 PlayerControlsSO.Throw();
             }else if(obj.canceled){
@@ -121,12 +124,14 @@ using UnityEngine.InputSystem;
         
         private void PlayerInputSO_OnRoll(CallbackContext obj)
         {
+            if (playerScript.UILocked) return;
             if(obj.performed)
                 PlayerControlsSO.Roll();
         }
 
         private void PlayerInputSO_OnMenuCelular(CallbackContext obj)
         {
+            if (playerScript.UILocked) return;
             if(obj.performed){
                 PlayerControlsSO.MenuCelular();
             }

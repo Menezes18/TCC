@@ -173,7 +173,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     private bool _menuOpen = false;
     public bool panel = false;
-    // Bloqueia movimento/olhar enquanto o chat estiver aberto
+    [SerializeField] private bool _uiLocked = false;
+    public bool UILocked { get => _uiLocked; set => _uiLocked = value; }
     [SerializeField] private bool _chatOpen = false;
 
     [SerializeField] private float sensibilidade = 1;
@@ -765,6 +766,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     }
     private void PlayerControlsSO_OnPush()
     {
+        var rangeInteractor = GetComponent<RangeInteractor>();
+        if (rangeInteractor != null && rangeInteractor.TryInteract()) return;
         if (panel) return;
         if (_chatOpen) return;
         if (_isCarrying) return;
