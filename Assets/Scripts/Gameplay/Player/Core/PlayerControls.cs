@@ -77,6 +77,11 @@ using UnityEngine.InputSystem;
         {
             if (playerScript.panel || MatchManager.singleton.Freeze)
             {
+                if (playerScript.panel)
+                {
+                    Vector2 val = obj.ReadValue<Vector2>();
+                    PlayerControlsSO.RotatePanel(val.x);
+                }
                 _rawX = 0;
                 _rawY = 0;
                 return;

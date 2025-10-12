@@ -483,7 +483,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             _move.y = db.gravityGrounded;
         }
 
-        // While panel is open, allow rotating character with A/D and decouple from camera yaw
         if (!panel)
         {
             transform.rotation = Quaternion.Euler(rot);
@@ -498,7 +497,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if (!this.isOwned) return;
 
-        // Detect panel state change and set fixed yaw/pitch when entering
         if (panel != _lastPanelState)
         {
             if (panel)
@@ -520,10 +518,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             _lastPanelState = panel;
         }
 
-        // Choose anchor for camera during panel
         Transform anchorRef = (panel && _panelAnchor != null) ? _panelAnchor : cameraTarget;
 
-        // Steer camera to fixed view when panel open; otherwise return smoothly
         if (panel)
         {
             _yaw = Mathf.LerpAngle(_yaw, _panelFixedYaw, Time.deltaTime * GetPanelLerp());
@@ -579,11 +575,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     private void PlayerControlsSO_OnRotatePanel(float x)
     {
-        // cache horizontal input for smooth hold-based rotation during panel mode
         _panelRotateX = x;
     }
 
-    // Panel camera config helpers (use SO if assigned, else defaults)
     private Vector3 GetPanelOrbitalOffset() => panelCamera != null ? panelCamera.panelOrbitalOffset : new Vector3(0.12f, 0.08f, -2.29f);
     private float GetPanelLerp() => panelCamera != null ? panelCamera.panelCamLerp : 6f;
     private float GetPanelPitch() => panelCamera != null ? panelCamera.panelPitch : 8f;

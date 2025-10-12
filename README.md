@@ -112,3 +112,6 @@ Para utilizar o projeto, certifique-se de ter as dependências necessárias inst
 
 ---
 
+
+## Tarefas e Roadmap
+Consulte docs/tarefas.md para o backlog atualizado e prioridades.
