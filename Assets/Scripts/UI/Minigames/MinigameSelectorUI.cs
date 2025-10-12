@@ -4,11 +4,10 @@ using Mirror;
 using TMPro;
 using UnityEngine;
 
-public class MinigameSelectorUI : MonoBehaviour
+public partial class MinigameSelectorUI : MonoBehaviour
 {
     [Header("Data")]
-    [SerializeField] private MiniggameCatalogProvider catalogProvider; // optional helper to find catalog
-    [SerializeField] private MinigameCatalog catalog; // if not set, tries provider
+    [SerializeField] private MinigameCatalog catalog; 
 
     [Header("UI")]
     [SerializeField] private Transform contentRoot;
@@ -19,12 +18,12 @@ public class MinigameSelectorUI : MonoBehaviour
 
     private void Awake()
     {
-        if (catalog == null && catalogProvider != null)
-            catalog = catalogProvider.GetCatalog();
+        EnsureCatalogAssigned();
     }
 
     private void OnEnable()
     {
+        EnsureCatalogAssigned();
         Rebuild();
     }
 
@@ -65,7 +64,6 @@ public class MinigameSelectorUI : MonoBehaviour
 
     private bool IsEntryActive(MinigameCatalog.MinigameEntry entry)
     {
-        // If NetworkManager exists and has rotation, assume active when its scene is in rotation
         var mgr = MyNetworkManager.manager;
         if (mgr != null && mgr.SceneRotation != null)
         {
@@ -77,7 +75,6 @@ public class MinigameSelectorUI : MonoBehaviour
             }
             return false;
         }
-        // Fallback to entry default
         return entry.enabledByDefault;
     }
 
@@ -93,11 +90,9 @@ public class MinigameSelectorUI : MonoBehaviour
             return;
         }
 
-        // Only host/server can mutate rotation
         if (!NetworkServer.active)
         {
             Debug.LogWarning("[MinigameSelectorUI] Apenas o host pode alterar a lista de minigames.");
-            // revert UI to current state from rotation
             bool shouldBeOn = IsEntryActive(entry);
             item.Bind(entry, shouldBeOn, OnItemToggle);
             return;
@@ -110,9 +105,27 @@ public class MinigameSelectorUI : MonoBehaviour
     }
 }
 
-// Optional provider if you want to drag a ScriptableObject holder instead of the asset directly
-public class MiniggameCatalogProvider : MonoBehaviour
+partial class MinigameSelectorUI
 {
-    [SerializeField] private MinigameCatalog catalog;
-    public MinigameCatalog GetCatalog() => catalog;
+    private bool EnsureCatalogAssigned()
+    {
+        if (catalog != null) return true;
+        var mgr = MyNetworkManager.manager;
+        if (mgr == null) return false;
+        try
+        {
+            var fi = typeof(MyNetworkManager).GetField("minigameCatalog", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            if (fi != null)
+            {
+                var val = fi.GetValue(mgr) as MinigameCatalog;
+                if (val != null)
+                {
+                    catalog = val;
+                    return true;
+                }
+            }
+        }
+        catch { }
+        return false;
+    }
 }
