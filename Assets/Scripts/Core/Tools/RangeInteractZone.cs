@@ -6,6 +6,14 @@ public class RangeInteractZone : MonoBehaviour
     [Header("HUD Ref")]
     [SerializeField] private HUDSO HUDSO;
 
+    [Header("Interaction")]
+    [SerializeField] private InteractPanelType panelMode = InteractPanelType.MinigameSelection;
+
+    [Header("Panel Camera (optional)")]
+    [SerializeField] private bool usePanelCamera = false;
+    [SerializeField] private Transform cameraAnchor; // se vazio, usa o transform deste objeto
+    [SerializeField] private float alignSpeed = 500f;
+
     [Header("SphereCast Zone Settings")]
     [SerializeField] private Transform center;
     [SerializeField] private float radius = 3f;
@@ -15,13 +23,8 @@ public class RangeInteractZone : MonoBehaviour
     [SerializeField] private bool debugDraw;
 
     private PlayerScript _localPlayer;
-       private RangeInteractor _localInteractor;
+    private RangeInteractor _localInteractor;
     private bool _wasInside;
-
-    private void Awake()
-    {
-        
-    }
 
     private void Update()
     {
@@ -67,17 +70,21 @@ public class RangeInteractZone : MonoBehaviour
         {
             _wasInside = true;
             if (_localInteractor == null)
-                _localInteractor = _localPlayer.GetComponent<RangeInteractor>() ?? _localPlayer.gameObject.AddComponent<RangeInteractor>();
+                _localInteractor = _localPlayer.GetComponent<RangeInteractor>();
             if (HUDSO != null)
                 _localInteractor.SetHUD(HUDSO);
-            _localInteractor.SetInZone(true);
+            if (_localInteractor != null)
+            {
+                _localInteractor.ConfigurePanelCamera(usePanelCamera, cameraAnchor != null ? cameraAnchor : transform, alignSpeed);
+                _localInteractor.SetInZone(true, panelMode);
+            }
             Debug.Log("entrou no range");
         }
         else if (!inside && _wasInside)
         {
             _wasInside = false;
             if (_localInteractor != null)
-                _localInteractor.SetInZone(false);
+                _localInteractor.SetInZone(false, panelMode);
         }
     }
 
