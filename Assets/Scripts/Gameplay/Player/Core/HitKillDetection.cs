@@ -1,13 +1,89 @@
 using UnityEngine;
 
+
 public class HitKillDetection : MonoBehaviour
 {
-    void OnTriggerEnter(Collider other)
+    [Header("Contexto de Morte")]
+    public DeathCause cause = DeathCause.Default;
+    public bool permanent = false;
+
+    [Header("Modos de detecção")]
+    public bool useTrigger = true;
+    public bool useCollision = false;
+    public bool usePeriodicCheck = false;
+
+    [Header("Periodic Check (OverlapBox)")]
+    public LayerMask targetMask;
+    public Vector3 checkHalfExtents = new Vector3(0.5f, 0.5f, 0.5f);
+    public Vector3 checkOffset = Vector3.zero;
+    public float checkInterval = 0.1f;
+    private float _checkTimer;
+
+    private void Reset()
     {
+        useTrigger = true;
+        useCollision = false;
+        usePeriodicCheck = false;
+        checkHalfExtents = new Vector3(0.5f, 0.5f, 0.5f);
+        checkInterval = 0.1f;
+        targetMask = ~0;
+    }
+
+    private void Update()
+    {
+        if (!usePeriodicCheck) return;
+        _checkTimer -= Time.deltaTime;
+        if (_checkTimer > 0f) return;
+        _checkTimer = checkInterval;
+
+        Vector3 center = transform.TransformPoint(checkOffset);
+        var hits = Physics.OverlapBox(center, checkHalfExtents, transform.rotation, targetMask, QueryTriggerInteraction.Collide);
+        if (hits == null || hits.Length == 0) return;
+        foreach (var col in hits)
+        {
+            TryKill(col);
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (!useTrigger) return;
+        TryKill(other);
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (!useCollision) return;
+        var other = collision.collider;
+        TryKill(other);
+    }
+
+    private void TryKill(Collider other)
+    {
+        if (other == null) return;
+
+        var player = other.transform.root.GetComponent<PlayerScript>();
+        if (player != null)
+        {
+            player.OnContextualHit(cause, permanent);
+            return;
+        }
+
         IHitKillable ik = other.transform.GetComponent<IHitKillable>();
-        
-        if(ik == null) return;
-        
-        ik.OnHitKill();
+        if (ik == null) return;
+
+        if (permanent) ik.OnHitSpectate();
+        else ik.OnHitKill();
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (!usePeriodicCheck) return;
+        Gizmos.color = new Color(1f, 0.2f, 0.2f, 0.3f);
+        Vector3 center = transform.TransformPoint(checkOffset);
+        Gizmos.matrix = Matrix4x4.TRS(center, transform.rotation, Vector3.one);
+        Gizmos.DrawCube(Vector3.zero, checkHalfExtents * 2f);
+        Gizmos.color = new Color(1f, 0.1f, 0.1f, 0.8f);
+        Gizmos.DrawWireCube(Vector3.zero, checkHalfExtents * 2f);
     }
 }

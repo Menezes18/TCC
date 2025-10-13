@@ -38,6 +38,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SerializeField] PlayerControlsSO PlayerControlsSO;
     [SerializeField] HUDSO HUDSO;
     [SerializeField] SmoothSyncMirror _smoothSyncMirror;
+    [SerializeField] private DeathEffectsSO deathEffects;
+    private bool _suppressHideOnDeath; 
 
     [SerializeField] CharacterController _controller;
     [SerializeField] Animator _animator;
@@ -117,6 +119,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     readonly int _STATUS = Animator.StringToHash("status");
     readonly int _MOVEX = Animator.StringToHash("MoveX");
     readonly int _MOVEY = Animator.StringToHash("MoveY");
+    readonly int _DEATHCAUSE = Animator.StringToHash("deathCause");
 
     private float _staggerTimer;
     private float _pushCooldown;
@@ -571,7 +574,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
         if (hit.gameObject.CompareTag("KillPlane"))
-            InternalDeath(false);
+        {
+            OnContextualHit(DeathCause.Default, false);
+        }
     }
 
     private void PlayerControlsSO_OnRotatePanel(float x)
@@ -1030,13 +1035,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public void OnHitKill()
     {
         if (base.isOwned == false) return;
-
-        InternalDeath(false);
+        OnContextualHit(DeathCause.Default, false);
     }
     public void OnHitSpectate()
     {
         if (base.isOwned == false) return;
-        InternalDeath(true);
+        OnContextualHit(DeathCause.Default, true);
 
     }
     private void OnExtraFreezeChanged(bool oldVal, bool newVal)
@@ -1163,22 +1167,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     private void HidePlayerModel()
     {
-        // Hide all renderers in the player model
-        if (playerModelRoot != null)
-        {
-            playerModelRoot.SetActive(false);
-            Debug.Log("👁️ [SPECTATOR] Player model hidden");
-        }
-        else
-        {
-            // Fallback: disable all SkinnedMeshRenderers and MeshRenderers on this object
-            var renderers = GetComponentsInChildren<Renderer>();
-            foreach (var renderer in renderers)
-            {
-                renderer.enabled = false;
-            }
-            Debug.Log($"👁️ [SPECTATOR] Disabled {renderers.Length} renderers");
-        }
+        CmdEventOnDeath();
     }
 
     private void ShowPlayerModel()
@@ -1255,10 +1244,76 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         {
             // Temporary death, will respawn
             _controller.enabled = false;
-            HidePlayerModel(); // Hide model during death
+            // Não ocultar imediatamente; aguardar RPC aplicar anima/VFX e ocultar com atraso
             InternalResetProperties();
             CmdDeath();
         }
+    }
+
+    public void OnContextualHit(DeathCause cause, bool perma)
+    {
+        if (!base.isOwned) return;
+
+        var entry = deathEffects != null ? deathEffects.Get(cause) : null;
+        _suppressHideOnDeath = (entry != null && entry.hideModelAfterDelay);
+
+        Debug.Log($"💀 [DEATH] Cause: {cause}, Perma: {perma}, SuppressHide: {_suppressHideOnDeath}");
+        _animator?.SetInteger(_DEATHCAUSE, (int)cause);
+
+        InternalDeath(perma);
+
+        CmdDeathWithCause(cause, perma, transform.position, transform.rotation);
+
+        _suppressHideOnDeath = false;
+    }
+
+    [Command]
+    private void CmdDeathWithCause(DeathCause cause, bool perma, Vector3 pos, Quaternion rot)
+    {
+        RpcOnDeathWithCause(cause, perma, pos, rot);
+    }
+
+    [ClientRpc]
+    private void RpcOnDeathWithCause(DeathCause cause, bool perma, Vector3 pos, Quaternion rot)
+    {
+        _animator?.SetInteger(_DEATHCAUSE, (int)cause);
+        if (deathEffects != null)
+        {
+            var entry = deathEffects.Get(cause);
+            if (entry != null)
+            {
+
+                if (entry.vfxPrefab != null)
+                {
+                    Vector3 spawnPos = transform.position;
+                    Quaternion spawnRot = rot;
+                    var vfx = GameObject.Instantiate(entry.vfxPrefab, spawnPos, spawnRot);
+                    if (entry.attachToPlayer && vfx != null)
+                    {
+                        vfx.transform.SetParent(transform, worldPositionStays: true);
+                    }
+                    if (entry.vfxLifetime > 0f)
+                        GameObject.Destroy(vfx, entry.vfxLifetime);
+                }
+
+                if (entry.sfx != null)
+                {
+                    AudioSource.PlayClipAtPoint(entry.sfx, transform.position, entry.sfxVolume);
+                }
+
+                float delay = deathEffects.GetHideDelay(DeathCause.Lava);
+                if (entry.hideModelAfterDelay)
+                    delay = Mathf.Max(delay, entry.hideModelDelay);
+                StartCoroutine(HideModelAfterDelay(delay));
+                return;
+            }
+        }
+    }
+
+    private IEnumerator HideModelAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        HidePlayerModel();
     }
 
     void InternalResetProperties()
@@ -1280,6 +1335,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         Debug.LogWarning("⚠️ [CMD] Death");
         this.EventOnDeathServerSide?.Invoke();
+    }
+
+    [Command]
+    void CmdEventOnDeath()
+    {
         RpcOnDeath();
     }
 
