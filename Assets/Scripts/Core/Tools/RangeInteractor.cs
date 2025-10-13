@@ -13,6 +13,8 @@ public class RangeInteractor : MonoBehaviour
 
     private bool _inZone;
     [SerializeField] private HUDSO HUDSO;
+    private bool _colorChangeOpen;
+    private bool _minigameSelectionOpen;
     [SerializeField] private bool togglePanel = true;
     [SerializeField] private bool closeOnExit = true;
     private InteractPanelType _currentMode = InteractPanelType.MinigameSelection;
@@ -82,7 +84,7 @@ public class RangeInteractor : MonoBehaviour
                 {
                     case InteractPanelType.MinigameSelection:
                     {
-                        bool opening = !HUDSO.MinigameSelectionOpen;
+                        bool opening = !_minigameSelectionOpen;
                         if (opening)
                         {
                             HUDSO.HideColorChangePanel();
@@ -95,14 +97,14 @@ public class RangeInteractor : MonoBehaviour
                         {
                             HUDSO.HideMinigameSelectionPanel();
                             Debug.Log("[RangeInteractor] Fechando painel de minigames");
-                            if (_player != null) _player.UILocked = HUDSO.ColorChangeOpen;
-                            if (!HUDSO.ColorChangeOpen && playerScript.panel) Painel();
+                            if (_player != null) _player.UILocked = _colorChangeOpen;
+                            if (!_colorChangeOpen && playerScript.panel) Painel();
                         }
                         break;
                     }
                     case InteractPanelType.ColorChange:
                     {
-                        bool opening = !HUDSO.ColorChangeOpen;
+                        bool opening = !_colorChangeOpen;
                         if (opening)
                         {
                             HUDSO.HideMinigameSelectionPanel();
@@ -115,8 +117,8 @@ public class RangeInteractor : MonoBehaviour
                         {
                             HUDSO.HideColorChangePanel();
                             Debug.Log("[RangeInteractor] Fechando painel de troca de cor");
-                            if (_player != null) _player.UILocked = HUDSO.MinigameSelectionOpen;
-                            if (!HUDSO.MinigameSelectionOpen && playerScript.panel) Painel();
+                            if (_player != null) _player.UILocked = _minigameSelectionOpen;
+                            if (!_minigameSelectionOpen && playerScript.panel) Painel();
                         }
                         break;
                     }
@@ -141,8 +143,8 @@ public class RangeInteractor : MonoBehaviour
         {
             if (_player != null && HUDSO != null)
             {
-                bool targetOpen = (_currentMode == InteractPanelType.ColorChange && HUDSO.ColorChangeOpen) ||
-                                  (_currentMode == InteractPanelType.MinigameSelection && HUDSO.MinigameSelectionOpen);
+                bool targetOpen = (_currentMode == InteractPanelType.ColorChange && _colorChangeOpen) ||
+                                  (_currentMode == InteractPanelType.MinigameSelection && _minigameSelectionOpen);
                 if (targetOpen)
                 {
                     _player.UILocked = true;
@@ -154,14 +156,14 @@ public class RangeInteractor : MonoBehaviour
         {
             if (HUDSO != null)
             {
-                if (_currentMode == InteractPanelType.MinigameSelection && HUDSO.MinigameSelectionOpen)
+                if (_currentMode == InteractPanelType.MinigameSelection && _minigameSelectionOpen)
                     HUDSO.HideMinigameSelectionPanel();
-                if (_currentMode == InteractPanelType.ColorChange && HUDSO.ColorChangeOpen)
+                if (_currentMode == InteractPanelType.ColorChange && _colorChangeOpen)
                     HUDSO.HideColorChangePanel();
             }
             if (_player != null)
             {
-                bool anyOpen = (HUDSO != null) && (HUDSO.MinigameSelectionOpen || HUDSO.ColorChangeOpen);
+                bool anyOpen = _minigameSelectionOpen || _colorChangeOpen;
                 _player.UILocked = anyOpen;
                 if (!anyOpen && playerScript.panel) Painel();
             }
@@ -173,18 +175,18 @@ public class RangeInteractor : MonoBehaviour
     {
         if (HUDSO != null)
         {
-            HUDSO.EventOnHideMinigameSelectionPanel -= OnAnyPanelHidden;
-            HUDSO.EventOnHideColorChangePanel -= OnAnyPanelHidden;
-            HUDSO.EventOnShowMinigameSelectionPanel -= OnAnyPanelShown;
-            HUDSO.EventOnShowColorChangePanel -= OnAnyPanelShown;
+            HUDSO.EventOnHideMinigameSelectionPanel -= OnHideMinigameSelectionPanel;
+            HUDSO.EventOnHideColorChangePanel -= OnHideColorChangePanel;
+            HUDSO.EventOnShowMinigameSelectionPanel -= OnShowMinigameSelectionPanel;
+            HUDSO.EventOnShowColorChangePanel -= OnShowColorChangePanel;
         }
         HUDSO = hud;
         if (HUDSO != null)
         {
-            HUDSO.EventOnHideMinigameSelectionPanel += OnAnyPanelHidden;
-            HUDSO.EventOnHideColorChangePanel += OnAnyPanelHidden;
-            HUDSO.EventOnShowMinigameSelectionPanel += OnAnyPanelShown;
-            HUDSO.EventOnShowColorChangePanel += OnAnyPanelShown;
+            HUDSO.EventOnHideMinigameSelectionPanel += OnHideMinigameSelectionPanel;
+            HUDSO.EventOnHideColorChangePanel += OnHideColorChangePanel;
+            HUDSO.EventOnShowMinigameSelectionPanel += OnShowMinigameSelectionPanel;
+            HUDSO.EventOnShowColorChangePanel += OnShowColorChangePanel;
         }
     }
 
@@ -192,26 +194,45 @@ public class RangeInteractor : MonoBehaviour
     {
         if (HUDSO != null)
         {
-            HUDSO.EventOnHideMinigameSelectionPanel -= OnAnyPanelHidden;
-            HUDSO.EventOnHideColorChangePanel -= OnAnyPanelHidden;
-            HUDSO.EventOnShowMinigameSelectionPanel -= OnAnyPanelShown;
-            HUDSO.EventOnShowColorChangePanel -= OnAnyPanelShown;
+            HUDSO.EventOnHideMinigameSelectionPanel -= OnHideMinigameSelectionPanel;
+            HUDSO.EventOnHideColorChangePanel -= OnHideColorChangePanel;
+            HUDSO.EventOnShowMinigameSelectionPanel -= OnShowMinigameSelectionPanel;
+            HUDSO.EventOnShowColorChangePanel -= OnShowColorChangePanel;
         }
     }
 
-    private void OnAnyPanelHidden()
+    private void OnHideMinigameSelectionPanel()
     {
+        _minigameSelectionOpen = false;
         if (_player == null) return;
-        bool anyOpen = (HUDSO != null) && (HUDSO.MinigameSelectionOpen || HUDSO.ColorChangeOpen);
+        bool anyOpen = _minigameSelectionOpen || _colorChangeOpen;
         _player.UILocked = anyOpen;
         if (!anyOpen && playerScript.panel) Painel();
     }
 
-    private void OnAnyPanelShown()
+    private void OnHideColorChangePanel()
     {
+        _colorChangeOpen = false;
         if (_player == null) return;
-        if (!_inZone) return; 
+        bool anyOpen = _minigameSelectionOpen || _colorChangeOpen;
+        _player.UILocked = anyOpen;
+        if (!anyOpen && playerScript.panel) Painel();
+    }
 
+    private void OnShowMinigameSelectionPanel()
+    {
+        _minigameSelectionOpen = true;
+        if (_player == null) return;
+        if (!_inZone) return;
+        _player.UILocked = true;
+        if (!playerScript.panel) Painel(); else _aligning = true;
+    }
+
+    private void OnShowColorChangePanel()
+    {
+        _colorChangeOpen = true;
+        if (_player == null) return;
+        if (!_inZone) return;
         _player.UILocked = true;
         if (!playerScript.panel) Painel(); else _aligning = true;
     }
