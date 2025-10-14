@@ -870,6 +870,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (Status == PlayerStatus.Pushing) return;
         if (Status == PlayerStatus.Throw) return;
         if (_isCarrying) return;
+
         Status = PlayerStatus.Throw;
 
         if (isFrozen) return;
