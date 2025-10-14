@@ -182,7 +182,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     [SerializeField] private float sensibilidade = 1;
     [SyncVar(hook = nameof(OnCarryingChanged))] private bool _isCarrying;
-    [SerializeField, Range(0.3f, 1f)] private float carryingSpeedMultiplier = 0.8f;
+    [SyncVar] private bool _isHotPotatoHolder;
+    [SyncVar(hook = nameof(OnBoostChanged))] private float _boostSpeedMultiplier = 1f;
+    [SerializeField, Range(0.3f, 1f)] private float carryingSpeedMultiplier = 0.8f; // fallback caso DB não esteja configurado
     public bool IsCarrying => _isCarrying;
     
     // Estado de "no ar" sincronizado para o servidor (para trampolim/hazards server-authoritative)
@@ -606,11 +608,30 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private float GetPanelRotateSpeed() => panelCamera != null ? panelCamera.panelRotateSpeed : 300f;
     
     [Server] public void ServerSetCarrying(bool value) { _isCarrying = value; }
-    private void OnCarryingChanged(bool oldVal, bool newVal)
-    {
 
+    [Server] public void ServerSetHotPotatoHolder(bool active) { _isHotPotatoHolder = active; }
+    [Server] public void ServerSetBoostMultiplier(float multiplier) { _boostSpeedMultiplier = Mathf.Clamp(multiplier, 0.1f, 10f); }
+    [Server] public void ServerClearBoost() { _boostSpeedMultiplier = 1f; }
+    private void OnCarryingChanged(bool oldVal, bool newVal) { }
+    private void OnBoostChanged(float oldVal, float newVal) { }
+    private float GetSpeedMultiplier()
+    {
+        float mult = 1f;
+        float carryMul = db != null ? Mathf.Clamp(db.playerCarryingSpeedMultiplier, 0.1f, 1f) : carryingSpeedMultiplier;
+        if (_isCarrying) mult *= carryMul;
+        if (_isHotPotatoHolder) mult *= GetConfiguredHotPotatoMultiplier();
+        mult *= Mathf.Max(0.1f, _boostSpeedMultiplier);
+        return Mathf.Max(0.05f, mult);
     }
-    private float GetSpeedMultiplier() => _isCarrying ? carryingSpeedMultiplier : 1f;
+
+    public float GetConfiguredHotPotatoMultiplier()
+    {
+        return db != null ? Mathf.Clamp(db.hotPotatoHolderSpeedMultiplier, 1f, 3f) : 1.25f;
+    }
+    public float GetConfiguredCarryingMultiplier()
+    {
+        return db != null ? Mathf.Clamp(db.playerCarryingSpeedMultiplier, 0.1f, 1f) : carryingSpeedMultiplier;
+    }
 
 
     //

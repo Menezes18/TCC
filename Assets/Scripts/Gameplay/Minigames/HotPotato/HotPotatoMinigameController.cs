@@ -317,6 +317,7 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         {
             ps.isFrozen = true;
             ps.InternalDeath(true);
+            ps.ServerSetHotPotatoHolder(false);
         }
 
         Notifica();
@@ -339,6 +340,12 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         phase = Phase.Idle;
         matchActive = false;
         SafeUnfreeze();
+        foreach (var pd in PlayerList.singleton.players)
+        {
+            if (pd == null) continue;
+            var ps = pd.GetComponent<PlayerScript>();
+            ps?.ServerSetHotPotatoHolder(false);
+        }
     }
     #endregion
 
@@ -453,14 +460,30 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     {
         if (!isServer) return;
 
+        if (oldVal != 0)
+        {
+            var oldPd = PlayerList.singleton.players.FirstOrDefault(p => p.playerInfo.steamId == oldVal);
+            var oldPs = oldPd != null ? oldPd.GetComponent<PlayerScript>() : null;
+            oldPs?.ServerSetHotPotatoHolder(false);
+        }
+
         string name = string.Empty;
         if (newVal != 0)
         {
             var pd = PlayerList.singleton.players.FirstOrDefault(p => p.playerInfo.steamId == newVal);
             if (pd != null)
+            {
                 name = string.IsNullOrWhiteSpace(pd.alias) ? pd.playerInfo.username : pd.alias;
+                var ps = pd.GetComponent<PlayerScript>();
+                if (ps != null)
+                {
+                    ps.ServerSetHotPotatoHolder(true);
+                }
+            }
             else
+            {
                 name = $"Player {newVal}";
+            }
         }
 
         RpcUpdatePotatoHolder(name);
