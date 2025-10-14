@@ -48,4 +48,20 @@ public class MinigameSelectionPanel : MonoBehaviour
         if (_mainContainer != null)
             _mainContainer.SetActive(false);
     }
+
+    // Permite injetar o HUDSO correto em runtime (ex.: por jogador local)
+    public void SetHUD(HUDSO hud)
+    {
+        if (HUDSO != null)
+        {
+            HUDSO.EventOnShowMinigameSelectionPanel -= OnShowPanel;
+            HUDSO.EventOnHideMinigameSelectionPanel -= OnHidePanel;
+        }
+        HUDSO = hud;
+        if (HUDSO != null)
+        {
+            HUDSO.EventOnShowMinigameSelectionPanel += OnShowPanel;
+            HUDSO.EventOnHideMinigameSelectionPanel += OnHidePanel;
+        }
+    }
 }

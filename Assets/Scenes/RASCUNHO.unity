@@ -9053,6 +9053,51 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 517237564}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &521426546
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 521426548}
+  - component: {fileID: 521426547}
+  m_Layer: 0
+  m_Name: SpectatorManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &521426547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 521426546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98e82f07350ff7d42af8d7aa61b95530, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpectatorManager
+  overlaySceneName: SpecOverlay
+--- !u!4 &521426548
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 521426546}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 870.69336, y: 415.65558, z: -73.57681}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &525077882
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -27095,7 +27140,7 @@ PrefabInstance:
     - target: {fileID: 5021151233552338051, guid: d87095d7e4a4d7143b16e81d8fa9ab08,
         type: 3}
       propertyPath: cause
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5021151233552338051, guid: d87095d7e4a4d7143b16e81d8fa9ab08,
         type: 3}
@@ -51075,3 +51120,4 @@ SceneRoots:
   - {fileID: 838676398}
   - {fileID: 1911745635}
   - {fileID: 1376086135}
+  - {fileID: 521426548}

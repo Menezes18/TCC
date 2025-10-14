@@ -32,6 +32,8 @@ public class PlayerData : NetworkBehaviour{
    [SyncVar (hook = nameof(HookOnAliasUpdated))] public string alias; // name steam
    [SyncVar (hook = nameof(HookOnColorUpdated))] public int color = -1;
    [SyncVar] public int score;
+   // Estado de espectador (opcional) replicado para todos
+   [SyncVar(hook = nameof(OnSpectatingChanged))] public bool isSpectating;
    
    public UnityEvent<string> OnAliasUpdated;
    public UnityEvent<int> OnColorUpdated;
@@ -245,16 +247,29 @@ public class PlayerData : NetworkBehaviour{
          icon = SteamHelper.ConvertTextureToSprite(tex);
    }
    
-   public void ToggleReady() => Cmd_ToggleReady();
+    public void ToggleReady() => Cmd_ToggleReady();
 
-   [Command]
-   private void Cmd_ToggleReady() 
-   {
-      IsReady = !IsReady;
-      
-      BriefingManager.singleton?.CheckAllReady();
-      BriefingManager.singleton?.UpdateAllClientsSlots();
-   }
+    [Command]
+    private void Cmd_ToggleReady() 
+    {
+        IsReady = !IsReady;
+        
+        BriefingManager.singleton?.CheckAllReady();
+        BriefingManager.singleton?.UpdateAllClientsSlots();
+    }
+
+    // ===== Espectador (replicação) =====
+    [Command]
+    public void CmdSetSpectating(bool value)
+    {
+        isSpectating = value;
+    }
+
+    private void OnSpectatingChanged(bool _, bool newVal)
+    {
+        // Pode acionar feedback local aqui se desejar
+        // Debug.Log($"[SPEC] isSpectating => {newVal}");
+    }
 
    [Command]
    public void CmdReportLoadProgress(string scene, float progress)

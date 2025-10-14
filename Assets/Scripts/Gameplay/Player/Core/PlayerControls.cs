@@ -107,7 +107,9 @@ using UnityEngine.InputSystem;
         
         private void PlayerInputSO_OnPush(CallbackContext obj)
         {
-            if(obj.performed){
+            // Use started em vez de performed para evitar duplo disparo (press/release)
+            if (obj.started)
+            {
                 PlayerControlsSO.Push();
             }
         }

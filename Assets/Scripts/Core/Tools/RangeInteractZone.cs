@@ -25,6 +25,7 @@ public class RangeInteractZone : MonoBehaviour
     private PlayerScript _localPlayer;
     private RangeInteractor _localInteractor;
     private bool _wasInside;
+    private bool _configuredForLocal;
 
     private void Update()
     {
@@ -38,24 +39,23 @@ public class RangeInteractZone : MonoBehaviour
         Vector3 dir = castDirection.sqrMagnitude < 0.0001f ? Vector3.up : castDirection.normalized;
         float dist = Mathf.Max(0.01f, castDistance);
 
+        // Heurística: distância primeiro (estável), cast opcional
         float playerDist = Vector3.Distance(_localPlayer.transform.position, origin);
         bool insideByDistance = playerDist <= radius;
 
         bool insideByCast = false;
-        RaycastHit[] hits = Physics.SphereCastAll(origin, radius, dir, dist, layerMask);
-        if (hits != null)
+        if (castDistance > 0f)
         {
-            for (int i = 0; i < hits.Length; i++)
+            RaycastHit[] hits = Physics.SphereCastAll(origin, radius, dir, dist, layerMask);
+            if (hits != null)
             {
-                var col = hits[i].collider;
-                if (col == null) continue;
-
-                var nid = col.GetComponentInParent<NetworkIdentity>();
-                if (nid != null && !nid.isOwned) continue;
-
-                var ps = col.GetComponentInParent<PlayerScript>();
-                if (ps == null || !ps.isLocalPlayer) continue;
-                insideByCast = true; break;
+                for (int i = 0; i < hits.Length; i++)
+                {
+                    var col = hits[i].collider;
+                    if (col == null) continue;
+                    var ps = col.GetComponentInParent<PlayerScript>();
+                    if (ps != null && ps.isLocalPlayer) { insideByCast = true; break; }
+                }
             }
         }
 
@@ -66,25 +66,26 @@ public class RangeInteractZone : MonoBehaviour
             Debug.DrawRay(origin, dir * dist, inside ? Color.green : Color.red, 0.05f);
         }
 
-        if (inside && !_wasInside)
+        // Inicializa interactor e HUD uma vez por jogador local
+        if (_localInteractor == null)
+            _localInteractor = _localPlayer.GetComponent<RangeInteractor>();
+        if (_localInteractor != null && !_configuredForLocal)
         {
-            _wasInside = true;
-            if (_localInteractor == null)
-                _localInteractor = _localPlayer.GetComponent<RangeInteractor>();
-            if (HUDSO != null)
+            var playerHud = _localPlayer != null ? _localPlayer.GetHUD() : null;
+            if (playerHud != null)
+                _localInteractor.SetHUD(playerHud);
+            else if (HUDSO != null)
                 _localInteractor.SetHUD(HUDSO);
-            if (_localInteractor != null)
-            {
-                _localInteractor.ConfigurePanelCamera(usePanelCamera, cameraAnchor != null ? cameraAnchor : transform, alignSpeed);
-                _localInteractor.SetInZone(true, panelMode);
-            }
-            Debug.Log("entrou no range");
+            _localInteractor.ConfigurePanelCamera(usePanelCamera, cameraAnchor != null ? cameraAnchor : transform, alignSpeed);
+            _configuredForLocal = true;
         }
-        else if (!inside && _wasInside)
+
+        // Notifica apenas em transições (evita fechar por zonas distantes)
+        if (_localInteractor != null && inside != _wasInside)
         {
-            _wasInside = false;
-            if (_localInteractor != null)
-                _localInteractor.SetInZone(false, panelMode);
+            Debug.Log(inside ? "[RangeInteractZone] entrou no range" : "[RangeInteractZone] saiu do range");
+            _localInteractor.SetInZone(inside, panelMode);
+            _wasInside = inside;
         }
     }
 

@@ -68,7 +68,11 @@ public class SceneReference
             }
         }
 #endif
+#if UNITY_EDITOR
         if (sceneAsset == null && string.IsNullOrEmpty(sceneName))
+#else
+        if (string.IsNullOrEmpty(sceneName))
+#endif
         {
             scenePath = string.Empty;
         }

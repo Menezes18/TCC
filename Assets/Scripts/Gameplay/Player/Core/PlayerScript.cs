@@ -213,6 +213,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private List<PlayerScript> _alivePlayersCache = new System.Collections.Generic.List<PlayerScript>();
     private int _currentSpectatorIndex = 0;
     public bool IsSpectating => _isSpectating;
+    // Alvo atual que estamos observando enquanto em modo espectador
+    public PlayerScript CurrentSpectatedTarget { get; private set; }
 
     // Event
     public UnityEvent EventOnDeath;
@@ -220,6 +222,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public UnityEvent EventOnRespawn;
     public UnityEvent EventOnJump;
     public UnityEvent EventOnPush;
+
+    private void Awake()
+    {
+        if (cameraTarget == null)
+            cameraTarget = transform;
+    }
 
     private void Start()
     {
@@ -247,7 +255,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             if (Camera.main != null) _cam = Camera.main.transform;
             else Debug.LogWarning("[PlayerScript] No main camera found to assign as _cam.");
         }
-        cameraTarget = transform;
 
         _playerInput = GetComponent<PlayerInput>();
         // Não desabilitar o NetworkAnimator no local player. Deixe sempre habilitado para sincronizar parâmetros.
@@ -275,6 +282,14 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         celularInstance = Instantiate(canvasCelularPrefab);
         mainMenu = celularInstance.GetComponentInChildren<MainMenu>(true);
         celularInstance.SetActive(false);
+        // Unifica HUDSO nos painéis do celular (minigame / cores)
+        if (celularInstance != null && HUDSO != null)
+        {
+            var colorPanel = celularInstance.GetComponentInChildren<ColorChangePanel>(true);
+            if (colorPanel != null) colorPanel.SetHUD(HUDSO);
+            var miniPanel = celularInstance.GetComponentInChildren<MinigameSelectionPanel>(true);
+            if (miniPanel != null) miniPanel.SetHUD(HUDSO);
+        }
         if (cooldownUIPrefab != null)
         {
             cooldownUIInstance = Instantiate(cooldownUIPrefab);
@@ -771,6 +786,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     }
     private void PlayerControlsSO_OnPush()
     {
+        // Bloqueia qualquer interação/empurrão durante espectador ou morte
+        if (_isSpectating) return;
+        if (State == PlayerState.Death) return;
+
         var rangeInteractor = GetComponent<RangeInteractor>();
         if (rangeInteractor != null && rangeInteractor.TryInteract()) return;
         if (panel) return;
@@ -1086,6 +1105,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         Debug.Log("👁️ [SPECTATOR] Entering spectator mode");
         _isSpectating = true;
+        // Notifica o manager para carregar overlay e atualizar estado
+        SpectatorManager.Instance?.OnLocalSpectatorEnter(this);
+        // Replica estado de espectador para os demais clientes (apenas booleano)
+        var pd = GetComponent<PlayerData>();
+        pd?.CmdSetSpectating(true);
 
         // Disable player input for movement
         if (_playerInput != null)
@@ -1105,20 +1129,38 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             if (_alivePlayersCache.Count > 0)
             {
                 _currentSpectatorIndex = 0;
-                SetCameraTarget(_alivePlayersCache[0].cameraTarget);
-                Debug.Log($"👁️ [SPECTATOR] Now spectating: {_alivePlayersCache[0].name}");
+                CurrentSpectatedTarget = _alivePlayersCache[0];
+                SetCameraTarget(CurrentSpectatedTarget.cameraTarget);
+                Debug.Log($"👁️ [SPECTATOR] Now spectating: {CurrentSpectatedTarget.name}");
+                // Notifica alvo atual para o overlay
+                SpectatorManager.Instance?.OnLocalSpectatorTargetChangedInternal(CurrentSpectatedTarget);
+                // Não replicamos quem está sendo observado (design atual)
             }
             else
             {
                 Debug.LogWarning("👁️ [SPECTATOR] No alive players to spectate");
+                CurrentSpectatedTarget = null;
+                SpectatorManager.Instance?.OnLocalSpectatorTargetChangedInternal(null);
             }
         }
     }
 
     public void SetCameraTarget(Transform newTarget)
     {
+        // Fallback seguro: se o alvo não tiver cameraTarget configurado,
+        // usa o transform do player que está sendo observado (quando disponível)
+        if (newTarget == null)
+        {
+            var fallback = CurrentSpectatedTarget != null ? CurrentSpectatedTarget.transform : transform;
+            Debug.LogWarning("[SPECTATOR] Camera target nulo. Aplicando fallback para alvo observado.");
+            cameraTarget = fallback;
+            return;
+        }
         cameraTarget = newTarget;
     }
+
+    // Expor o HUD usado por este player para unificar painéis em runtime
+    public HUDSO GetHUD() => HUDSO;
 
     private void UpdateAlivePlayersList()
     {
@@ -1145,8 +1187,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         }
 
         _currentSpectatorIndex = (_currentSpectatorIndex + 1) % _alivePlayersCache.Count;
-        SetCameraTarget(_alivePlayersCache[_currentSpectatorIndex].cameraTarget);
-        Debug.Log($"👁️ [SPECTATOR] Switched to: {_alivePlayersCache[_currentSpectatorIndex].name}");
+        CurrentSpectatedTarget = _alivePlayersCache[_currentSpectatorIndex];
+        SetCameraTarget(CurrentSpectatedTarget.cameraTarget);
+        Debug.Log($"👁️ [SPECTATOR] Switched to: {CurrentSpectatedTarget.name}");
+        SpectatorManager.Instance?.OnLocalSpectatorTargetChangedInternal(CurrentSpectatedTarget);
+        // Não replicamos alvo observado
     }
 
     private void CycleToPreviousSpectatorTarget()
@@ -1160,9 +1205,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         _currentSpectatorIndex--;
         if (_currentSpectatorIndex < 0)
             _currentSpectatorIndex = _alivePlayersCache.Count - 1;
-        
-        SetCameraTarget(_alivePlayersCache[_currentSpectatorIndex].cameraTarget);
-        Debug.Log($"👁️ [SPECTATOR] Switched to: {_alivePlayersCache[_currentSpectatorIndex].name}");
+
+        CurrentSpectatedTarget = _alivePlayersCache[_currentSpectatorIndex];
+        SetCameraTarget(CurrentSpectatedTarget.cameraTarget);
+        Debug.Log($"👁️ [SPECTATOR] Switched to: {CurrentSpectatedTarget.name}");
+        SpectatorManager.Instance?.OnLocalSpectatorTargetChangedInternal(CurrentSpectatedTarget);
+        // Não replicamos alvo observado
     }
 
     private void HidePlayerModel()
@@ -1237,8 +1285,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         
         if (permaDeath)
         {
-            // Enter spectator mode (permanent death)
-            RpcSpectate();
+            // Cliente solicita ao servidor para entrar no modo espectador,
+            // o servidor então envia o TargetRpc para o dono.
+            CmdRequestSpectate();
         }
         else
         {
@@ -1248,6 +1297,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             InternalResetProperties();
             CmdDeath();
         }
+    }
+
+    [Command]
+    private void CmdRequestSpectate()
+    {
+        // Executa no servidor; envia TargetRpc ao cliente dono deste objeto
+        RpcSpectate();
     }
 
     public void OnContextualHit(DeathCause cause, bool perma)
@@ -1389,7 +1445,30 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         _isSpectating = false;
         _alivePlayersCache.Clear();
         _currentSpectatorIndex = 0;
+        CurrentSpectatedTarget = null;
+        // Notifica o manager para descarregar overlay
+        SpectatorManager.Instance?.OnLocalSpectatorExit(this);
+        // Replica saída do espectador
+        var pd = GetComponent<PlayerData>();
+        if (pd != null)
+        {
+            pd.CmdSetSpectating(false);
+        }
+    }
+
+    // Métodos públicos para a UI do overlay navegar entre alvos
+    public void SpectateNextTarget()
+    {
+        if (!_isSpectating) return;
+        CycleToNextSpectatorTarget();
+    }
+
+    public void SpectatePreviousTarget()
+    {
+        if (!_isSpectating) return;
+        CycleToPreviousSpectatorTarget();
     }
 
     #endregion
 }
+    
