@@ -51,9 +51,9 @@ public class SceneReference
     /// <summary>
     /// Ensures cached data is up to date (invoked automatically in the editor).
     /// </summary>
+#if UNITY_EDITOR
     public void Validate()
     {
-#if UNITY_EDITOR
         if (sceneAsset != null)
         {
             SyncFromAsset();
@@ -77,7 +77,7 @@ public class SceneReference
             scenePath = string.Empty;
         }
     }
-
+    
     private void SyncFromAsset()
     {
 #if UNITY_EDITOR
