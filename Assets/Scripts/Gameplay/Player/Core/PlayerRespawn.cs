@@ -35,9 +35,22 @@ public class PlayerRespawn : NetworkBehaviour
             PlayerScript ps = transform.GetComponent<PlayerScript>();
             NetworkConnection conn = transform.GetComponent<NetworkIdentity>().connectionToClient;
 
-            Transform random = MatchManager.singleton.GetRandomSpawnPoint();
-
-            ps.TargetRpcTeleport(conn, random.position, random.rotation);
+            var pd = GetComponent<PlayerData>();
+            var street = FindAnyObjectByType<StreetMinigameController>();
+            bool usedStreetSpawn = false;
+            if (street != null && pd != null)
+            {
+                if (street.TryGetDropoffSpawn(pd.playerInfo.steamId, out var spawn))
+                {
+                    ps.TargetRpcTeleport(conn, spawn.position, spawn.rotation);
+                    usedStreetSpawn = true;
+                }
+            }
+            if (!usedStreetSpawn)
+            {
+                Transform random = MatchManager.singleton.GetRandomSpawnPoint();
+                ps.TargetRpcTeleport(conn, random.position, random.rotation);
+            }
         }
         
     }

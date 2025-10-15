@@ -2994,6 +2994,8 @@ MonoBehaviour:
   syncInterval: 0
   _minigameController: {fileID: 831516170}
   _zoneType: 0
+  _playerSpawnPoint: {fileID: 0}
+  _highlightVfx: {fileID: 0}
 --- !u!114 &44880329
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3773,12 +3775,32 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1889335107}
     m_Modifications:
+    - target: {fileID: 1298386027645907039, guid: ad1271e02efe8fa48829ab0c8fa622aa,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 2776205041955510891, guid: ad1271e02efe8fa48829ab0c8fa622aa,
+        type: 3}
+      propertyPath: m_Name
+      value: Tunel
+      objectReference: {fileID: 0}
+    - target: {fileID: 2776205041955510891, guid: ad1271e02efe8fa48829ab0c8fa622aa,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 5796341939809218860, guid: ad1271e02efe8fa48829ab0c8fa622aa,
         type: 3}
       propertyPath: m_StaticEditorFlags
       value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 6335147113190821078, guid: ad1271e02efe8fa48829ab0c8fa622aa,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 8493264424712779032, guid: ad1271e02efe8fa48829ab0c8fa622aa,
         type: 3}
       propertyPath: m_StaticEditorFlags
       value: 2147483647
@@ -3832,26 +3854,6 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1298386027645907039, guid: ad1271e02efe8fa48829ab0c8fa622aa,
-        type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 2147483647
-      objectReference: {fileID: 0}
-    - target: {fileID: 2776205041955510891, guid: ad1271e02efe8fa48829ab0c8fa622aa,
-        type: 3}
-      propertyPath: m_Name
-      value: Tunel
-      objectReference: {fileID: 0}
-    - target: {fileID: 2776205041955510891, guid: ad1271e02efe8fa48829ab0c8fa622aa,
-        type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 2147483647
-      objectReference: {fileID: 0}
-    - target: {fileID: 8493264424712779032, guid: ad1271e02efe8fa48829ab0c8fa622aa,
-        type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 2147483647
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -33960,12 +33962,32 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 731474588}
     m_Modifications:
+    - target: {fileID: 1298386027645907039, guid: ad1271e02efe8fa48829ab0c8fa622aa,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 2776205041955510891, guid: ad1271e02efe8fa48829ab0c8fa622aa,
+        type: 3}
+      propertyPath: m_Name
+      value: Tunel
+      objectReference: {fileID: 0}
+    - target: {fileID: 2776205041955510891, guid: ad1271e02efe8fa48829ab0c8fa622aa,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 5796341939809218860, guid: ad1271e02efe8fa48829ab0c8fa622aa,
         type: 3}
       propertyPath: m_StaticEditorFlags
       value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 6335147113190821078, guid: ad1271e02efe8fa48829ab0c8fa622aa,
+        type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
+    - target: {fileID: 8493264424712779032, guid: ad1271e02efe8fa48829ab0c8fa622aa,
         type: 3}
       propertyPath: m_StaticEditorFlags
       value: 2147483647
@@ -34019,26 +34041,6 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1298386027645907039, guid: ad1271e02efe8fa48829ab0c8fa622aa,
-        type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 2147483647
-      objectReference: {fileID: 0}
-    - target: {fileID: 2776205041955510891, guid: ad1271e02efe8fa48829ab0c8fa622aa,
-        type: 3}
-      propertyPath: m_Name
-      value: Tunel
-      objectReference: {fileID: 0}
-    - target: {fileID: 2776205041955510891, guid: ad1271e02efe8fa48829ab0c8fa622aa,
-        type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 2147483647
-      objectReference: {fileID: 0}
-    - target: {fileID: 8493264424712779032, guid: ad1271e02efe8fa48829ab0c8fa622aa,
-        type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 2147483647
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -82759,6 +82761,8 @@ MonoBehaviour:
   syncInterval: 0
   _minigameController: {fileID: 831516170}
   _zoneType: 1
+  _playerSpawnPoint: {fileID: 1618186235}
+  _highlightVfx: {fileID: 0}
 --- !u!114 &1120722905
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -93466,6 +93470,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5af1df2b4afda948b3d792ba057f5ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  cause: 0
+  permanent: 0
+  useTrigger: 1
+  useCollision: 0
+  usePeriodicCheck: 0
+  targetMask:
+    serializedVersion: 2
+    m_Bits: 0
+  checkHalfExtents: {x: 0.5, y: 0.5, z: 0.5}
+  checkOffset: {x: 0, y: 0, z: 0}
+  checkInterval: 0.1
 --- !u!1 &1233748619
 GameObject:
   m_ObjectHideFlags: 0
@@ -113308,6 +113323,8 @@ MonoBehaviour:
   syncInterval: 0
   _minigameController: {fileID: 831516170}
   _zoneType: 1
+  _playerSpawnPoint: {fileID: 538654522}
+  _highlightVfx: {fileID: 0}
 --- !u!114 &1525610368
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -113892,6 +113909,8 @@ MonoBehaviour:
   syncInterval: 0
   _minigameController: {fileID: 831516170}
   _zoneType: 1
+  _playerSpawnPoint: {fileID: 1405507230}
+  _highlightVfx: {fileID: 0}
 --- !u!114 &1530980139
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -150287,6 +150306,8 @@ MonoBehaviour:
   syncInterval: 0
   _minigameController: {fileID: 831516170}
   _zoneType: 1
+  _playerSpawnPoint: {fileID: 414114746}
+  _highlightVfx: {fileID: 0}
 --- !u!114 &2088361465
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -155110,6 +155131,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5af1df2b4afda948b3d792ba057f5ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  cause: 0
+  permanent: 0
+  useTrigger: 1
+  useCollision: 0
+  usePeriodicCheck: 0
+  targetMask:
+    serializedVersion: 2
+    m_Bits: 0
+  checkHalfExtents: {x: 0.5, y: 0.5, z: 0.5}
+  checkOffset: {x: 0, y: 0, z: 0}
+  checkInterval: 0.1
 --- !u!1001 &6677935325647097828
 PrefabInstance:
   m_ObjectHideFlags: 0

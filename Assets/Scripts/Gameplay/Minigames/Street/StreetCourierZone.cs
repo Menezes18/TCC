@@ -13,11 +13,22 @@ public class StreetCourierZone : NetworkBehaviour
     [SerializeField] private StreetCourierZoneType _zoneType = StreetCourierZoneType.Pickup;
     [SyncVar] private ulong _ownerSteamId;
     [SyncVar(hook = nameof(OnTintChanged))] private Color32 _tint;
+    [Header("Spawn do Jogador & Destaque")]
+    [Tooltip("Ponto de spawn opcional do jogador dono desta entrega.")]
+    [SerializeField] private Transform _playerSpawnPoint;
+    [Tooltip("VFX opcional para destacar esta entrega apenas para o dono.")]
+    [SerializeField] private GameObject _highlightVfx;
 
     private void Reset()
     {
         if (_minigameController == null)
             _minigameController = FindAnyObjectByType<StreetMinigameController>();
+
+        if (_playerSpawnPoint == null)
+        {
+            var t = transform.Find("SpawnPoint");
+            if (t != null) _playerSpawnPoint = t;
+        }
     }
 
     private void OnTriggerEnter(Collider other)
@@ -79,6 +90,28 @@ public class StreetCourierZone : NetworkBehaviour
             if (r != null && r.material != null)
                 r.material.color = color;
         }
+    }
+
+    // Retorna o ponto de spawn associado a esta zona (ou a própria posição como fallback)
+    public Transform GetSpawnPoint()
+    {
+        return _playerSpawnPoint != null ? _playerSpawnPoint : transform;
+    }
+
+    [TargetRpc]
+    // Ativa o VFX de destaque apenas para o cliente dono desta zona
+    public void TargetShowHighlight(Mirror.NetworkConnectionToClient conn)
+    {
+        if (_highlightVfx != null)
+            _highlightVfx.SetActive(true);
+    }
+
+    [TargetRpc]
+    // Desativa o VFX de destaque apenas para o cliente dono desta zona
+    public void TargetHideHighlight(Mirror.NetworkConnectionToClient conn)
+    {
+        if (_highlightVfx != null)
+            _highlightVfx.SetActive(false);
     }
 
     public bool HasOwner => _ownerSteamId != 0UL;

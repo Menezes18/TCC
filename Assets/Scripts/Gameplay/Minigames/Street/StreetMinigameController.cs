@@ -21,8 +21,11 @@ public class StreetMinigameController : MinigameController, IObserver
     public override void SetupMiniGame()
     {
         base.SetupMiniGame();
-        
-        
+        ServerAutoBindDropoffsAndColor();
+        if (isServer)
+        {
+            StartCoroutine(ServerTeleportAfterDelay(2.25f));
+        }
     }
     public override void OnStartServer()
     {
@@ -35,6 +38,7 @@ public class StreetMinigameController : MinigameController, IObserver
     {
         base.StartMatch();
         ServerAutoBindDropoffsAndColor();
+        ServerTeleportPlayersToDropoffs();
         _matchActive = true;
 
         _carryingByPlayer.Clear();
@@ -59,7 +63,6 @@ public class StreetMinigameController : MinigameController, IObserver
             }
         }
 
-    // push initial zeroed scoreboard so ranking shows from the beginning
     Notifica();
     }
 
@@ -94,9 +97,13 @@ public class StreetMinigameController : MinigameController, IObserver
             var ps = pd.GetComponent<PlayerScript>();
             if (ps != null) ps.ServerSetCarrying(true);
 
-            // notify only this player
             if (pd.connectionToClient != null)
                 TargetToast(pd.connectionToClient, "Pegou a banana! Leve até sua pilha.");
+
+            if (_dropoffZoneByPlayer.TryGetValue(playerId, out var dropZone) && pd.connectionToClient != null)
+            {
+                dropZone.TargetShowHighlight(pd.connectionToClient);
+            }
         }
     }
 
@@ -114,11 +121,15 @@ public class StreetMinigameController : MinigameController, IObserver
             var ps = pd.GetComponent<PlayerScript>();
             if (ps != null) ps.ServerSetCarrying(false);
 
-            // notify only this player
             if (pd.connectionToClient != null)
             {
                 int total = _deliveriesByPlayer[playerId];
                 TargetToast(pd.connectionToClient, $"Entrega! +1 (Total: {total})");
+            }
+
+            if (_dropoffZoneByPlayer.TryGetValue(playerId, out var dropZone2) && pd.connectionToClient != null)
+            {
+                dropZone2.TargetHideHighlight(pd.connectionToClient);
             }
         }
     }
@@ -133,6 +144,11 @@ public class StreetMinigameController : MinigameController, IObserver
         var psd = pd.GetComponent<PlayerScript>();
         if (psd != null) psd.ServerSetCarrying(false);
         Notifica();
+
+        if (_dropoffZoneByPlayer.TryGetValue(playerId, out var dropZone) && pd.connectionToClient != null)
+        {
+            dropZone.TargetHideHighlight(pd.connectionToClient);
+        }
     }
 
 
@@ -219,6 +235,44 @@ public class StreetMinigameController : MinigameController, IObserver
             {
                 var color = (Color32)database.playerColors[pd.color].color;
                 best.ServerSetTint(color);
+            }
+        }
+    }
+
+    [Server]
+    private System.Collections.IEnumerator ServerTeleportAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        ServerTeleportPlayersToDropoffs();
+    }
+
+    [Server]
+    public bool TryGetDropoffSpawn(ulong playerId, out Transform spawn)
+    {
+        spawn = null;
+        if (_dropoffZoneByPlayer.TryGetValue(playerId, out var zone) && zone != null)
+        {
+            spawn = zone.GetSpawnPoint();
+            return spawn != null;
+        }
+        return false;
+    }
+
+    [Server]
+    private void ServerTeleportPlayersToDropoffs()
+    {
+        foreach (var pd in playerList.players)
+        {
+            ulong playerId = pd.playerInfo.steamId;
+            if (!_dropoffZoneByPlayer.TryGetValue(playerId, out var zone) || zone == null)
+                continue;
+
+            var spawnT = zone.GetSpawnPoint();
+            var ps = pd.GetComponent<PlayerScript>();
+            var conn = pd.GetComponent<NetworkIdentity>()?.connectionToClient;
+            if (ps != null && conn != null && spawnT != null)
+            {
+                ps.TargetRpcTeleport(conn, spawnT.position, spawnT.rotation);
             }
         }
     }
