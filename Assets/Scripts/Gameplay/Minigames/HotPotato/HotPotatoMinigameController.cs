@@ -25,7 +25,7 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     [Header("Configurações")]
     [SerializeField] private SettingsMiniGameData settingsData;
     [SerializeField] private float passDistance = 3f;
-    [SerializeField] private float timeLimit = 20f; // 20s por rodada
+    [SerializeField, Min(1f)] private float timeLimit = 25f; 
     [SerializeField] private HUDSO hudso;
     [SerializeField] private GameMode mode = GameMode.Eliminatorio;
 
@@ -49,6 +49,7 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
 
     private Phase phase = Phase.Idle;
     private double selectionEndTime = -1; // NetworkTime.time alvo p/ terminar seleção
+    private bool selectionEndedSignal = false; // true quando um cliente reporta fim da roleta
 
     [SyncVar(hook = nameof(OnHolderChanged))]
     private ulong potatoHolderId;
@@ -99,40 +100,27 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     private void Update()
     {
         if (!matchActive) return;
-        if (phase == Phase.Round && roundTimer > 0f)
-            {
-                roundTimer -= Time.deltaTime;
-
-                if (hudso != null) hudso.MatchTimerUpdate(Mathf.Max(0f, roundTimer));
-
-                RpcUpdateTimer(Mathf.Max(0f, roundTimer));
-
-                if (roundTimer <= 0f)
-                {
-                    HandleTimeout();
-                }
-            }
         switch (phase)
         {
             case Phase.Selecting:
-                
-                if (NetworkTime.time >= selectionEndTime)
+                // Inicia a rodada apenas quando algum cliente reportar o fim da roleta
+                if (selectionEndedSignal)
                 {
-                    //"selection-end"
                     SafeUnfreeze();
                     BeginRoundTimer();
                 }
                 break;
 
             case Phase.Round:
-                
                 if (roundTimer > 0f)
                 {
                     roundTimer -= Time.deltaTime;
 
-                    if (hudso != null) hudso.MatchTimerUpdate(Mathf.Max(0f, roundTimer));
+                    float timeLeft = Mathf.Max(0f, roundTimer);
+                    if (hudso != null) hudso.MatchTimerUpdate(timeLeft);
+                    RpcUpdateTimer(timeLeft);
 
-                    int whole = Mathf.CeilToInt(roundTimer);
+                    int whole = Mathf.CeilToInt(timeLeft);
                     if (whole != _lastWholeSecondLogged)
                     {
                         _lastWholeSecondLogged = whole;
@@ -169,6 +157,7 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     }
 
     phase = Phase.Selecting;
+    selectionEndedSignal = false;
 
     FreezeAll(true);
 
@@ -212,6 +201,15 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         roletaUI.OnWinTextClosed -= HandleClose;
         roletaUI.OnWinTextClosed += HandleClose;
 
+        // quando a UI terminar no cliente, notifica o servidor para iniciar imediatamente
+        void NotifyServer()
+        {
+            CmdNotifyRouletteEnded();
+            roletaUI.OnWinTextClosed -= NotifyServer; // evita múltiplos envios
+        }
+        roletaUI.OnWinTextClosed -= NotifyServer;
+        roletaUI.OnWinTextClosed += NotifyServer;
+
         roletaUI.PrepareEntriesSnapshot(order, aliases, colors);
 
         roletaUI.SpinToWinner(winnerSteamId);
@@ -234,6 +232,14 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         roletaUI.OnWinTextClosed -= HandleClose;
         roletaUI.OnWinTextClosed += HandleClose;
 
+        void NotifyServer()
+        {
+            CmdNotifyRouletteEnded();
+            roletaUI.OnWinTextClosed -= NotifyServer;
+        }
+        roletaUI.OnWinTextClosed -= NotifyServer;
+        roletaUI.OnWinTextClosed += NotifyServer;
+
         roletaUI.SetEntriesFromSteamIds(order);
         roletaUI.SpinToWinner(winnerSteamId);
 
@@ -242,6 +248,15 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
             roletaUI.ShowOverlay(false);
             roletaUI.OnWinTextClosed -= HandleClose;
         }
+    }
+
+    // cliente informa que a animação da roleta terminou
+    [Command(requiresAuthority = false)]
+    private void CmdNotifyRouletteEnded()
+    {
+        if (!matchActive) return;
+        if (phase != Phase.Selecting) return;
+        selectionEndedSignal = true;
     }
 
 
@@ -302,6 +317,7 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         {
             ps.isFrozen = true;
             ps.InternalDeath(true);
+            ps.ServerSetHotPotatoHolder(false);
         }
 
         Notifica();
@@ -324,6 +340,12 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         phase = Phase.Idle;
         matchActive = false;
         SafeUnfreeze();
+        foreach (var pd in PlayerList.singleton.players)
+        {
+            if (pd == null) continue;
+            var ps = pd.GetComponent<PlayerScript>();
+            ps?.ServerSetHotPotatoHolder(false);
+        }
     }
     #endregion
 
@@ -438,14 +460,30 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     {
         if (!isServer) return;
 
+        if (oldVal != 0)
+        {
+            var oldPd = PlayerList.singleton.players.FirstOrDefault(p => p.playerInfo.steamId == oldVal);
+            var oldPs = oldPd != null ? oldPd.GetComponent<PlayerScript>() : null;
+            oldPs?.ServerSetHotPotatoHolder(false);
+        }
+
         string name = string.Empty;
         if (newVal != 0)
         {
             var pd = PlayerList.singleton.players.FirstOrDefault(p => p.playerInfo.steamId == newVal);
             if (pd != null)
+            {
                 name = string.IsNullOrWhiteSpace(pd.alias) ? pd.playerInfo.username : pd.alias;
+                var ps = pd.GetComponent<PlayerScript>();
+                if (ps != null)
+                {
+                    ps.ServerSetHotPotatoHolder(true);
+                }
+            }
             else
+            {
                 name = $"Player {newVal}";
+            }
         }
 
         RpcUpdatePotatoHolder(name);

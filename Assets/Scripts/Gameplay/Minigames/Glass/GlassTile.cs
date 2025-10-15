@@ -20,28 +20,35 @@ public class GlassTile : NetworkBehaviour
     [Server] public void ServerSetSafe(bool safe) => _isSafe = safe;
     [Server] public void ServerSetRestoreDelay(float delay) => _restoreDelay = delay;
 
-    [ServerCallback]
+
     private void Awake()
     {
         var c = GetComponent<Collider>();
         if (c != null) c.isTrigger = true;
     }
 
-    [ServerCallback]
     private void OnTriggerEnter(Collider other)
     {
-        if (!NetworkServer.active) return;
         var pd = other.transform.root.GetComponent<PlayerData>();
         if (pd == null) return;
 
-        if (_isSafe)
+        if (NetworkServer.active)
         {
-            _controller?.ServerOnSafeTileStepped(pd, rowIndex);
-        }
-        else
-        {
-            if (!_isBroken)
+            if (_isSafe)
+            {
+                _controller?.ServerOnSafeTileStepped(pd, rowIndex);
+            }
+            else if (!_isBroken)
+            {
                 StartCoroutine(ServerBreakAndRestore());
+            }
+            return;
+        }
+
+        var ni = pd.GetComponent<NetworkIdentity>();
+        if (ni != null)
+        {
+            CmdClientTouchedTile(ni.netId);
         }
     }
 
@@ -55,6 +62,25 @@ public class GlassTile : NetworkBehaviour
         SetTileEnabled(true);
         RpcSetTileEnabled(true);
         _isBroken = false;
+    }
+
+    [Command(requiresAuthority = false)]
+    private void CmdClientTouchedTile(uint playerNetId)
+    {
+        if (!NetworkServer.active) return;
+
+        if (!NetworkServer.spawned.TryGetValue(playerNetId, out var id)) return;
+        var pd = id != null ? id.GetComponent<PlayerData>() : null;
+        if (pd == null) return;
+
+        if (_isSafe)
+        {
+            _controller?.ServerOnSafeTileStepped(pd, rowIndex);
+            return;
+        }
+
+        if (_isBroken) return;
+        StartCoroutine(ServerBreakAndRestore());
     }
 
     [Server]
@@ -80,7 +106,6 @@ public class GlassTile : NetworkBehaviour
 
     private void OnDrawGizmos()
     {
-        // Desenhar indicação de seguro/perigoso no editor
         Gizmos.matrix = transform.localToWorldMatrix;
         var size = new Vector3(0.9f, 0.02f, 0.9f);
         Color c = previewSafe ? new Color(0f, 0.8f, 0.2f, 0.35f) : new Color(0.9f, 0f, 0f, 0.35f);

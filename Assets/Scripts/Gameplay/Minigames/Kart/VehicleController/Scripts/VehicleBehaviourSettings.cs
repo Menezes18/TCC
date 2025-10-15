@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-[CreateAssetMenu(fileName = nameof(VehicleBehaviourSettings), menuName = "e23/AVC/Vehicle Settings", order = 3)]
+[CreateAssetMenu(fileName = nameof(VehicleBehaviourSettings), menuName = "Vehicle/Vehicle Settings", order = 3)]
 public class VehicleBehaviourSettings : ScriptableObject
 {
         [Header("Parameters")]

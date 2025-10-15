@@ -13,7 +13,9 @@ public class HUDSO : ScriptableObject{
     
     public event Action EventOnHideColorChangePanel;
     
-    public void HideColorChangePanel(){ this.EventOnHideColorChangePanel?.Invoke();}
+    public void HideColorChangePanel(){
+        this.EventOnHideColorChangePanel?.Invoke();
+    }
     
     //
     public event Action<float> EventOnSetBlindAlpha;
@@ -42,6 +44,33 @@ public class HUDSO : ScriptableObject{
     //
     
     public event Action<string> EventOnGameOver;
-    public void GameOver(string value) {this.EventOnGameOver?.Invoke(value);}
+    public void GameOver(string value) {this.EventOnGameOver?.Invoke(value);}    
+
+    // Minigame Selection Panel
+    public event Action EventOnShowMinigameSelectionPanel;
+    public event Action EventOnHideMinigameSelectionPanel;
+
+    public void ShowMinigameSelectionPanel()
+    {
+        this.EventOnShowMinigameSelectionPanel?.Invoke();
+    }
+
+    public void HideMinigameSelectionPanel()
+    {
+        this.EventOnHideMinigameSelectionPanel?.Invoke();
+    }
+
+    public event Action EventOnShowCustomizationPanel;
+    public event Action EventOnHideCustomizationPanel;
+
+    public void ShowCustomizationPanel()
+    {
+        this.EventOnShowCustomizationPanel?.Invoke();
+    }
+
+    public void HideCustomizationPanel()
+    {
+        this.EventOnHideCustomizationPanel?.Invoke();
+    }
 }
 

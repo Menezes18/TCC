@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
-
+using System.Collections.Generic;
 
 public enum PlayerState{
     Default,
@@ -38,6 +38,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SerializeField] PlayerControlsSO PlayerControlsSO;
     [SerializeField] HUDSO HUDSO;
     [SerializeField] SmoothSyncMirror _smoothSyncMirror;
+    [SerializeField] private DeathEffectsSO deathEffects;
+    private bool _suppressHideOnDeath; 
 
     [SerializeField] CharacterController _controller;
     [SerializeField] Animator _animator;
@@ -117,6 +119,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     readonly int _STATUS = Animator.StringToHash("status");
     readonly int _MOVEX = Animator.StringToHash("MoveX");
     readonly int _MOVEY = Animator.StringToHash("MoveY");
+    readonly int _DEATHCAUSE = Animator.StringToHash("deathCause");
 
     private float _staggerTimer;
     private float _pushCooldown;
@@ -156,29 +159,47 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     public Transform cameraTarget;
 
+    [Header("Panel Camera")]
+    [SerializeField] private PanelCameraSO panelCamera;
+    private bool _lastPanelState;
+    private float _panelExitTimer;
+    private float _savedYawBeforePanel, _savedPitchBeforePanel;
+    private float _panelFixedYaw, _panelFixedPitch;
+    private float _panelRotateX;
+    private float _panelZoomOffset = 0f; 
+    [SerializeField] private float panelZoomSpeed = 0.5f;
+    [SerializeField] private float panelZoomMin = -1.5f;
+    [SerializeField] private float panelZoomMax = 1.5f;
+    private Transform _panelAnchor;
+
+    public void SetPanelCameraAnchor(Transform anchor) { _panelAnchor = anchor; }
+    public void ClearPanelCameraAnchor() { _panelAnchor = null; }
+
     [SyncVar(hook = nameof(OnStaggerChanged))]
     private bool isStaggered;
 
     private bool _menuOpen = false;
     public bool panel = false;
-    // Bloqueia movimento/olhar enquanto o chat estiver aberto
+    [SerializeField] private bool _uiLocked = false;
+    public bool UILocked { get => _uiLocked; set => _uiLocked = value; }
     [SerializeField] private bool _chatOpen = false;
 
     [SerializeField] private float sensibilidade = 1;
     [SyncVar(hook = nameof(OnCarryingChanged))] private bool _isCarrying;
-    [SerializeField, Range(0.3f, 1f)] private float carryingSpeedMultiplier = 0.8f;
+    [SyncVar] private bool _isHotPotatoHolder;
+    [SyncVar(hook = nameof(OnBoostChanged))] private float _boostSpeedMultiplier = 1f;
+    [SerializeField, Range(0.3f, 1f)] private float carryingSpeedMultiplier = 0.8f; 
     public bool IsCarrying => _isCarrying;
     
-    // Estado de "no ar" sincronizado para o servidor (para trampolim/hazards server-authoritative)
     [SyncVar] private bool _isAirborneServer;
     private bool _lastAirborneSent;
 
     // Forças externas de solo (ex.: esteira)
-    private Vector3 _externalGroundVelocity; // unidades/seg
-    private float _externalGroundTimer;      // duração restante em segundos
+    private Vector3 _externalGroundVelocity; 
+    private float _externalGroundTimer;      
 
     // Redução de controle (gelo)
-    private float _controlMultiplier = 1f;   // 1 = controle total, 0 = sem controle
+    private float _controlMultiplier = 1f;  
     private float _controlTimer;
 
     // UI
@@ -192,11 +213,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     // Spectator System
     [Header("Spectator")]
-    [SerializeField] private GameObject playerModelRoot; // Assign the visual model root in inspector
+    [SerializeField] private GameObject playerModelRoot; 
     private bool _isSpectating = false;
-    private System.Collections.Generic.List<PlayerScript> _alivePlayersCache = new System.Collections.Generic.List<PlayerScript>();
+    private List<PlayerScript> _alivePlayersCache = new List<PlayerScript>();
     private int _currentSpectatorIndex = 0;
     public bool IsSpectating => _isSpectating;
+    public PlayerScript CurrentSpectatedTarget { get; private set; }
 
     // Event
     public UnityEvent EventOnDeath;
@@ -204,6 +226,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public UnityEvent EventOnRespawn;
     public UnityEvent EventOnJump;
     public UnityEvent EventOnPush;
+
+    private void Awake()
+    {
+        if (cameraTarget == null)
+            cameraTarget = transform;
+    }
 
     private void Start()
     {
@@ -217,6 +245,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         PlayerControlsSO.OnThrow += PlayerControlsSO_OnThrow;
         PlayerControlsSO.OnThrowCancel += PlayerControlsSO_OnThrowCancel;
         PlayerControlsSO.OnDebug += PlayerControlsSOOnOnDebug;
+        PlayerControlsSO.OnRotatePanel += PlayerControlsSO_OnRotatePanel;
+        PlayerControlsSO.OnZoomPanel += PlayerControlsSO_OnZoomPanel;
+        PlayerControlsSO.OnClosePanel += PlayerControlsSO_OnClosePanel;
 
         // Spectator controls (using roll for next and push for previous while dead)
         // We'll handle spectator switching in Update based on state
@@ -230,7 +261,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             if (Camera.main != null) _cam = Camera.main.transform;
             else Debug.LogWarning("[PlayerScript] No main camera found to assign as _cam.");
         }
-        cameraTarget = transform;
 
         _playerInput = GetComponent<PlayerInput>();
         // Não desabilitar o NetworkAnimator no local player. Deixe sempre habilitado para sincronizar parâmetros.
@@ -258,6 +288,15 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         celularInstance = Instantiate(canvasCelularPrefab);
         mainMenu = celularInstance.GetComponentInChildren<MainMenu>(true);
         celularInstance.SetActive(false);
+        // Unifica HUDSO nos painéis do celular (minigame / cores)
+        if (celularInstance != null && HUDSO != null)
+        {
+            var colorPanel = celularInstance.GetComponentInChildren<ColorChangePanel>(true);
+            if (colorPanel != null) colorPanel.SetHUD(HUDSO);
+            
+            var minigamePanel = celularInstance.GetComponentInChildren<MinigameSelectionPanel>(true);
+            if (minigamePanel != null) minigamePanel.SetHUD(HUDSO);
+        }
         if (cooldownUIPrefab != null)
         {
             cooldownUIInstance = Instantiate(cooldownUIPrefab);
@@ -265,7 +304,19 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             if (ui != null)
                 ui.Init(this);
         }
+        
+        StartCoroutine(ApplyPlayerCustomizationDelayed());
     }
+    
+    private IEnumerator ApplyPlayerCustomizationDelayed()
+    {
+        yield return new WaitForSeconds(0.2f);
+        ApplyPlayerCustomization();
+        
+        yield return new WaitForSeconds(0.5f);
+        ApplyPlayerCustomization();
+    }
+    
     public override void OnStopLocalPlayer()
     {
         base.OnStopLocalPlayer();
@@ -315,6 +366,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         PlayerControlsSO.OnRoll -= PlayerControlsSO_OnRoll;
         PlayerControlsSO.OnThrow -= PlayerControlsSO_OnThrow;
         PlayerControlsSO.OnThrowCancel -= PlayerControlsSO_OnThrowCancel;
+        PlayerControlsSO.OnRotatePanel -= PlayerControlsSO_OnRotatePanel;
+        PlayerControlsSO.OnZoomPanel -= PlayerControlsSO_OnZoomPanel;
+        PlayerControlsSO.OnClosePanel -= PlayerControlsSO_OnClosePanel;
 
         //UI
         PlayerControlsSO.OnMenu -= EventOnCelularMenu;
@@ -469,27 +523,87 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             _move.y = db.gravityGrounded;
         }
 
-        transform.rotation = Quaternion.Euler(rot);
+        if (!panel)
+        {
+            transform.rotation = Quaternion.Euler(rot);
+        }
+        else
+        {
+            transform.Rotate(0f, _panelRotateX * GetPanelRotateSpeed() * Time.deltaTime, 0f);
+        }
 
     }
     private void LateUpdate()
     {
         if (!this.isOwned) return;
 
+        if (panel != _lastPanelState)
+        {
+            if (panel)
+            {
+                _savedYawBeforePanel = _yaw;
+                _savedPitchBeforePanel = _pitch;
+                Vector3 anchorPos = (_panelAnchor != null ? _panelAnchor.position : cameraTarget.position);
+                Vector3 flatDir = transform.position - anchorPos; flatDir.y = 0f;
+                if (flatDir.sqrMagnitude < 0.0001f) flatDir = transform.forward;
+                _panelFixedYaw = Mathf.Atan2(flatDir.x, flatDir.z) * Mathf.Rad2Deg;
+                _panelFixedPitch = Mathf.Clamp(GetPanelPitch(), db.minMouseY, db.maxMouseX);
+                _panelExitTimer = 0f;
+            }
+            else
+            {
+                _panelExitTimer = 0f;
+                _panelRotateX = 0f;
+                _panelZoomOffset = 0f; 
+            }
+            _lastPanelState = panel;
+        }
+
+        Transform anchorRef = (panel && _panelAnchor != null) ? _panelAnchor : cameraTarget;
+
+        if (panel)
+        {
+            _yaw = Mathf.LerpAngle(_yaw, _panelFixedYaw, Time.deltaTime * GetPanelLerp());
+            _pitch = Mathf.Lerp(_pitch, _panelFixedPitch, Time.deltaTime * GetPanelLerp());
+        }
+        else if (_panelExitTimer < GetPanelExitDuration())
+        {
+            _yaw = Mathf.LerpAngle(_yaw, _savedYawBeforePanel, Time.deltaTime * GetPanelLerp());
+            _pitch = Mathf.Lerp(_pitch, _savedPitchBeforePanel, Time.deltaTime * GetPanelLerp());
+            _panelExitTimer += Time.deltaTime;
+        }
+
         Quaternion camRotation = Quaternion.Euler(_pitch, _yaw, 0f);
-
         _cam.rotation = camRotation;
-        Vector3 desiredPos = cameraTarget.position + _cam.transform.rotation * db.orbitalOffset;
 
-        Vector3 dir = desiredPos - cameraTarget.position;
-        float maxDist = db.orbitalOffset.magnitude;
+        Vector3 offset;
+        if (panel)
+        {
+            offset = GetPanelOrbitalOffset();
+            offset.z += _panelZoomOffset;
+        }
+        else if (_panelExitTimer < GetPanelExitDuration())
+        {
+            float t = Mathf.Clamp01(_panelExitTimer / GetPanelExitDuration());
+            offset = Vector3.Lerp(GetPanelOrbitalOffset(), db.orbitalOffset, t);
+            float zoomTransition = Mathf.Lerp(_panelZoomOffset, 0f, t);
+            offset.z += zoomTransition;
+        }
+        else
+        {
+            offset = db.orbitalOffset;
+        }
 
-        if (Physics.SphereCast(cameraTarget.position, db.cameraSphereRadius, dir.normalized,
+        Vector3 desiredPos = anchorRef.position + camRotation * offset;
+        Vector3 dir = desiredPos - anchorRef.position;
+        float maxDist = offset.magnitude;
+
+        if (Physics.SphereCast(anchorRef.position, db.cameraSphereRadius, dir.normalized,
                 out RaycastHit hit, maxDist, db.cameraColliderMash,
                 QueryTriggerInteraction.Ignore))
         {
             float safeDist = Mathf.Clamp(hit.distance - db.cameraSphereRadius, 0.1f, maxDist);
-            _cam.transform.position = cameraTarget.position + dir.normalized * safeDist;
+            _cam.transform.position = anchorRef.position + dir.normalized * safeDist;
         }
         else
         {
@@ -500,15 +614,66 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
         if (hit.gameObject.CompareTag("KillPlane"))
-            InternalDeath(false);
+        {
+            OnContextualHit(DeathCause.Default, false);
+        }
+    }
+
+    private void PlayerControlsSO_OnRotatePanel(float x)
+    {
+        _panelRotateX = x;
     }
     
-    [Server] public void ServerSetCarrying(bool value) { _isCarrying = value; }
-    private void OnCarryingChanged(bool oldVal, bool newVal)
+    private void PlayerControlsSO_OnZoomPanel(float scroll)
     {
-
+        _panelZoomOffset += scroll * panelZoomSpeed;
+        _panelZoomOffset = Mathf.Clamp(_panelZoomOffset, panelZoomMin, panelZoomMax);
     }
-    private float GetSpeedMultiplier() => _isCarrying ? carryingSpeedMultiplier : 1f;
+    
+    private void PlayerControlsSO_OnClosePanel()
+    {
+        if (!isOwned) return;
+
+        if (panel)
+        {
+            HUDSO.HideColorChangePanel();
+            HUDSO.HideMinigameSelectionPanel();
+            return;
+        }
+        
+    }
+
+    private Vector3 GetPanelOrbitalOffset() => panelCamera != null ? panelCamera.panelOrbitalOffset : new Vector3(0.12f, 0.08f, -2.29f);
+    private float GetPanelLerp() => panelCamera != null ? panelCamera.panelCamLerp : 6f;
+    private float GetPanelPitch() => panelCamera != null ? panelCamera.panelPitch : 8f;
+    private float GetPanelExitDuration() => panelCamera != null ? panelCamera.panelExitDuration : 0.5f;
+    private float GetPanelRotateSpeed() => panelCamera != null ? panelCamera.panelRotateSpeed : 300f;
+    
+    [Server] public void ServerSetCarrying(bool value) { _isCarrying = value; }
+
+    [Server] public void ServerSetHotPotatoHolder(bool active) { _isHotPotatoHolder = active; }
+    [Server] public void ServerSetBoostMultiplier(float multiplier) { _boostSpeedMultiplier = Mathf.Clamp(multiplier, 0.1f, 10f); }
+    [Server] public void ServerClearBoost() { _boostSpeedMultiplier = 1f; }
+    private void OnCarryingChanged(bool oldVal, bool newVal) { }
+    private void OnBoostChanged(float oldVal, float newVal) { }
+    private float GetSpeedMultiplier()
+    {
+        float mult = 1f;
+        float carryMul = db != null ? Mathf.Clamp(db.playerCarryingSpeedMultiplier, 0.1f, 1f) : carryingSpeedMultiplier;
+        if (_isCarrying) mult *= carryMul;
+        if (_isHotPotatoHolder) mult *= GetConfiguredHotPotatoMultiplier();
+        mult *= Mathf.Max(0.1f, _boostSpeedMultiplier);
+        return Mathf.Max(0.05f, mult);
+    }
+
+    public float GetConfiguredHotPotatoMultiplier()
+    {
+        return db != null ? Mathf.Clamp(db.hotPotatoHolderSpeedMultiplier, 1f, 3f) : 1.25f;
+    }
+    public float GetConfiguredCarryingMultiplier()
+    {
+        return db != null ? Mathf.Clamp(db.playerCarryingSpeedMultiplier, 0.1f, 1f) : carryingSpeedMultiplier;
+    }
 
 
     //
@@ -684,6 +849,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     }
     private void PlayerControlsSO_OnPush()
     {
+        // Bloqueia qualquer interação/empurrão durante espectador ou morte
+        if (_isSpectating) return;
+        if (State == PlayerState.Death) return;
+
+        var rangeInteractor = GetComponent<RangeInteractor>();
+        if (rangeInteractor != null && rangeInteractor.TryInteract()) return;
         if (panel) return;
         if (_chatOpen) return;
         if (_isCarrying) return;
@@ -741,6 +912,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (Status == PlayerStatus.Pushing) return;
         if (Status == PlayerStatus.Throw) return;
         if (_isCarrying) return;
+
         Status = PlayerStatus.Throw;
 
         if (isFrozen) return;
@@ -946,13 +1118,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public void OnHitKill()
     {
         if (base.isOwned == false) return;
-
-        InternalDeath(false);
+        OnContextualHit(DeathCause.Default, false);
     }
     public void OnHitSpectate()
     {
         if (base.isOwned == false) return;
-        InternalDeath(true);
+        OnContextualHit(DeathCause.Default, true);
 
     }
     private void OnExtraFreezeChanged(bool oldVal, bool newVal)
@@ -963,14 +1134,24 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private void EventOnCelularMenu()
     {
         if (base.isOwned == false) return;
-        _menuOpen = !_menuOpen;
         
-        celularInstance.SetActive(_menuOpen);
-        
-        if (panel) {
+        // Se o painel de cores está aberto, fecha ele
+        if (panel)
+        {
             HUDSO.HideColorChangePanel();
             return;
         }
+        
+        // Se o painel de minigames está aberto, fecha ele  
+        if (UILocked)
+        {
+            HUDSO.HideMinigameSelectionPanel();
+            return;
+        }
+        
+        // Se nenhum painel está aberto, alterna o estado do menu celular
+        _menuOpen = !_menuOpen;
+        celularInstance.SetActive(_menuOpen);
     }
 
     
@@ -998,6 +1179,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         Debug.Log("👁️ [SPECTATOR] Entering spectator mode");
         _isSpectating = true;
+        // Notifica o manager para carregar overlay e atualizar estado
+        SpectatorManager.Instance?.OnLocalSpectatorEnter(this);
+        // Replica estado de espectador para os demais clientes (apenas booleano)
+        var pd = GetComponent<PlayerData>();
+        pd?.CmdSetSpectating(true);
 
         // Disable player input for movement
         if (_playerInput != null)
@@ -1017,20 +1203,38 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             if (_alivePlayersCache.Count > 0)
             {
                 _currentSpectatorIndex = 0;
-                SetCameraTarget(_alivePlayersCache[0].cameraTarget);
-                Debug.Log($"👁️ [SPECTATOR] Now spectating: {_alivePlayersCache[0].name}");
+                CurrentSpectatedTarget = _alivePlayersCache[0];
+                SetCameraTarget(CurrentSpectatedTarget.cameraTarget);
+                Debug.Log($"👁️ [SPECTATOR] Now spectating: {CurrentSpectatedTarget.name}");
+                // Notifica alvo atual para o overlay
+                SpectatorManager.Instance?.OnLocalSpectatorTargetChangedInternal(CurrentSpectatedTarget);
+                // Não replicamos quem está sendo observado (design atual)
             }
             else
             {
                 Debug.LogWarning("👁️ [SPECTATOR] No alive players to spectate");
+                CurrentSpectatedTarget = null;
+                SpectatorManager.Instance?.OnLocalSpectatorTargetChangedInternal(null);
             }
         }
     }
 
     public void SetCameraTarget(Transform newTarget)
     {
+        // Fallback seguro: se o alvo não tiver cameraTarget configurado,
+        // usa o transform do player que está sendo observado (quando disponível)
+        if (newTarget == null)
+        {
+            var fallback = CurrentSpectatedTarget != null ? CurrentSpectatedTarget.transform : transform;
+            Debug.LogWarning("[SPECTATOR] Camera target nulo. Aplicando fallback para alvo observado.");
+            cameraTarget = fallback;
+            return;
+        }
         cameraTarget = newTarget;
     }
+
+    // Expor o HUD usado por este player para unificar painéis em runtime
+    public HUDSO GetHUD() => HUDSO;
 
     private void UpdateAlivePlayersList()
     {
@@ -1057,8 +1261,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         }
 
         _currentSpectatorIndex = (_currentSpectatorIndex + 1) % _alivePlayersCache.Count;
-        SetCameraTarget(_alivePlayersCache[_currentSpectatorIndex].cameraTarget);
-        Debug.Log($"👁️ [SPECTATOR] Switched to: {_alivePlayersCache[_currentSpectatorIndex].name}");
+        CurrentSpectatedTarget = _alivePlayersCache[_currentSpectatorIndex];
+        SetCameraTarget(CurrentSpectatedTarget.cameraTarget);
+        Debug.Log($"👁️ [SPECTATOR] Switched to: {CurrentSpectatedTarget.name}");
+        SpectatorManager.Instance?.OnLocalSpectatorTargetChangedInternal(CurrentSpectatedTarget);
+        // Não replicamos alvo observado
     }
 
     private void CycleToPreviousSpectatorTarget()
@@ -1072,34 +1279,21 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         _currentSpectatorIndex--;
         if (_currentSpectatorIndex < 0)
             _currentSpectatorIndex = _alivePlayersCache.Count - 1;
-        
-        SetCameraTarget(_alivePlayersCache[_currentSpectatorIndex].cameraTarget);
-        Debug.Log($"👁️ [SPECTATOR] Switched to: {_alivePlayersCache[_currentSpectatorIndex].name}");
+
+        CurrentSpectatedTarget = _alivePlayersCache[_currentSpectatorIndex];
+        SetCameraTarget(CurrentSpectatedTarget.cameraTarget);
+        Debug.Log($"👁️ [SPECTATOR] Switched to: {CurrentSpectatedTarget.name}");
+        SpectatorManager.Instance?.OnLocalSpectatorTargetChangedInternal(CurrentSpectatedTarget);
+        // Não replicamos alvo observado
     }
 
     private void HidePlayerModel()
     {
-        // Hide all renderers in the player model
-        if (playerModelRoot != null)
-        {
-            playerModelRoot.SetActive(false);
-            Debug.Log("👁️ [SPECTATOR] Player model hidden");
-        }
-        else
-        {
-            // Fallback: disable all SkinnedMeshRenderers and MeshRenderers on this object
-            var renderers = GetComponentsInChildren<Renderer>();
-            foreach (var renderer in renderers)
-            {
-                renderer.enabled = false;
-            }
-            Debug.Log($"👁️ [SPECTATOR] Disabled {renderers.Length} renderers");
-        }
+        CmdEventOnDeath();
     }
 
     private void ShowPlayerModel()
     {
-        // Show all renderers in the player model
         if (playerModelRoot != null)
         {
             playerModelRoot.SetActive(true);
@@ -1107,7 +1301,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         }
         else
         {
-            // Fallback: enable all SkinnedMeshRenderers and MeshRenderers on this object
             var renderers = GetComponentsInChildren<Renderer>();
             foreach (var renderer in renderers)
             {
@@ -1164,17 +1357,91 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         
         if (permaDeath)
         {
-            // Enter spectator mode (permanent death)
-            RpcSpectate();
+            // Cliente solicita ao servidor para entrar no modo espectador,
+            // o servidor então envia o TargetRpc para o dono.
+            CmdRequestSpectate();
         }
         else
         {
             // Temporary death, will respawn
             _controller.enabled = false;
-            HidePlayerModel(); // Hide model during death
+            // Não ocultar imediatamente; aguardar RPC aplicar anima/VFX e ocultar com atraso
             InternalResetProperties();
             CmdDeath();
         }
+    }
+
+    [Command]
+    private void CmdRequestSpectate()
+    {
+        // Executa no servidor; envia TargetRpc ao cliente dono deste objeto
+        RpcSpectate();
+    }
+
+    public void OnContextualHit(DeathCause cause, bool perma)
+    {
+        if (!base.isOwned) return;
+
+        var entry = deathEffects != null ? deathEffects.Get(cause) : null;
+        _suppressHideOnDeath = (entry != null && entry.hideModelAfterDelay);
+
+        Debug.Log($"💀 [DEATH] Cause: {cause}, Perma: {perma}, SuppressHide: {_suppressHideOnDeath}");
+        _animator?.SetInteger(_DEATHCAUSE, (int)cause);
+
+        InternalDeath(perma);
+
+        CmdDeathWithCause(cause, perma, transform.position, transform.rotation);
+
+        _suppressHideOnDeath = false;
+    }
+
+    [Command]
+    private void CmdDeathWithCause(DeathCause cause, bool perma, Vector3 pos, Quaternion rot)
+    {
+        RpcOnDeathWithCause(cause, perma, pos, rot);
+    }
+
+    [ClientRpc]
+    private void RpcOnDeathWithCause(DeathCause cause, bool perma, Vector3 pos, Quaternion rot)
+    {
+        _animator?.SetInteger(_DEATHCAUSE, (int)cause);
+        if (deathEffects != null)
+        {
+            var entry = deathEffects.Get(cause);
+            if (entry != null)
+            {
+
+                if (entry.vfxPrefab != null)
+                {
+                    Vector3 spawnPos = transform.position;
+                    Quaternion spawnRot = rot;
+                    var vfx = GameObject.Instantiate(entry.vfxPrefab, spawnPos, spawnRot);
+                    if (entry.attachToPlayer && vfx != null)
+                    {
+                        vfx.transform.SetParent(transform, worldPositionStays: true);
+                    }
+                    if (entry.vfxLifetime > 0f)
+                        GameObject.Destroy(vfx, entry.vfxLifetime);
+                }
+
+                if (entry.sfx != null)
+                {
+                    AudioSource.PlayClipAtPoint(entry.sfx, transform.position, entry.sfxVolume);
+                }
+
+                float delay = deathEffects.GetHideDelay(DeathCause.Lava);
+                if (entry.hideModelAfterDelay)
+                    delay = Mathf.Max(delay, entry.hideModelDelay);
+                StartCoroutine(HideModelAfterDelay(delay));
+                return;
+            }
+        }
+    }
+
+    private IEnumerator HideModelAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        HidePlayerModel();
     }
 
     void InternalResetProperties()
@@ -1196,6 +1463,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         Debug.LogWarning("⚠️ [CMD] Death");
         this.EventOnDeathServerSide?.Invoke();
+    }
+
+    [Command]
+    void CmdEventOnDeath()
+    {
         RpcOnDeath();
     }
 
@@ -1245,7 +1517,109 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         _isSpectating = false;
         _alivePlayersCache.Clear();
         _currentSpectatorIndex = 0;
+        CurrentSpectatedTarget = null;
+        // Notifica o manager para descarregar overlay
+        SpectatorManager.Instance?.OnLocalSpectatorExit(this);
+        // Replica saída do espectador
+        var pd = GetComponent<PlayerData>();
+        if (pd != null)
+        {
+            pd.CmdSetSpectating(false);
+        }
     }
 
+    // Métodos públicos para a UI do overlay navegar entre alvos
+    public void SpectateNextTarget()
+    {
+        if (!_isSpectating) return;
+        CycleToNextSpectatorTarget();
+    }
+
+    public void SpectatePreviousTarget()
+    {
+        if (!_isSpectating) return;
+        CycleToPreviousSpectatorTarget();
+    }
+
+    #endregion
+    
+    #region Customization
+    // ============= CUSTOMIZATION =============
+    /// <summary>
+    /// Aplica a customização salva do jogador no modelo do player
+    /// Este método é chamado tanto para o player local quanto para sincronizar via rede
+    /// </summary>
+    public void ApplyPlayerCustomization()
+    {
+        var applier = GetComponentInChildren<CustomizationApplier>();
+        if (applier == null)
+        {
+            Debug.LogWarning("⚠️ [PlayerScript] CustomizationApplier not found. Make sure it's added to the player prefab");
+            return;
+        }
+        
+        // Se é o player local, envia para o servidor via PlayerData
+        if (isLocalPlayer)
+        {
+            if (CustomizationManager.Instance == null)
+            {
+                Debug.LogWarning("⚠️ [PlayerScript] CustomizationManager not initialized");
+                return;
+            }
+            
+            var customization = CustomizationManager.Instance.GetCurrentCustomization();
+            if (customization != null)
+            {
+                // Envia para o servidor através do PlayerData
+                var playerData = GetComponent<PlayerData>();
+                if (playerData != null)
+                {
+                    playerData.SendCustomizationToServer();
+                    Debug.Log($"📤 [PlayerScript] Sent customization to server via PlayerData: {customization}");
+                }
+                
+                // Aplica localmente também
+                applier.ApplyCustomization(customization);
+                Debug.Log("✅ [PlayerScript] Customization applied to local player");
+            }
+        }
+        else
+        {
+            // Para players remotos, lê do PlayerData (SyncVars)
+            var playerData = GetComponent<PlayerData>();
+            if (playerData != null)
+            {
+                var customData = new PlayerCustomizationData("");
+                customData.hatIndex = playerData.hatIndex;
+                customData.glassesIndex = playerData.glassesIndex;
+                customData.shirtIndex = playerData.shirtIndex;
+                
+                applier.ApplyCustomization(customData);
+                Debug.Log($"✅ [PlayerScript] Customization applied from PlayerData SyncVars: Hat={playerData.hatIndex}, Glasses={playerData.glassesIndex}, Shirt={playerData.shirtIndex}");
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Aplica customização de players remotos quando SyncVars mudam
+    /// Chamado pelos hooks do PlayerData
+    /// </summary>
+    public void ApplyRemoteCustomization(int hatIndex, int glassesIndex, int shirtIndex)
+    {
+        if (isLocalPlayer) return; // Ignora para player local
+        
+        var applier = GetComponentInChildren<CustomizationApplier>();
+        if (applier != null)
+        {
+            var customData = new PlayerCustomizationData("");
+            customData.hatIndex = hatIndex;
+            customData.glassesIndex = glassesIndex;
+            customData.shirtIndex = shirtIndex;
+            
+            applier.ApplyCustomization(customData);
+            Debug.Log($"✅ [PlayerScript] Remote customization applied: Hat={hatIndex}, Glasses={glassesIndex}, Shirt={shirtIndex}");
+        }
+    }
+    // ============= END CUSTOMIZATION =============
     #endregion
 }

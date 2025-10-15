@@ -35,6 +35,12 @@ public class Database : ScriptableObject{
     public LayerMask PlayerMask;
     public float playerRespawnDuration;
 
+    [Header("Player Modifiers")]
+    [Range(0.1f, 6f)] public float playerCarryingSpeedMultiplier = 0.8f;
+
+    [Header("Minigame Modifiers")]
+    [Range(1f, 6f)] public float hotPotatoHolderSpeedMultiplier = 1.25f;
+
     [Header("Player Push")]
     public float playerPushRadius;
     public float playerPushStrength;

@@ -25,15 +25,25 @@ public class ColorChangePanel : MonoBehaviour{
 
     private IEnumerator Start()
     {
-        // espera o Mirror spawnar o PlayerList
-        while (PlayerList.singleton == null || PlayerList.singleton.players == null)
+        // Assina eventos do HUD imediatamente para permitir abrir o painel
+        if (HUDSO != null)
+        {
+            HUDSO.EventOnShowColorChangePanel += HUDSOOnEventOnShowColorChangePanel;
+            HUDSO.EventOnHideColorChangePanel += HUDSOOnEventOnHideColorChangePanel;
+        }
+
+        // Aguarda PlayerList para callbacks de atualização, mas não bloqueia a UI
+        while (PlayerList.singleton == null)
             yield return null;
 
-        PlayerList pl = PlayerList.singleton;           // agora já existe
-        pl.players.Callback += PlayersOnCallback;
-
-        HUDSO.EventOnShowColorChangePanel += HUDSOOnEventOnShowColorChangePanel;
-        HUDSO.EventOnHideColorChangePanel += HUDSOOnEventOnHideColorChangePanel;
+        var list = PlayerList.singleton;
+        if (list != null)
+        {
+            if (list.players != null)
+                list.players.Callback += PlayersOnCallback;
+            if (list.ColorsAvailable != null)
+                list.ColorsAvailable.Callback += ColorsOnCallback;
+        }
     }
     public void CreateButtons()
     {
@@ -49,21 +59,38 @@ public class ColorChangePanel : MonoBehaviour{
 
     private void OnDestroy()
     {
-        playerList.players.Callback -= PlayersOnCallback;
+        if (playerList != null)
+        {
+            if (playerList.players != null)
+                playerList.players.Callback -= PlayersOnCallback;
+            if (playerList.ColorsAvailable != null)
+                playerList.ColorsAvailable.Callback -= ColorsOnCallback;
+        }
         
-        HUDSO.EventOnShowColorChangePanel -= HUDSOOnEventOnShowColorChangePanel;
-        HUDSO.EventOnHideColorChangePanel -= HUDSOOnEventOnHideColorChangePanel;
+        if (HUDSO != null)
+        {
+            HUDSO.EventOnShowColorChangePanel -= HUDSOOnEventOnShowColorChangePanel;
+            HUDSO.EventOnHideColorChangePanel -= HUDSOOnEventOnHideColorChangePanel;
+        }
     }
 
     public void Refresh()
     {
+        if (playerList == null || playerList.ColorsAvailable == null)
+            return;
+
+        // Se a lista ainda não sincronizou nada, não bloqueie a seleção no cliente
+        if (playerList.ColorsAvailable.Count == 0)
+        {
+            for (int i = 0; i < buttons.Count; i++)
+                buttons[i].interactable = true;
+            return;
+        }
+
         for (int i = 0; i < buttons.Count; i++)
         {
-            bool occupied = buttons[i].interactable = playerList.ColorsAvailable.Contains(i) == true;
-            buttons[i].interactable = occupied;
-
-
-            
+            bool available = playerList.ColorsAvailable.Contains(i);
+            buttons[i].interactable = available;
         }
     }
     
@@ -71,18 +98,35 @@ public class ColorChangePanel : MonoBehaviour{
     {
         Refresh();
     }
+    private void ColorsOnCallback(SyncList<int>.Operation op, int itemIndex, int oldItem, int newItem)
+    {
+        Refresh();
+    }
     
     private void HUDSOOnEventOnShowColorChangePanel()
     {
-        _mainContainer.SetActive(true);
+        if (_mainContainer != null) _mainContainer.SetActive(true);
         Refresh();
     }
     
     private void HUDSOOnEventOnHideColorChangePanel()
     {
-        _mainContainer.SetActive(false);
+        if (_mainContainer != null) _mainContainer.SetActive(false);
         Refresh();
     }
-
-
+    
+    public void SetHUD(HUDSO hud)
+    {
+        if (HUDSO != null)
+        {
+            HUDSO.EventOnShowColorChangePanel -= HUDSOOnEventOnShowColorChangePanel;
+            HUDSO.EventOnHideColorChangePanel -= HUDSOOnEventOnHideColorChangePanel;
+        }
+        HUDSO = hud;
+        if (HUDSO != null)
+        {
+            HUDSO.EventOnShowColorChangePanel += HUDSOOnEventOnShowColorChangePanel;
+            HUDSO.EventOnHideColorChangePanel += HUDSOOnEventOnHideColorChangePanel;
+        }
+    }
 }

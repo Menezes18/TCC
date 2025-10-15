@@ -30,6 +30,8 @@ using UnityEngine.InputSystem;
             PlayerInputSO.OnMenuCelular += PlayerInputSO_OnMenuCelular;
             PlayerInputSO.OnRoll += PlayerInputSO_OnRoll;
             PlayerInputSO.OnDebug += PlayerInputSOOnOnDebug;
+            PlayerInputSO.OnScroll += PlayerInputSO_OnScroll;
+            PlayerInputSO.OnCancel += PlayerInputSO_OnCancel;
 
 
         }
@@ -45,13 +47,15 @@ using UnityEngine.InputSystem;
                 PlayerInputSO.OnThrow -= PlayerInputSO_OnThrow;
                 PlayerInputSO.OnRoll  -= PlayerInputSO_OnRoll;
                 PlayerInputSO.OnMenuCelular -= PlayerInputSO_OnMenuCelular;
+                PlayerInputSO.OnScroll -= PlayerInputSO_OnScroll;
+                PlayerInputSO.OnCancel -= PlayerInputSO_OnCancel;
             }
         }
         
         
         private void Update(){
 
-            if (playerScript.panel || playerScript.isFrozen)
+            if (playerScript.panel || playerScript.isFrozen || playerScript.UILocked)
             {
                 _rawX = 0;
                 _rawY = 0;
@@ -75,8 +79,13 @@ using UnityEngine.InputSystem;
         }
         private void PlayerInputSO_OnMove(CallbackContext obj)
         {
-            if (playerScript.panel || MatchManager.singleton.Freeze)
+            if (playerScript.panel || MatchManager.singleton.Freeze || playerScript.UILocked)
             {
+                if (playerScript.panel)
+                {
+                    Vector2 val = obj.ReadValue<Vector2>();
+                    PlayerControlsSO.RotatePanel(val.x);
+                }
                 _rawX = 0;
                 _rawY = 0;
                 return;
@@ -88,10 +97,12 @@ using UnityEngine.InputSystem;
         private void PlayerInputSO_OnLook(CallbackContext obj)
         {
             if (!playerScript.isLocalPlayer) return;
+            if (playerScript.UILocked) return; 
             PlayerControlsSO.Look(obj.ReadValue<Vector2>());
         }
         private void PlayerInputSO_OnJump(CallbackContext obj)
         {
+            if (playerScript.UILocked) return;
             if(obj.performed){
                 PlayerControlsSO.Jump();
             }
@@ -100,13 +111,16 @@ using UnityEngine.InputSystem;
         
         private void PlayerInputSO_OnPush(CallbackContext obj)
         {
-            if(obj.performed){
+            // Use started em vez de performed para evitar duplo disparo (press/release)
+            if (obj.started)
+            {
                 PlayerControlsSO.Push();
             }
         }
         
         private void PlayerInputSO_OnThrow(CallbackContext obj)
         {
+            if (playerScript.UILocked) return;
             if (obj.started){
                 PlayerControlsSO.Throw();
             }else if(obj.canceled){
@@ -116,12 +130,14 @@ using UnityEngine.InputSystem;
         
         private void PlayerInputSO_OnRoll(CallbackContext obj)
         {
+            if (playerScript.UILocked) return;
             if(obj.performed)
                 PlayerControlsSO.Roll();
         }
 
         private void PlayerInputSO_OnMenuCelular(CallbackContext obj)
         {
+            if (playerScript.UILocked) return;
             if(obj.performed){
                 PlayerControlsSO.MenuCelular();
             }
@@ -132,6 +148,23 @@ using UnityEngine.InputSystem;
             if (obj.performed == true){
                 PlayerControlsSO.Debug();
             }
+        }
+        
+        private void PlayerInputSO_OnScroll(CallbackContext obj)
+        {
+            if (!playerScript.isLocalPlayer) return;
+            if (!playerScript.panel) return; // Só funciona quando está no painel
+            
+            Vector2 scrollValue = obj.ReadValue<Vector2>();
+            PlayerControlsSO.ZoomPanel(scrollValue.y);
+        }
+        
+        private void PlayerInputSO_OnCancel(CallbackContext obj)
+        {
+            if (!playerScript.isLocalPlayer) return;
+            if (!obj.performed) return;
+            
+            PlayerControlsSO.ClosePanel();
         }
         
         private void EventMove(Vector2 obj){

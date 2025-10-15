@@ -353,7 +353,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
         if (_activeMinigameIds.Remove(minigameId))
         {
-            Debug.Log($"🎮 [MINIGAME] {minigameId} removido da rotação");
+            Debug.Log($"🎮 [MINIGAME] {minigameId} removido da rotação ");
             RebuildMinigameScenes(true);
         }
     }

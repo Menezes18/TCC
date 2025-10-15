@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = nameof(DriftSettings), menuName = "e23/AVC/Drift Settings", order = 5)]
+[CreateAssetMenu(fileName = nameof(DriftSettings), menuName = "Vehicle/Drift Settings", order = 5)]
 public class DriftSettings : ScriptableObject
 {
         [Tooltip("A velocidade máxima é dividida por este valor; valores menores exigem ir mais rápido para ativar as derrapagens.")]

@@ -37,5 +37,10 @@ public class PlayerInputSO : ScriptableObject{
     
     public void Debug(CallbackContext obj) {this.OnDebug?.Invoke(obj);}
 
+    public event Action<CallbackContext> OnScroll;
+    public void Scroll(CallbackContext obj) {this.OnScroll?.Invoke(obj);}
+
+    public event Action<CallbackContext> OnCancel;
+    public void Cancel(CallbackContext obj) {this.OnCancel?.Invoke(obj);}
     
 }

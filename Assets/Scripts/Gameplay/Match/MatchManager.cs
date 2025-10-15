@@ -7,6 +7,7 @@ using System.Linq;
 using Smooth;
 using Random = UnityEngine.Random;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 public struct PlayerScoreEntry
 {
     public ulong steamId;
@@ -25,7 +26,44 @@ public class MatchManager : NetworkBehaviour
     {
         singleton = this;
     }
-    
+
+    [ClientRpc]
+    void RpcShowSimpleResults(string[] names, int[] totals, int[] gains)
+    {
+        StartCoroutine(ShowResultsRoutine(names, totals, gains));
+    }
+
+    IEnumerator ShowResultsRoutine(string[] names, int[] totals, int[] gains)
+    {
+        const string overlayScene = "ResultsOverlay"; // nome da cena aditiva com a UI
+        var scn = SceneManager.GetSceneByName(overlayScene);
+        if (!scn.isLoaded)
+        {
+            var op = SceneManager.LoadSceneAsync(overlayScene, LoadSceneMode.Additive);
+            if (op != null) while (!op.isDone) yield return null;
+            // aguarda um frame para inicializar
+            yield return null;
+        }
+
+        var ui = FindAnyObjectByType<ResultsUI>();
+        if (ui == null)
+        {
+            Debug.LogWarning("[ResultsUI] SimpleResultsUI não encontrado na cena aditiva 'ResultsOverlay'.");
+            yield break;
+        }
+        ui.Show(names, totals, gains);
+    }
+
+    [Server]
+    public IEnumerator WaitAndReturnToLobby(float wait)
+    {
+        yield return new WaitForSeconds(wait);
+        _activePlayers.Clear();
+        _winnerPlayers .Clear();
+        
+        // Centralized network scene change
+        NetworkManager.singleton.ServerChangeScene("RASCUNHO");
+    }
 
     #endregion
 
@@ -189,27 +227,39 @@ public class MatchManager : NetworkBehaviour
 
         UpdateTemporaryRanking();
 
+        // Guarda resultados (ganhos) deste minigame
+        var miniResults = scoreRule.GetResults();
+        MyNetworkManager.manager.StoreLastResults(miniResults);
+
+        // Aplica pontos finais na tabela
         foreach (var entry in _temporaryRanking)
-        {
             MyNetworkManager.manager.AddPoints(entry.steamId, entry.score);
-        }
+
+        // Congela jogadores
         foreach (PlayerData pd in PlayerList.singleton.players)
         {
             PlayerScript ps = pd.transform.GetComponent<PlayerScript>();
             ps.isFrozen = true;
         }
-        
-        _gameOver = "Acabou!";
-        LeanTween.delayedCall(2.0f, () =>
+
+        // Prepara arrays para UI (ordem do scoreboard)
+        var sb = MyNetworkManager.manager.scoreboard.players;
+        int n = sb.Count;
+        string[] names = new string[n];
+        int[] totals = new int[n];
+        int[] gains = new int[n];
+        for (int i = 0; i < n; i++)
         {
-            _activePlayers.Clear();
-            _winnerPlayers .Clear();
-            
-            // Centralized network scene change
-            NetworkManager.singleton.ServerChangeScene("RASCUNHO");
-            
-            
-        });
+            var p = sb[i];
+            names[i] = p.playerName;
+            totals[i] = p.points;
+            gains[i] = (miniResults != null && miniResults.TryGetValue(p.steamID, out var g)) ? g : 0;
+        }
+        RpcShowSimpleResults(names, totals, gains);
+
+        _gameOver = "Acabou!";
+
+        StartCoroutine(WaitAndReturnToLobby(ResultsUI.singleton.exitTimerSeconds));
     }
 
     [Server]
