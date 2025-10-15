@@ -59,5 +59,18 @@ public class HUDSO : ScriptableObject{
     {
         this.EventOnHideMinigameSelectionPanel?.Invoke();
     }
+
+    public event Action EventOnShowCustomizationPanel;
+    public event Action EventOnHideCustomizationPanel;
+
+    public void ShowCustomizationPanel()
+    {
+        this.EventOnShowCustomizationPanel?.Invoke();
+    }
+
+    public void HideCustomizationPanel()
+    {
+        this.EventOnHideCustomizationPanel?.Invoke();
+    }
 }
 

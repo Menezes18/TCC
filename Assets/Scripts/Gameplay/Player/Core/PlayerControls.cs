@@ -30,6 +30,8 @@ using UnityEngine.InputSystem;
             PlayerInputSO.OnMenuCelular += PlayerInputSO_OnMenuCelular;
             PlayerInputSO.OnRoll += PlayerInputSO_OnRoll;
             PlayerInputSO.OnDebug += PlayerInputSOOnOnDebug;
+            PlayerInputSO.OnScroll += PlayerInputSO_OnScroll;
+            PlayerInputSO.OnCancel += PlayerInputSO_OnCancel;
 
 
         }
@@ -45,6 +47,8 @@ using UnityEngine.InputSystem;
                 PlayerInputSO.OnThrow -= PlayerInputSO_OnThrow;
                 PlayerInputSO.OnRoll  -= PlayerInputSO_OnRoll;
                 PlayerInputSO.OnMenuCelular -= PlayerInputSO_OnMenuCelular;
+                PlayerInputSO.OnScroll -= PlayerInputSO_OnScroll;
+                PlayerInputSO.OnCancel -= PlayerInputSO_OnCancel;
             }
         }
         
@@ -144,6 +148,23 @@ using UnityEngine.InputSystem;
             if (obj.performed == true){
                 PlayerControlsSO.Debug();
             }
+        }
+        
+        private void PlayerInputSO_OnScroll(CallbackContext obj)
+        {
+            if (!playerScript.isLocalPlayer) return;
+            if (!playerScript.panel) return; // Só funciona quando está no painel
+            
+            Vector2 scrollValue = obj.ReadValue<Vector2>();
+            PlayerControlsSO.ZoomPanel(scrollValue.y);
+        }
+        
+        private void PlayerInputSO_OnCancel(CallbackContext obj)
+        {
+            if (!playerScript.isLocalPlayer) return;
+            if (!obj.performed) return;
+            
+            PlayerControlsSO.ClosePanel();
         }
         
         private void EventMove(Vector2 obj){

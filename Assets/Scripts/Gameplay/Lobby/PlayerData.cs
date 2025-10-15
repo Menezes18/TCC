@@ -35,6 +35,11 @@ public class PlayerData : NetworkBehaviour{
    // Estado de espectador (opcional) replicado para todos
    [SyncVar(hook = nameof(OnSpectatingChanged))] public bool isSpectating;
    
+   // Customização (chapeu, oculos, blusa)
+   [SyncVar(hook = nameof(OnHatChanged))] public int hatIndex = -1;
+   [SyncVar(hook = nameof(OnGlassesChanged))] public int glassesIndex = -1;
+   [SyncVar(hook = nameof(OnShirtChanged))] public int shirtIndex = -1;
+   
    public UnityEvent<string> OnAliasUpdated;
    public UnityEvent<int> OnColorUpdated;
 
@@ -64,6 +69,20 @@ public class PlayerData : NetworkBehaviour{
    {
       base.OnStartLocalPlayer();
       StartCoroutine(InitializePlayerInfo());
+      
+      StartCoroutine(InitializeCustomization());
+   }
+   
+   private IEnumerator InitializeCustomization()
+   {
+      while (CustomizationManager.Instance == null)
+         yield return null;
+      
+      yield return new WaitForEndOfFrame();
+      
+      SendCustomizationToServer();
+      
+      Debug.Log("🎨 [PlayerData] Customization initialized and sent to server");
    }
    private IEnumerator InitializePlayerInfo()
    {
@@ -204,6 +223,89 @@ public class PlayerData : NetworkBehaviour{
          }
       }
    }
+   void OnHatChanged(int oldVal, int newVal)
+   {
+      Debug.Log($"🎩 [PlayerData] Hat changed: {oldVal} → {newVal} (isLocalPlayer={isLocalPlayer}, name={name})");
+      ApplyCustomizationToCharacter();
+      ApplyCustomizationToPlayerScript();
+   }
+   
+   void OnGlassesChanged(int oldVal, int newVal)
+   {
+      Debug.Log($"🕶️ [PlayerData] Glasses changed: {oldVal} → {newVal} (isLocalPlayer={isLocalPlayer}, name={name})");
+      ApplyCustomizationToCharacter();
+      ApplyCustomizationToPlayerScript();
+   }
+   
+   void OnShirtChanged(int oldVal, int newVal)
+   {
+      Debug.Log($"👕 [PlayerData] Shirt changed: {oldVal} → {newVal} (isLocalPlayer={isLocalPlayer}, name={name})");
+      ApplyCustomizationToCharacter();
+      ApplyCustomizationToPlayerScript();
+   }
+   
+   private void ApplyCustomizationToCharacter()
+   {
+      if (characterInstance == null)
+      {
+         return;
+      }
+      
+      var characterPlayerData = characterInstance.client;
+      if (characterPlayerData != this)
+      {
+         Debug.LogWarning($"⚠️ [PlayerData] characterInstance.client mismatch! Expected {name}, but characterInstance belongs to {characterPlayerData?.name ?? "null"}");
+         return;
+      }
+      
+      var applier = characterInstance.GetComponentInChildren<CustomizationApplier>();
+      if (applier != null)
+      {
+         var customData = new PlayerCustomizationData("");
+         customData.hatIndex = hatIndex;
+         customData.glassesIndex = glassesIndex;
+         customData.shirtIndex = shirtIndex;
+         
+         applier.ApplyCustomization(customData);
+         Debug.Log($"✅ [PlayerData] Customization applied to characterInstance: Hat={hatIndex}, Glasses={glassesIndex}, Shirt={shirtIndex}");
+      }
+   }
+   
+   private void ApplyCustomizationToPlayerScript()
+   {
+      if (isLocalPlayer)
+      {
+         return;
+      }
+      
+      var playerScript = GetComponent<PlayerScript>();
+      if (playerScript != null)
+      {
+         playerScript.ApplyRemoteCustomization(hatIndex, glassesIndex, shirtIndex);
+      }
+   }
+   
+   [Command]
+   public void CmdSetCustomization(int hat, int glasses, int shirt)
+   {
+      Debug.Log($"🎮 [PlayerData] Server received customization: Hat={hat}, Glasses={glasses}, Shirt={shirt}");
+      hatIndex = hat;
+      glassesIndex = glasses;
+      shirtIndex = shirt;
+   }
+   
+
+   public void SendCustomizationToServer()
+   {
+      if (!isLocalPlayer) return;
+      
+      var customization = CustomizationManager.Instance?.GetCurrentCustomization();
+      if (customization != null)
+      {
+         CmdSetCustomization(customization.hatIndex, customization.glassesIndex, customization.shirtIndex);
+         Debug.Log($"📤 [PlayerData] Sent customization to server: {customization}");
+      }
+   }
    void PlayerDataSOOnEventOnColorRequest(int obj)
    {
       if(!isOwned) return;
@@ -258,7 +360,6 @@ public class PlayerData : NetworkBehaviour{
         BriefingManager.singleton?.UpdateAllClientsSlots();
     }
 
-    // ===== Espectador (replicação) =====
     [Command]
     public void CmdSetSpectating(bool value)
     {
@@ -267,8 +368,8 @@ public class PlayerData : NetworkBehaviour{
 
     private void OnSpectatingChanged(bool _, bool newVal)
     {
-        // Pode acionar feedback local aqui se desejar
-        // Debug.Log($"[SPEC] isSpectating => {newVal}");
+       
+         Debug.Log($"[SPEC] isSpectating => {newVal}");
     }
 
    [Command]

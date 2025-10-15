@@ -9,6 +9,7 @@ public class PlayerControlsSO : ScriptableObject {
     public event Action<Vector2, Vector2> OnMove;
     public event Action<Vector2> OnLook;
     public event Action<float> OnRotatePanel;
+    public event Action<float> OnZoomPanel;
     public event Action OnPush;
     public event Action OnJump;
     public event Action OnThrow;
@@ -18,7 +19,8 @@ public class PlayerControlsSO : ScriptableObject {
     //
     public event Action OnMenu;
     public event Action OnCursor;
-    public event Action OnDebug; 
+    public event Action OnDebug;
+    public event Action OnClosePanel;  
 
 
 
@@ -36,6 +38,8 @@ public class PlayerControlsSO : ScriptableObject {
 
     // Panel-specific helpers
     public void RotatePanel(float x) { OnRotatePanel?.Invoke(x); }
+    public void ZoomPanel(float scroll) { OnZoomPanel?.Invoke(scroll); }
+    public void ClosePanel() { OnClosePanel?.Invoke(); }
 
     public void EnableCursor()
     {

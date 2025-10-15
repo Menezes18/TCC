@@ -166,6 +166,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private float _savedYawBeforePanel, _savedPitchBeforePanel;
     private float _panelFixedYaw, _panelFixedPitch;
     private float _panelRotateX;
+    private float _panelZoomOffset = 0f; 
+    [SerializeField] private float panelZoomSpeed = 0.5f;
+    [SerializeField] private float panelZoomMin = -1.5f;
+    [SerializeField] private float panelZoomMax = 1.5f;
     private Transform _panelAnchor;
 
     public void SetPanelCameraAnchor(Transform anchor) { _panelAnchor = anchor; }
@@ -184,19 +188,18 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SyncVar(hook = nameof(OnCarryingChanged))] private bool _isCarrying;
     [SyncVar] private bool _isHotPotatoHolder;
     [SyncVar(hook = nameof(OnBoostChanged))] private float _boostSpeedMultiplier = 1f;
-    [SerializeField, Range(0.3f, 1f)] private float carryingSpeedMultiplier = 0.8f; // fallback caso DB não esteja configurado
+    [SerializeField, Range(0.3f, 1f)] private float carryingSpeedMultiplier = 0.8f; 
     public bool IsCarrying => _isCarrying;
     
-    // Estado de "no ar" sincronizado para o servidor (para trampolim/hazards server-authoritative)
     [SyncVar] private bool _isAirborneServer;
     private bool _lastAirborneSent;
 
     // Forças externas de solo (ex.: esteira)
-    private Vector3 _externalGroundVelocity; // unidades/seg
-    private float _externalGroundTimer;      // duração restante em segundos
+    private Vector3 _externalGroundVelocity; 
+    private float _externalGroundTimer;      
 
     // Redução de controle (gelo)
-    private float _controlMultiplier = 1f;   // 1 = controle total, 0 = sem controle
+    private float _controlMultiplier = 1f;  
     private float _controlTimer;
 
     // UI
@@ -210,12 +213,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     // Spectator System
     [Header("Spectator")]
-    [SerializeField] private GameObject playerModelRoot; // Assign the visual model root in inspector
+    [SerializeField] private GameObject playerModelRoot; 
     private bool _isSpectating = false;
-    private List<PlayerScript> _alivePlayersCache = new System.Collections.Generic.List<PlayerScript>();
+    private List<PlayerScript> _alivePlayersCache = new List<PlayerScript>();
     private int _currentSpectatorIndex = 0;
     public bool IsSpectating => _isSpectating;
-    // Alvo atual que estamos observando enquanto em modo espectador
     public PlayerScript CurrentSpectatedTarget { get; private set; }
 
     // Event
@@ -244,6 +246,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         PlayerControlsSO.OnThrowCancel += PlayerControlsSO_OnThrowCancel;
         PlayerControlsSO.OnDebug += PlayerControlsSOOnOnDebug;
         PlayerControlsSO.OnRotatePanel += PlayerControlsSO_OnRotatePanel;
+        PlayerControlsSO.OnZoomPanel += PlayerControlsSO_OnZoomPanel;
+        PlayerControlsSO.OnClosePanel += PlayerControlsSO_OnClosePanel;
 
         // Spectator controls (using roll for next and push for previous while dead)
         // We'll handle spectator switching in Update based on state
@@ -289,8 +293,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         {
             var colorPanel = celularInstance.GetComponentInChildren<ColorChangePanel>(true);
             if (colorPanel != null) colorPanel.SetHUD(HUDSO);
-            var miniPanel = celularInstance.GetComponentInChildren<MinigameSelectionPanel>(true);
-            if (miniPanel != null) miniPanel.SetHUD(HUDSO);
+            
+            var minigamePanel = celularInstance.GetComponentInChildren<MinigameSelectionPanel>(true);
+            if (minigamePanel != null) minigamePanel.SetHUD(HUDSO);
         }
         if (cooldownUIPrefab != null)
         {
@@ -299,7 +304,19 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             if (ui != null)
                 ui.Init(this);
         }
+        
+        StartCoroutine(ApplyPlayerCustomizationDelayed());
     }
+    
+    private IEnumerator ApplyPlayerCustomizationDelayed()
+    {
+        yield return new WaitForSeconds(0.2f);
+        ApplyPlayerCustomization();
+        
+        yield return new WaitForSeconds(0.5f);
+        ApplyPlayerCustomization();
+    }
+    
     public override void OnStopLocalPlayer()
     {
         base.OnStopLocalPlayer();
@@ -350,6 +367,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         PlayerControlsSO.OnThrow -= PlayerControlsSO_OnThrow;
         PlayerControlsSO.OnThrowCancel -= PlayerControlsSO_OnThrowCancel;
         PlayerControlsSO.OnRotatePanel -= PlayerControlsSO_OnRotatePanel;
+        PlayerControlsSO.OnZoomPanel -= PlayerControlsSO_OnZoomPanel;
+        PlayerControlsSO.OnClosePanel -= PlayerControlsSO_OnClosePanel;
 
         //UI
         PlayerControlsSO.OnMenu -= EventOnCelularMenu;
@@ -535,6 +554,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             {
                 _panelExitTimer = 0f;
                 _panelRotateX = 0f;
+                _panelZoomOffset = 0f; 
             }
             _lastPanelState = panel;
         }
@@ -560,11 +580,14 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (panel)
         {
             offset = GetPanelOrbitalOffset();
+            offset.z += _panelZoomOffset;
         }
         else if (_panelExitTimer < GetPanelExitDuration())
         {
             float t = Mathf.Clamp01(_panelExitTimer / GetPanelExitDuration());
             offset = Vector3.Lerp(GetPanelOrbitalOffset(), db.orbitalOffset, t);
+            float zoomTransition = Mathf.Lerp(_panelZoomOffset, 0f, t);
+            offset.z += zoomTransition;
         }
         else
         {
@@ -599,6 +622,25 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private void PlayerControlsSO_OnRotatePanel(float x)
     {
         _panelRotateX = x;
+    }
+    
+    private void PlayerControlsSO_OnZoomPanel(float scroll)
+    {
+        _panelZoomOffset += scroll * panelZoomSpeed;
+        _panelZoomOffset = Mathf.Clamp(_panelZoomOffset, panelZoomMin, panelZoomMax);
+    }
+    
+    private void PlayerControlsSO_OnClosePanel()
+    {
+        if (!isOwned) return;
+
+        if (panel)
+        {
+            HUDSO.HideColorChangePanel();
+            HUDSO.HideMinigameSelectionPanel();
+            return;
+        }
+        
     }
 
     private Vector3 GetPanelOrbitalOffset() => panelCamera != null ? panelCamera.panelOrbitalOffset : new Vector3(0.12f, 0.08f, -2.29f);
@@ -1092,14 +1134,24 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private void EventOnCelularMenu()
     {
         if (base.isOwned == false) return;
-        _menuOpen = !_menuOpen;
         
-        celularInstance.SetActive(_menuOpen);
-        
-        if (panel) {
+        // Se o painel de cores está aberto, fecha ele
+        if (panel)
+        {
             HUDSO.HideColorChangePanel();
             return;
         }
+        
+        // Se o painel de minigames está aberto, fecha ele  
+        if (UILocked)
+        {
+            HUDSO.HideMinigameSelectionPanel();
+            return;
+        }
+        
+        // Se nenhum painel está aberto, alterna o estado do menu celular
+        _menuOpen = !_menuOpen;
+        celularInstance.SetActive(_menuOpen);
     }
 
     
@@ -1242,7 +1294,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     private void ShowPlayerModel()
     {
-        // Show all renderers in the player model
         if (playerModelRoot != null)
         {
             playerModelRoot.SetActive(true);
@@ -1250,7 +1301,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         }
         else
         {
-            // Fallback: enable all SkinnedMeshRenderers and MeshRenderers on this object
             var renderers = GetComponentsInChildren<Renderer>();
             foreach (var renderer in renderers)
             {
@@ -1492,5 +1542,84 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     }
 
     #endregion
-}
     
+    #region Customization
+    // ============= CUSTOMIZATION =============
+    /// <summary>
+    /// Aplica a customização salva do jogador no modelo do player
+    /// Este método é chamado tanto para o player local quanto para sincronizar via rede
+    /// </summary>
+    public void ApplyPlayerCustomization()
+    {
+        var applier = GetComponentInChildren<CustomizationApplier>();
+        if (applier == null)
+        {
+            Debug.LogWarning("⚠️ [PlayerScript] CustomizationApplier not found. Make sure it's added to the player prefab");
+            return;
+        }
+        
+        // Se é o player local, envia para o servidor via PlayerData
+        if (isLocalPlayer)
+        {
+            if (CustomizationManager.Instance == null)
+            {
+                Debug.LogWarning("⚠️ [PlayerScript] CustomizationManager not initialized");
+                return;
+            }
+            
+            var customization = CustomizationManager.Instance.GetCurrentCustomization();
+            if (customization != null)
+            {
+                // Envia para o servidor através do PlayerData
+                var playerData = GetComponent<PlayerData>();
+                if (playerData != null)
+                {
+                    playerData.SendCustomizationToServer();
+                    Debug.Log($"📤 [PlayerScript] Sent customization to server via PlayerData: {customization}");
+                }
+                
+                // Aplica localmente também
+                applier.ApplyCustomization(customization);
+                Debug.Log("✅ [PlayerScript] Customization applied to local player");
+            }
+        }
+        else
+        {
+            // Para players remotos, lê do PlayerData (SyncVars)
+            var playerData = GetComponent<PlayerData>();
+            if (playerData != null)
+            {
+                var customData = new PlayerCustomizationData("");
+                customData.hatIndex = playerData.hatIndex;
+                customData.glassesIndex = playerData.glassesIndex;
+                customData.shirtIndex = playerData.shirtIndex;
+                
+                applier.ApplyCustomization(customData);
+                Debug.Log($"✅ [PlayerScript] Customization applied from PlayerData SyncVars: Hat={playerData.hatIndex}, Glasses={playerData.glassesIndex}, Shirt={playerData.shirtIndex}");
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Aplica customização de players remotos quando SyncVars mudam
+    /// Chamado pelos hooks do PlayerData
+    /// </summary>
+    public void ApplyRemoteCustomization(int hatIndex, int glassesIndex, int shirtIndex)
+    {
+        if (isLocalPlayer) return; // Ignora para player local
+        
+        var applier = GetComponentInChildren<CustomizationApplier>();
+        if (applier != null)
+        {
+            var customData = new PlayerCustomizationData("");
+            customData.hatIndex = hatIndex;
+            customData.glassesIndex = glassesIndex;
+            customData.shirtIndex = shirtIndex;
+            
+            applier.ApplyCustomization(customData);
+            Debug.Log($"✅ [PlayerScript] Remote customization applied: Hat={hatIndex}, Glasses={glassesIndex}, Shirt={shirtIndex}");
+        }
+    }
+    // ============= END CUSTOMIZATION =============
+    #endregion
+}
