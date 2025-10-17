@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using System.Collections;
 
-// Adiciona as interfaces para hover e click
 public class ButtonHoverAnimator : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler
 {
     // Configurações de Escala
@@ -10,9 +9,9 @@ public class ButtonHoverAnimator : MonoBehaviour, IPointerEnterHandler, IPointer
     [Tooltip("Escala final do botão quando estiver 'hovering'")]
     public Vector3 hoverScale = new Vector3(1.1f, 1.1f, 1.1f);
     [Tooltip("Escala do botão no momento do clique (durante o 'Pointer Down')")]
-    public Vector3 clickScale = new Vector3(1.2f, 1.2f, 1.2f); // Novo: Escala um pouco maior que a hover
+    public Vector3 clickScale = new Vector3(1.2f, 1.2f, 1.2f);
     [Tooltip("Duração da animação de escala (em segundos)")]
-    public float scaleDuration = 0.1f; // Reduzi a duração para um clique mais responsivo
+    public float scaleDuration = 0.1f;
 
     // Configurações de Wiggle
     [Header("Configurações de Wiggle")]
@@ -27,7 +26,8 @@ public class ButtonHoverAnimator : MonoBehaviour, IPointerEnterHandler, IPointer
     private Coroutine wiggleCoroutine;
     private bool isHovering = false;
 
-    void Start()
+    // AWAKE é chamado mesmo se o objeto começar desativado, garantindo o defaultScale correto.
+    void Awake()
     {
         // Garante que o objeto tem um RectTransform
         if (GetComponent<RectTransform>() == null)
@@ -42,6 +42,37 @@ public class ButtonHoverAnimator : MonoBehaviour, IPointerEnterHandler, IPointer
         defaultRotation = transform.localRotation;
     }
 
+    // ON DISABLE garante que o botão resete o estado ao ser desativado/oculto
+    private void OnDisable()
+    {
+        // Força o reset para o estado normal (escala e rotação)
+        ResetToDefaultState();
+    }
+
+    // Método para ser chamado quando precisar de reset imediato
+    private void ResetToDefaultState()
+    {
+        // 1. Para as Coroutines em andamento
+        if (scaleCoroutine != null)
+        {
+            StopCoroutine(scaleCoroutine);
+            scaleCoroutine = null;
+        }
+
+        if (wiggleCoroutine != null)
+        {
+            StopCoroutine(wiggleCoroutine);
+            wiggleCoroutine = null;
+        }
+
+        // 2. Reseta o estado de 'hovering'
+        isHovering = false;
+
+        // 3. Define a escala e rotação para os valores iniciais imediatamente
+        transform.localScale = defaultScale;
+        transform.localRotation = defaultRotation;
+    }
+
     // Chamado quando o mouse entra no botão
     public void OnPointerEnter(PointerEventData eventData)
     {
@@ -51,7 +82,6 @@ public class ButtonHoverAnimator : MonoBehaviour, IPointerEnterHandler, IPointer
         scaleCoroutine = StartCoroutine(ScaleToTarget(hoverScale, scaleDuration));
 
         isHovering = true;
-        // Inicia o Wiggle se ainda não estiver rodando (garantia)
         if (wiggleCoroutine == null)
         {
             wiggleCoroutine = StartCoroutine(WiggleAnimation());
@@ -67,35 +97,16 @@ public class ButtonHoverAnimator : MonoBehaviour, IPointerEnterHandler, IPointer
         scaleCoroutine = StartCoroutine(ScaleToTarget(defaultScale, scaleDuration));
 
         isHovering = false;
-        // Interrompe a coroutine de wiggle. O WiggleAnimation também se encerra por causa do 'isHovering'.
-        if (wiggleCoroutine != null)
-        {
-            StopCoroutine(wiggleCoroutine);
-            wiggleCoroutine = null;
-        }
-
-        // Garante que a rotação e escala voltem ao normal imediatamente, se o Lerp não for executado por completo.
-        transform.localRotation = defaultRotation;
     }
 
-    // NOVO: Chamado quando o botão do mouse é pressionado (clicado)
+    // Chamado quando o botão do mouse é pressionado (clicado)
     public void OnPointerDown(PointerEventData eventData)
     {
         if (scaleCoroutine != null)
             StopCoroutine(scaleCoroutine);
 
-        // Aplica a animação de escala para o clique (mais rápido, mais feedback)
+        // Escala para o estado de clique, mais rápido para feedback instantâneo
         scaleCoroutine = StartCoroutine(ScaleToTarget(clickScale, scaleDuration * 0.5f));
-
-        // NOTA: Para retornar do "clickScale", você precisaria de IPointerUpHandler.
-        // Se você não o usar, a OnPointerExit (se o mouse sair) ou OnPointerEnter (se o clique for rápido
-        // e o mouse permanecer) se encarregarão de restaurar a escala para 'hoverScale' ou 'defaultScale'.
-        // Geralmente, o próprio sistema de UI do Unity se encarrega de disparar a OnPointerEnter/Exit
-        // ou o OnPointerClick (que dispara Up) para gerenciar o estado.
-
-        // Se você quiser que ele *volte* para a hoverScale após o clique, mas o mouse ainda está em cima,
-        // você precisaria de IPointerUpHandler para ScaleToTarget(hoverScale).
-        // Por enquanto, vamos manter simples: OnPointerExit/Enter gerenciam a transição.
     }
 
 
@@ -107,13 +118,14 @@ public class ButtonHoverAnimator : MonoBehaviour, IPointerEnterHandler, IPointer
 
         while (timeElapsed < duration)
         {
+            // Lerp para interpolação suave
             transform.localScale = Vector3.Lerp(initialScale, targetScale, timeElapsed / duration);
             timeElapsed += Time.deltaTime;
             yield return null;
         }
         transform.localScale = targetScale;
 
-        // Se retornar à escala default, garante que a rotação também está normal
+        // Se a escala alvo for a default, garante que a rotação também esteja normal
         if (targetScale == defaultScale)
         {
             transform.localRotation = defaultRotation;
@@ -127,10 +139,10 @@ public class ButtonHoverAnimator : MonoBehaviour, IPointerEnterHandler, IPointer
         while (isHovering)
         {
             time += Time.deltaTime * wiggleSpeed;
-            // Usa MathF.Sin para criar um movimento oscilatório suave
+            // Usa Mathf.Sin para criar um movimento oscilatório suave
             float angle = Mathf.Sin(time) * wiggleAmplitude;
 
-            // Aplica a rotação (wiggle) no eixo Z (ou o que for mais apropriado para a sua UI)
+            // Aplica a rotação no eixo Z
             transform.localRotation = defaultRotation * Quaternion.Euler(0f, 0f, angle);
 
             yield return null;
