@@ -8661,6 +8661,8 @@ MonoBehaviour:
   syncInterval: 0
   _minigameController: {fileID: 2061761677}
   _zoneType: 0
+  _playerSpawnPoint: {fileID: 0}
+  _highlightVfx: {fileID: 0}
 --- !u!114 &44880329
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -144791,16 +144793,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 195991684}
     m_Modifications:
-    - target: {fileID: 1289698042811396300, guid: 5fbea9224c0b28f4e956956f5fdbb4f6,
-        type: 3}
-      propertyPath: m_Enabled
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2676296265844093886, guid: 5fbea9224c0b28f4e956956f5fdbb4f6,
-        type: 3}
-      propertyPath: sceneId
-      value: 1983024384
-      objectReference: {fileID: 0}
     - target: {fileID: -1462004961476740006, guid: 5414c518c1f41264ab616feef93ced4b,
         type: 3}
       propertyPath: sceneId
@@ -145510,6 +145502,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_StaticEditorFlags
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1289698042811396300, guid: 5fbea9224c0b28f4e956956f5fdbb4f6,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2676296265844093886, guid: 5fbea9224c0b28f4e956956f5fdbb4f6,
+        type: 3}
+      propertyPath: sceneId
+      value: 1983024384
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -147889,6 +147891,8 @@ MonoBehaviour:
   syncInterval: 0
   _minigameController: {fileID: 2061761677}
   _zoneType: 1
+  _playerSpawnPoint: {fileID: 0}
+  _highlightVfx: {fileID: 0}
 --- !u!114 &1120722905
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -189132,6 +189136,8 @@ MonoBehaviour:
   syncInterval: 0
   _minigameController: {fileID: 2061761677}
   _zoneType: 1
+  _playerSpawnPoint: {fileID: 0}
+  _highlightVfx: {fileID: 0}
 --- !u!114 &1525610368
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -189273,6 +189279,8 @@ MonoBehaviour:
   syncInterval: 0
   _minigameController: {fileID: 2061761677}
   _zoneType: 1
+  _playerSpawnPoint: {fileID: 0}
+  _highlightVfx: {fileID: 0}
 --- !u!114 &1530980139
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -249749,6 +249757,8 @@ MonoBehaviour:
   syncInterval: 0
   _minigameController: {fileID: 2061761677}
   _zoneType: 1
+  _playerSpawnPoint: {fileID: 0}
+  _highlightVfx: {fileID: 0}
 --- !u!114 &2088361465
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -255698,6 +255708,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5af1df2b4afda948b3d792ba057f5ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  cause: 0
+  permanent: 0
+  useTrigger: 1
+  useCollision: 0
+  usePeriodicCheck: 0
+  targetMask:
+    serializedVersion: 2
+    m_Bits: 0
+  checkHalfExtents: {x: 0.5, y: 0.5, z: 0.5}
+  checkOffset: {x: 0, y: 0, z: 0}
+  checkInterval: 0.1
 --- !u!1001 &4827605914992695637
 PrefabInstance:
   m_ObjectHideFlags: 0
