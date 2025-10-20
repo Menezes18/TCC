@@ -6,9 +6,32 @@ public class ChaoQuebrando : ChaoMae
 {
     [SerializeField]
     private GameObject[] estadosChao;
+    
+    [SyncVar(hook = nameof(OnIndiceChanged))]
+    private int indiceEstadoAtual = 0;
+    
     private float tempoAcumulado = 0f;
     private bool jogadorNoTile = false;
-    private int indiceEstadoAtual = 0;
+    private int ultimoIndiceVisual = 0;
+    
+    // Para uso com FloorBreakingManager (opcional)
+    private int tileId = -1;
+    private FloorBreakingManager manager;
+    
+    public void SetTileId(int id) => tileId = id;
+    public void SetManager(FloorBreakingManager mgr) => manager = mgr;
+    public void AtualizarVisualizacaoRemota(int novoIndice, bool destruido)
+    {
+        if (destruido)
+        {
+            chaoTirado = true;
+            DesativaTile();
+        }
+        else
+        {
+            indiceEstadoAtual = novoIndice;
+        }
+    }
 
     private void OnTriggerEnter(Collider other)
     {
@@ -28,22 +51,16 @@ public class ChaoQuebrando : ChaoMae
 
     private void Update()
     {
-        if (jogadorNoTile && !chaoTirado)
+        // Apenas o servidor processa a lógica de progressão
+        if (isServer && jogadorNoTile && !chaoTirado)
         {
             tempoAcumulado += Time.deltaTime;
             if (tempoAcumulado >= dataChao.tempo)
             {
                 tempoAcumulado = 0;
-                CmdEstado();
+                AtualizaEstado();
             }
         }
-    }
-
-    [Command(requiresAuthority = false)]
-    public void CmdEstado()
-    {
-        AtualizaEstado();
-        RpcAtualizaEstado(indiceEstadoAtual);
     }
 
     [Server]
@@ -51,29 +68,36 @@ public class ChaoQuebrando : ChaoMae
     {
         indiceEstadoAtual++;
 
-        if (indiceEstadoAtual < estadosChao.Length)
-        {
-            estadosChao[indiceEstadoAtual].SetActive(true);
-            estadosChao[indiceEstadoAtual - 1].SetActive(false);
-        }
-        else
+        if (indiceEstadoAtual >= estadosChao.Length)
         {
             tiraChao();
         }
     }
 
-    [ClientRpc]
-    private void RpcAtualizaEstado(int novoIndice)
+    // Hook chamado automaticamente quando o SyncVar muda (em todos os clientes)
+    private void OnIndiceChanged(int oldIndice, int newIndice)
     {
-        if (isServer) return; // Evita que o servidor execute isso duas vezes
-        
-        if (novoIndice < estadosChao.Length && estadosChao[novoIndice] != null)
+        // Atualiza a visualização local baseado no novo índice
+        AtualizaVisualizacao(newIndice);
+    }
+
+    private void AtualizaVisualizacao(int novoIndice)
+    {
+        // Desativa o estado anterior
+        if (ultimoIndiceVisual >= 0 && ultimoIndiceVisual < estadosChao.Length)
+        {
+            estadosChao[ultimoIndiceVisual].SetActive(false);
+        }
+
+        // Ativa o novo estado se válido
+        if (novoIndice >= 0 && novoIndice < estadosChao.Length)
         {
             estadosChao[novoIndice].SetActive(true);
-            estadosChao[novoIndice - 1].SetActive(false);
+            ultimoIndiceVisual = novoIndice;
         }
-        else
+        else if (novoIndice >= estadosChao.Length)
         {
+            // Tile foi destruído
             DesativaTile();
         }
     }
@@ -93,23 +117,20 @@ public class ChaoQuebrando : ChaoMae
     [Server]
     public override void poeChao()
     {
-        transform.position = posIncial;
-        tempoAcumulado = 0f;
         chaoTirado = false;
         indiceEstadoAtual = 0;
-        estadosChao[indiceEstadoAtual].SetActive(true);
-        RpcResetarChao();
+        tempoAcumulado = 0f;
+        
+        gameObject.SetActive(true);
+        transform.position = posIncial;
+        
+        // O hook OnIndiceChanged vai atualizar a visualização automaticamente
     }
 
-    [ClientRpc]
-    private void RpcResetarChao()
+    public override void OnStartClient()
     {
-        if (isServer) return;
-
-        transform.position = posIncial;
-        tempoAcumulado = 0f;
-        chaoTirado = false;
-        indiceEstadoAtual = 0;
-        estadosChao[indiceEstadoAtual].SetActive(true);
+        base.OnStartClient();
+        // Sincroniza a visualização inicial quando o cliente conecta
+        AtualizaVisualizacao(indiceEstadoAtual);
     }
 }

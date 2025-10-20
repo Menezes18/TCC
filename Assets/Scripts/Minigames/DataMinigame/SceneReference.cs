@@ -18,19 +18,10 @@ public class SceneReference
     private SceneAsset sceneAsset;
 #endif
 
-    /// <summary>
-    /// Gets the scene name as registered in Build Settings.
-    /// </summary>
     public string SceneName => sceneName;
 
-    /// <summary>
-    /// Gets the stored asset path. Falls back to the scene name when empty.
-    /// </summary>
     public string ScenePathOrName => string.IsNullOrWhiteSpace(scenePath) ? sceneName : scenePath;
 
-    /// <summary>
-    /// Indicates whether this reference points to a valid scene.
-    /// </summary>
     public bool IsValid => !string.IsNullOrWhiteSpace(ScenePathOrName);
 
 #if UNITY_EDITOR
@@ -48,12 +39,9 @@ public class SceneReference
     }
 #endif
 
-    /// <summary>
-    /// Ensures cached data is up to date (invoked automatically in the editor).
-    /// </summary>
-#if UNITY_EDITOR
     public void Validate()
     {
+#if UNITY_EDITOR
         if (sceneAsset != null)
         {
             SyncFromAsset();
@@ -67,8 +55,7 @@ public class SceneReference
                 sceneName = asset.name;
             }
         }
-#endif
-#if UNITY_EDITOR
+
         if (sceneAsset == null && string.IsNullOrEmpty(sceneName))
 #else
         if (string.IsNullOrEmpty(sceneName))
