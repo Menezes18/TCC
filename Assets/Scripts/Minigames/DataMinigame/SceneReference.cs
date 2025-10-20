@@ -57,14 +57,11 @@ public class SceneReference
         }
 
         if (sceneAsset == null && string.IsNullOrEmpty(sceneName))
-#else
-        if (string.IsNullOrEmpty(sceneName))
-#endif
         {
             scenePath = string.Empty;
         }
     }
-
+#endif
     private void SyncFromAsset()
     {
 #if UNITY_EDITOR
