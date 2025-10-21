@@ -1,29 +1,26 @@
 using UnityEngine;
 using Mirror;
 using System.Collections.Generic;
-
 public class ChaoQuebrandoSimples : MonoBehaviour
 {
     [SerializeField] private GameObject[] estadosChao;
     [SerializeField] private ChaoMaeSo dataChao;
-    [SerializeField] private bool detectarPulandoTambem = true;
     [SerializeField] private bool mostrarLogs = false;
+    [SerializeField] private float raioDeteccao = 1.5f;
     
     private Vector3 posInicial;
     private int tileId = -1;
     private FloorBreakingManager manager;
     
     private float tempoAcumulado = 0f;
-    private HashSet<Collider> jogadoresNoTile = new HashSet<Collider>();
     private int indiceEstadoAtual = 0;
     private bool chaoDestruido = false;
-    private bool foiPisado = false; // Flag para garantir que pisa pelo menos uma vez
+    private bool foiPisado = false;
 
     private void Awake()
     {
         posInicial = transform.position;
         
-        // Garante que apenas o estado 0 está ativo no início
         if (estadosChao != null && estadosChao.Length > 0)
         {
             for (int i = 0; i < estadosChao.Length; i++)
@@ -47,61 +44,105 @@ public class ChaoQuebrandoSimples : MonoBehaviour
 
     public void SetTileId(int id) => tileId = id;
     public void SetManager(FloorBreakingManager mgr) => manager = mgr;
-
-    private void OnTriggerEnter(Collider other)
+    
+    public bool FoiPisado() => foiPisado;
+    
+    public void AtivarTile()
     {
-        if (!NetworkServer.active && NetworkClient.active) return;
-        
-        if (other.CompareTag("Player") && !chaoDestruido)
+        if (!foiPisado)
         {
-            jogadoresNoTile.Add(other);
+            foiPisado = true;
+            tempoAcumulado = 0f;
             
-            if (!foiPisado)
+            if (mostrarLogs)
             {
-                foiPisado = true;
-                tempoAcumulado = 0f;
+                Debug.Log($"[Tile {tileId}] Ativado remotamente");
             }
-        }
-    }
-
-    private void OnTriggerStay(Collider other)
-    {
-        if (!NetworkServer.active && NetworkClient.active) return;
-        
-        if (other.CompareTag("Player") && !chaoDestruido)
-        {
-            jogadoresNoTile.Add(other);
-            
-            if (!foiPisado)
-            {
-                foiPisado = true;
-                tempoAcumulado = 0f;
-            }
-        }
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        if (!NetworkServer.active && NetworkClient.active) return;
-        
-        if (other.CompareTag("Player"))
-        {
-            jogadoresNoTile.Remove(other);
         }
     }
 
     private void Update()
     {
-        if (!NetworkServer.active && NetworkClient.active) return;
-
-        if (foiPisado && !chaoDestruido)
+        // SERVIDOR: processa lógica do tile
+        if (NetworkServer.active)
         {
-            tempoAcumulado += Time.deltaTime;
-            
-            if (tempoAcumulado >= dataChao.tempo)
+            if (!chaoDestruido)
             {
-                tempoAcumulado = 0;
-                ProgrediEstado();
+                DetectarJogadores();
+            }
+
+            if (foiPisado && !chaoDestruido)
+            {
+                tempoAcumulado += Time.deltaTime;
+                
+                if (tempoAcumulado >= dataChao.tempo)
+                {
+                    tempoAcumulado = 0;
+                    ProgrediEstado();
+                }
+            }
+        }
+        // CLIENTES: detecta localmente e avisa o servidor
+        else if (NetworkClient.active)
+        {
+            if (!chaoDestruido && !foiPisado)
+            {
+                DetectarJogadorLocal();
+            }
+        }
+    }
+    
+    // Servidor detecta todos os jogadores
+    private void DetectarJogadores()
+    {
+        Collider[] colliders = Physics.OverlapSphere(transform.position + Vector3.up * 0.5f, raioDeteccao);
+        
+        foreach (Collider col in colliders)
+        {
+            Transform root = col.transform.root;
+            if (root.CompareTag("Player") || col.CompareTag("Player"))
+            {
+                if (!foiPisado)
+                {
+                    foiPisado = true;
+                    tempoAcumulado = 0f;
+                    
+                    if (mostrarLogs)
+                    {
+                        Debug.Log($"[Tile {tileId}] (SERVIDOR) Jogador detectado: {root.name}");
+                    }
+                }
+                return;
+            }
+        }
+    }
+    
+    private void DetectarJogadorLocal()
+    {
+        Collider[] colliders = Physics.OverlapSphere(transform.position + Vector3.up * 0.5f, raioDeteccao);
+        
+        foreach (Collider col in colliders)
+        {
+            Transform root = col.transform.root;
+            
+            NetworkIdentity netIdentity = root.GetComponent<NetworkIdentity>();
+            if (netIdentity != null && netIdentity.isOwned)
+            {
+                if (root.CompareTag("Player") || col.CompareTag("Player"))
+                {
+                    if (manager != null)
+                    {
+                        manager.NotificarTilePisadoPorCliente(tileId);
+                        
+                        if (mostrarLogs)
+                        {
+                            Debug.Log($"[Tile {tileId}] (CLIENTE) Meu jogador pisou, notificando servidor");
+                        }
+                        
+                        foiPisado = true;
+                    }
+                    return;
+                }
             }
         }
     }
@@ -155,9 +196,24 @@ public class ChaoQuebrandoSimples : MonoBehaviour
         {
             chaoDestruido = true;
             gameObject.SetActive(false);
+            
+            if (mostrarLogs)
+            {
+                Debug.Log($"[Tile {tileId}] (CLIENTE) Tile destruído remotamente");
+            }
         }
         else
         {
+            if (!foiPisado && novoIndice > 0)
+            {
+                foiPisado = true;
+                
+                if (mostrarLogs)
+                {
+                    Debug.Log($"[Tile {tileId}] (CLIENTE) Tile ativado remotamente por outro jogador");
+                }
+            }
+            
             indiceEstadoAtual = novoIndice;
             AtualizarVisualizacao(novoIndice);
         }
@@ -205,10 +261,15 @@ public class ChaoQuebrandoSimples : MonoBehaviour
         indiceEstadoAtual = 0;
         tempoAcumulado = 0f;
         foiPisado = false;
-        jogadoresNoTile.Clear();
         
         gameObject.SetActive(true);
         transform.position = posInicial;
         AtualizarVisualizacao(0);
+    }
+    
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = foiPisado ? Color.red : Color.yellow;
+        Gizmos.DrawWireSphere(transform.position + Vector3.up * 0.5f, raioDeteccao);
     }
 }

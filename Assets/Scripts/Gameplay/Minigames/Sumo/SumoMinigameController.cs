@@ -20,6 +20,7 @@ public class SumoMinigameController : MinigameController, IObserver
     [SerializeField] private List<PlayerData> alivePlayers = new List<PlayerData>();
     [SerializeField] private List<PlayerData> eliminationOrder = new List<PlayerData>();
     private Dictionary<ulong,int> finalScores = new Dictionary<ulong,int>();
+    private bool _matchEnded;
     
     private PlayerList playerList => PlayerList.singleton;
     [SerializeField] private HideStep[] hideSequence;
@@ -46,6 +47,7 @@ public class SumoMinigameController : MinigameController, IObserver
     public override void StartMatch()
     {
         base.StartMatch();
+        _matchEnded = false;
         Notifica();  
     }
     public override void SetupMiniGame()
@@ -124,12 +126,19 @@ public class SumoMinigameController : MinigameController, IObserver
     [Server]
     public void Eliminate(PlayerData pd)
     {
+        if (_matchEnded)
+        {
+            Debug.LogWarning($"[Sumo] Tentativa de eliminar {pd.playerInfo.steamId} após fim da partida - IGNORADO");
+            return;
+        }
+        
         alivePlayers.Remove(pd);
         eliminationOrder.Add(pd);
         Debug.Log($"💣[Sumo] Eliminado: {pd.playerInfo.steamId}");
         Notifica();
         if (alivePlayers.Count <= 1)
         {
+            _matchEnded = true;
             AssignFinalPoints();
             finalizar?.Invoke();
         }

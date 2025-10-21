@@ -44,6 +44,7 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
 
     private PlayerList playerList => PlayerList.singleton;
     private bool matchActive;
+    private bool _matchEnded; // Flag para prevenir pontos duplicados após fim
     private float roundTimer;
     private int _lastWholeSecondLogged = -1;
 
@@ -74,6 +75,7 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     {
         base.StartMatch();
         matchActive = true;
+        _matchEnded = false; // Reset flag ao iniciar nova partida
         roundTimer = 0f;
 
         if (mode == GameMode.Eliminatorio)
@@ -308,6 +310,13 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     private void Eliminate(PlayerData pd)
     {
         if (pd == null) return;
+        
+        // PROTEÇÃO: Ignora eliminações após a partida ter terminado
+        if (_matchEnded)
+        {
+            Debug.LogWarning($"[BatataQuente] Tentativa de eliminar {pd.playerInfo.username} após fim da partida - IGNORADO");
+            return;
+        }
 
         alivePlayers.Remove(pd);
         eliminationOrder.Add(pd);
@@ -334,8 +343,9 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     }
 
     [Server]
-    private void EndMatch()
+    public override void EndMatch()
     {
+        _matchEnded = true; // Marca partida como encerrada ANTES de chamar base.EndMatch()
         MatchManager.singleton.SetMatchTimer(0f);
         phase = Phase.Idle;
         matchActive = false;
@@ -346,6 +356,9 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
             var ps = pd.GetComponent<PlayerScript>();
             ps?.ServerSetHotPotatoHolder(false);
         }
+        
+        // Chama base para processar pontos e notificações
+        base.EndMatch();
     }
     #endregion
 
@@ -502,6 +515,6 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
             hudso.MatchTimerUpdate(timeLeft);
     }
 
-    public void Atualizacao(ISubject subject) { }
+    public new void Atualizacao(ISubject subject) { }
     #endregion
 }

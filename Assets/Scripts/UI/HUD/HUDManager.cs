@@ -18,8 +18,19 @@ public class HUDManager : MonoBehaviour
     [SerializeField] float popOvershoot = 1.15f; // escala > 1 e volta
     [SerializeField] float popBackDuration = 0.12f;
 
+    [Header("Match Timer FX")]
+    [SerializeField] float timerPulseScale = 1.15f;
+    [SerializeField] float timerPulseDuration = 0.5f;
+    [SerializeField] Color timerNormalColor = Color.white;
+    [SerializeField] Color timerWarningColor = new Color(1f, 0.84f, 0.30f); 
+    [SerializeField] Color timerCriticalColor = new Color(1f, 0.36f, 0.36f); 
+    [SerializeField] int warningThreshold = 30; 
+    [SerializeField] int criticalThreshold = 10; 
+
     int _lastFreezeShown = int.MinValue;
+    int _lastMatchTimerSecond = -1;
     Sequence _freezeSeq;
+    Sequence _matchTimerSeq;
     Dictionary<int, Color> _numColors;
     TMP_Text tmp;
     void Start()
@@ -95,13 +106,21 @@ public class HUDManager : MonoBehaviour
     }
     void HUDSOOnEventOnMatchTimerUpdated(float obj)
     {
-        if (Mathf.RoundToInt(obj) == -1) { _matchTimer.text = ""; return; }
+        if (Mathf.RoundToInt(obj) == -1) 
+        { 
+            _matchTimer.text = "";
+            _matchTimerSeq?.Kill();
+            return; 
+        }
+        
+        int seconds = Mathf.RoundToInt(obj);
         _matchTimer.text = CustomMath.FormatTimer(obj);
 
-
-
-
-
+        if (seconds != _lastMatchTimerSecond)
+        {
+            _lastMatchTimerSecond = seconds;
+            AnimateMatchTimer(seconds);
+        }
     }
 
     void HUDSOOnEventOnGameOver(string obj) => _gameover.text = obj;
@@ -129,6 +148,45 @@ public class HUDManager : MonoBehaviour
             .Join(rt.DORotate(new Vector3(0, 0, -360f), spinDuration, RotateMode.FastBeyond360)
                     .SetEase(Ease.OutCubic))
             .Append(rt.DOScale(1f, popBackDuration).SetEase(Ease.OutQuad));
+    }
+
+    void AnimateMatchTimer(int seconds)
+    {
+        RectTransform rt = _matchTimer.rectTransform;
+        
+        // Determina a cor baseado no tempo restante
+        Color targetColor = timerNormalColor;
+        bool shouldPulse = false;
+
+        if (seconds <= criticalThreshold)
+        {
+            targetColor = timerCriticalColor;
+            shouldPulse = true;
+        }
+        else if (seconds <= warningThreshold)
+        {
+            targetColor = timerWarningColor;
+        }
+
+        // Aplica a cor
+        _matchTimer.color = targetColor;
+
+        // Cancela animação anterior
+        _matchTimerSeq?.Kill();
+        rt.DOKill();
+
+        // Animação de pulso suave a cada segundo
+        _matchTimerSeq = DOTween.Sequence()
+            .Append(rt.DOScale(1.1f, 0.15f).SetEase(Ease.OutQuad))
+            .Append(rt.DOScale(1f, 0.15f).SetEase(Ease.InQuad));
+
+        // Se estiver em tempo crítico, adiciona pulso contínuo
+        if (shouldPulse)
+        {
+            _matchTimerSeq.Append(rt.DOScale(timerPulseScale, timerPulseDuration * 0.5f)
+                .SetEase(Ease.InOutSine)
+                .SetLoops(-1, LoopType.Yoyo));
+        }
     }
     
     public void SetOutline(Color color)

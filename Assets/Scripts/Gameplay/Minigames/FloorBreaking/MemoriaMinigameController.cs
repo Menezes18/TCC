@@ -12,6 +12,7 @@ public class MemoriaMinigameController : MinigameController, IObserver
     [SerializeField] private List<PlayerData> alivePlayers = new List<PlayerData>();
     [SerializeField] private List<PlayerData> eliminationOrder = new List<PlayerData>();
     private Dictionary<ulong,int> finalScores = new Dictionary<ulong,int>();
+    private bool _matchEnded;
 
     private PlayerList playerList => PlayerList.singleton;
 
@@ -33,6 +34,7 @@ public class MemoriaMinigameController : MinigameController, IObserver
     public override void StartMatch()
     {
         base.StartMatch();
+        _matchEnded = false;
         Notifica();
         if (isServer)
         {
@@ -63,8 +65,6 @@ public class MemoriaMinigameController : MinigameController, IObserver
         Invoke("AddPlayer", 2f);
     }
 
-    // Freeze é controlado pelo MatchManager; StartMatch é chamado quando o freeze acaba
-
     public void AddPlayer()
     {
         alivePlayers  = playerList.players.ToList();
@@ -72,8 +72,6 @@ public class MemoriaMinigameController : MinigameController, IObserver
 
     public override void UpdateScores()
     {
-        // O controle de eliminação acontece nos blocos (ChaoSumindo) durante Resolve.
-        // Aqui podemos apenas monitorar o estado, se necessário.
         if (!isServer || !_startGame)
             return;
     }
@@ -81,12 +79,19 @@ public class MemoriaMinigameController : MinigameController, IObserver
     [Server]
     public void Eliminate(PlayerData pd)
     {
+        if (_matchEnded)
+        {
+            Debug.LogWarning($"[MEMÓRIA] Tentativa de eliminar {pd.playerInfo.steamId} após fim da partida - IGNORADO");
+            return;
+        }
+        
         alivePlayers.Remove(pd);
         eliminationOrder.Add(pd);
         Debug.LogWarning($"❌ [MEMÓRIA] Eliminado: {pd.playerInfo.steamId}");
         Notifica();
         if (alivePlayers.Count <= 1)
         {
+            _matchEnded = true;
             AssignFinalPoints();
             finalizar?.Invoke();
         }
