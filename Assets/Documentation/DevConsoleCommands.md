@@ -49,8 +49,13 @@ O console é injetado automaticamente em runtime e funciona para host/cliente. A
 - points set <alvo> <valor>  [host]
   Define os pontos de um jogador (internamente calcula delta).
 
+- unityconsole on|off|toggle
+  Mostra/oculta o console nativo da Unity (só aparece em Development Build).
+
+- console open|close|toggle
+  Mostra/fecha este console in‑game por comando.
+
 Observações
 - “host” indica comandos restritos ao servidor/host.
 - Nomes de jogadores são “contains” case‑insensitive; para precisão use o SteamID.
 - O console captura logs do Unity e marca: [ERR], [WRN], [EXC].
-

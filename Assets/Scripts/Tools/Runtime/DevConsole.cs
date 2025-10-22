@@ -11,6 +11,7 @@ using UnityEngine;
 // Auto-injected in all scenes.
 public class DevConsole : MonoBehaviour
 {
+    public static bool IsOpen => _instance != null && _instance._visible;
     private static DevConsole _instance;
     private readonly List<string> _log = new List<string>(256);
     private Vector2 _scroll;
@@ -20,6 +21,11 @@ public class DevConsole : MonoBehaviour
     private bool _visible = false;
     private bool _autoScroll = true;
     private float _opacity = 0.92f;
+    private bool _hadUILockBefore = false;
+    private CursorLockMode _prevCursorLock;
+    private bool _prevCursorVisible;
+    private bool _unityConsoleDesired;
+    private bool _submittedThisFrame;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Ensure()
@@ -35,6 +41,7 @@ public class DevConsole : MonoBehaviour
         Application.logMessageReceived += OnLog;
         Log("DevConsole pronto. Pressione ` ou F1 para abrir.");
         Log("Digite 'help' para ver comandos disponíveis.");
+        _unityConsoleDesired = GetUnityConsoleVisible();
     }
 
     private void OnDestroy()
@@ -45,9 +52,21 @@ public class DevConsole : MonoBehaviour
 
     private void Update()
     {
+        _submittedThisFrame = false; // reset intent for this frame
+        if (_visible && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
+        {
+            Submit(_input);
+            _input = string.Empty;
+            _historyIndex = -1;
+            _submittedThisFrame = true;
+        }
         if (Input.GetKeyDown(KeyCode.BackQuote) || Input.GetKeyDown(KeyCode.F1))
         {
-            _visible = !_visible;
+            ToggleVisible();
+        }
+        if (_visible && Input.GetKeyDown(KeyCode.Escape))
+        {
+            ToggleVisible();
         }
     }
 
@@ -68,21 +87,23 @@ public class DevConsole : MonoBehaviour
             _scroll.y = 999999f;
         GUILayout.EndScrollView();
 
+        GUILayout.BeginHorizontal();
         GUI.SetNextControlName("DevConsoleInput");
         _input = GUILayout.TextField(_input);
+        if (GUILayout.Button("Enviar", GUILayout.Width(80)))
+        {
+            Submit(_input);
+            _input = string.Empty;
+            _historyIndex = -1;
+        }
+        GUILayout.EndHorizontal();
         GUI.FocusControl("DevConsoleInput");
 
         var e = Event.current;
         if (e.isKey && e.type == EventType.KeyDown)
         {
-            if (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter)
-            {
-                Submit(_input);
-                _input = string.Empty;
-                _historyIndex = -1;
-                e.Use();
-            }
-            else if (e.keyCode == KeyCode.UpArrow)
+            // Up/Down: histórico
+            if (e.keyCode == KeyCode.UpArrow)
             {
                 if (_history.Count > 0)
                 {
@@ -106,6 +127,45 @@ public class DevConsole : MonoBehaviour
         GUILayout.EndArea();
     }
 
+    private void ToggleVisible() => SetVisible(!_visible);
+
+    private void SetVisible(bool show)
+    {
+        if (_visible == show) return;
+        _visible = show;
+        var ps = GetLocalPlayer();
+        if (show)
+        {
+            _hadUILockBefore = ps != null && ps.UILocked;
+            if (ps != null) ps.UILocked = true;
+            _prevCursorLock = Cursor.lockState;
+            _prevCursorVisible = Cursor.visible;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            // focus text field next OnGUI
+        }
+        else
+        {
+            if (ps != null && !_hadUILockBefore)
+                ps.UILocked = false;
+            Cursor.lockState = _prevCursorLock;
+            Cursor.visible = _prevCursorVisible;
+        }
+    }
+
+    private PlayerScript GetLocalPlayer()
+    {
+        try
+        {
+            var all = GameObject.FindObjectsOfType<PlayerScript>();
+            foreach (var p in all)
+                if (p != null && p.isLocalPlayer)
+                    return p;
+        }
+        catch {}
+        return null;
+    }
+
     private void DrawToolbar()
     {
         GUILayout.BeginHorizontal();
@@ -114,8 +174,13 @@ public class DevConsole : MonoBehaviour
         _autoScroll = GUILayout.Toggle(_autoScroll, "AutoScroll", GUILayout.Width(90));
         GUILayout.Label("Opacidade", GUILayout.Width(70));
         _opacity = GUILayout.HorizontalSlider(_opacity, 0.3f, 1f, GUILayout.Width(120));
+        bool unityCon = GUILayout.Toggle(GetUnityConsoleVisible(), "Unity Console", GUILayout.Width(120));
+        if (unityCon != GetUnityConsoleVisible())
+        {
+            SetUnityConsoleVisible(unityCon);
+        }
         if (GUILayout.Button("Limpar", GUILayout.Width(80))) _log.Clear();
-        if (GUILayout.Button("X", GUILayout.Width(26))) _visible = false;
+        if (GUILayout.Button("X", GUILayout.Width(26))) SetVisible(false);
         GUILayout.EndHorizontal();
         GUILayout.Space(6);
     }
@@ -154,6 +219,8 @@ public class DevConsole : MonoBehaviour
                 Log(" - tp <all|nome|steamId> <x> <y> <z> [yRot]");
                 Log(" - team        (times no Soccer)");
                 Log(" - points add <alvo> <delta> | points set <alvo> <valor>");
+                Log(" - unityconsole on|off|toggle (mostra/oculta console nativo da Unity)");
+                Log(" - console open|close|toggle (mostrar/fechar este console)");
                 break;
 
             case "clear":
@@ -262,6 +329,27 @@ public class DevConsole : MonoBehaviour
                 HandlePoints(tokens);
                 break;
 
+            case "unityconsole":
+            case "uconsole":
+                HandleUnityConsole(tokens);
+                break;
+
+            case "console":
+                HandleConsole(tokens);
+                break;
+
+            case "close":
+            case "hide":
+            case "exit":
+                SetVisible(false);
+                break;
+
+            case "open":
+                SetVisible(true);
+                break;
+            case "fechar":
+                ToggleVisible();
+                break;
             default:
                 Log($"Comando desconhecido: {cmd}");
                 break;
@@ -451,6 +539,51 @@ public class DevConsole : MonoBehaviour
         Log("Time B:");
         foreach (var sid in b)
             Log(" - " + ResolveName(sid) + " (" + sid + ")");
+    }
+
+    private bool GetUnityConsoleVisible()
+    {
+        try { return Debug.developerConsoleVisible; } catch { return _unityConsoleDesired; }
+    }
+    private void SetUnityConsoleVisible(bool v)
+    {
+        _unityConsoleDesired = v;
+        try
+        {
+            Debug.developerConsoleVisible = v;
+            Log($"Unity Console {(v ? "ON" : "OFF")} (disponível apenas em Development Build)");
+        }
+        catch
+        {
+            Log("Não foi possível alternar Unity Console neste ambiente.");
+        }
+    }
+    private void HandleUnityConsole(List<string> tokens)
+    {
+        if (tokens.Count < 2)
+        {
+            Log($"Unity Console está {(GetUnityConsoleVisible() ? "ON" : "OFF")}. Use: unityconsole on|off|toggle");
+            return;
+        }
+        string mode = tokens[1].ToLowerInvariant();
+        if (mode == "on") SetUnityConsoleVisible(true);
+        else if (mode == "off") SetUnityConsoleVisible(false);
+        else if (mode == "toggle") SetUnityConsoleVisible(!GetUnityConsoleVisible());
+        else Log("Uso: unityconsole on|off|toggle");
+    }
+
+    private void HandleConsole(List<string> tokens)
+    {
+        if (tokens.Count < 2)
+        {
+            Log($"Console está {(IsOpen ? "OPEN" : "CLOSED")} — use: console open|close|toggle");
+            return;
+        }
+        string mode = tokens[1].ToLowerInvariant();
+        if (mode == "open") SetVisible(true);
+        else if (mode == "close") SetVisible(false);
+        else if (mode == "toggle") ToggleVisible();
+        else Log("Uso: console open|close|toggle");
     }
 
     private string ResolveName(ulong steamId)

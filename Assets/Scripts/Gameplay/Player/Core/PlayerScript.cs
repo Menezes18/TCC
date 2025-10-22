@@ -428,7 +428,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             }
         }
 
-        if (Keyboard.current.pKey.wasPressedThisFrame ) // input
+        if (!UILocked && !DevConsole.IsOpen && Keyboard.current.pKey.wasPressedThisFrame ) // input
         {
             // Bloqueia alternar "pronto" enquanto o briefing não liberar interação
             if (BriefingManager.singleton != null && !BriefingManager.singleton.ReadyInteractableClient)
@@ -453,7 +453,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
                 BriefingManager.singleton?.CheckAllReady();
             }
         }
-        if (Keyboard.current.oKey.wasPressedThisFrame )
+        if (!UILocked && !DevConsole.IsOpen && Keyboard.current.oKey.wasPressedThisFrame )
         {
             HUDSO.ShowColorChangePanel(); 
         }
