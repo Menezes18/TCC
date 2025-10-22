@@ -7,6 +7,9 @@ public class GlassMinigameController : MinigameController
 {
     [SerializeField] private SettingsMiniGameData settingsData;
     [SerializeField] private float brokenRestoreDelay = 2.0f;
+    [Header("Random Path")]
+    [Tooltip("Se marcado, ignora o PathData e gera um caminho aleatório.")]
+    [SerializeField] private bool randomizeEachMatch = true;
     [Header("Binding")]
     [Tooltip("Se preencher, usa exatamente estes tiles nesta ordem; caso vazio, procura nos filhos do controller e, por fim, na cena inteira.")]
     [SerializeField] private List<GlassTile> tilesByInspector = new();
@@ -26,8 +29,11 @@ public class GlassMinigameController : MinigameController
     {
         base.OnStartServer();
         ServerAutoBindTiles();
-        ServerBuildPathFromAssetOrRandom();
-        ServerApplySafeFlagsToTiles();
+        if (!randomizeEachMatch)
+        {
+            ServerBuildPathFromAssetOrRandom();
+            ServerApplySafeFlagsToTiles();
+        }
     }
 
     [Server]
@@ -75,16 +81,25 @@ public class GlassMinigameController : MinigameController
     private void ServerBuildPathFromAssetOrRandom()
     {
         _safeSideByRow.Clear();
-        if (pathData != null)
+        if (!randomizeEachMatch && pathData != null)
         {
             foreach (var row in _rows.Keys)
                 _safeSideByRow[row] = Mathf.Clamp(pathData.GetSafeSide(row), 0, 1);
+            var orderedRowsPd = _rows.Keys.OrderBy(k => k).ToList();
+            var seqPd = string.Join("", orderedRowsPd.Select(r => (Mathf.Clamp(pathData.GetSafeSide(r), 0, 1) == 0) ? "L" : "R"));
+            Debug.Log($"[Glass] Sequência (PathData) L/R: {seqPd}");
         }
         else
         {
             foreach (var row in _rows.Keys)
                 _safeSideByRow[row] = Random.value < 0.5f ? 0 : 1;
+
+            var orderedRows = _rows.Keys.OrderBy(k => k).ToList();
+            
+            var seq = string.Join("", orderedRows.Select(r => (_safeSideByRow.TryGetValue(r, out var s) ? s : 0) == 0 ? "L" : "R"));
+            Debug.Log($"[Glass] Sequência aleatória L/R: {seq}");
         }
+
     }
 
     [Server]
@@ -106,6 +121,11 @@ public class GlassMinigameController : MinigameController
     public override void StartMatch()
     {
         base.StartMatch();
+        if (randomizeEachMatch)
+        {
+            ServerBuildPathFromAssetOrRandom();
+            ServerApplySafeFlagsToTiles();
+        }
         _matchActive = true;
         _finishOrder.Clear();
         _finalPointsByPlayer.Clear();
