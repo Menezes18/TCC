@@ -31,11 +31,7 @@ public abstract class MinigameController : NetworkBehaviour, IScoreRule, ISubjec
     public virtual void EndMatch()
     {
         OnMatchEnded?.Invoke();
-        AssignFinalPoints();
-        Notifica();
-        DispatchPoints();
-        MyNetworkManager.manager.StoreLastResults(GetResults());
-        Debug.LogWarning("Minigame End");
+        Debug.LogWarning("[MinigameController] EndMatch chamado – delegando resultados ao MatchManager");
     }
     [Server]
     protected void DispatchPoints()

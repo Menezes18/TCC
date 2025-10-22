@@ -75,6 +75,8 @@ public class MatchManager : NetworkBehaviour
     private HashSet<NetworkConnectionToClient> _readyConnections = new();
     
     private IScoreRule scoreRule;
+    // Evita processar o fim de partida mais de uma vez
+    private bool _resultsFinalized;
 
     
     [SyncVar (hook = nameof(HookOnFreezeTimerUpdated))] float _freezeTimer;
@@ -193,6 +195,7 @@ public class MatchManager : NetworkBehaviour
         _freezeTimer = db.serverFreezeDuration;
         _matchTimer = settingsMiniGameData.miniGameDuration;
         _matchHasStarted = true;
+        _resultsFinalized = false;
     }
 
     private void TeleportPlayer()
@@ -218,6 +221,13 @@ public class MatchManager : NetworkBehaviour
     [Server]
     public void InternalEndMatch()
     {
+        // Proteção contra chamadas repetidas (ex.: morte tardia após resultados)
+        if (_resultsFinalized)
+        {
+            Debug.Log("⚠️ [MATCH] InternalEndMatch já processado – ignorando chamada duplicada");
+            return;
+        }
+
         Debug.Log("🏁 [MATCH] Fim de partida – encerrando e atribuindo pontos");
         _matchHasStarted = false;
         _matchTimer = -1;
@@ -284,6 +294,9 @@ public class MatchManager : NetworkBehaviour
         RpcShowSimpleResults(names, totals, gains, colors);
 
         _gameOver = "Acabou!";
+
+        // Marca como finalizado para evitar reentrada
+        _resultsFinalized = true;
 
         StartCoroutine(WaitAndReturnToLobby(ResultsUI.singleton.exitTimerSeconds));
     }
