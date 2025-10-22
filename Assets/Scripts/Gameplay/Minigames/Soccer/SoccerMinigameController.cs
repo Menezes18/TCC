@@ -20,6 +20,8 @@ public class SoccerMinigameController : MinigameController
     [SerializeField] private Database database;
     [Header("Detection")]
     [SerializeField] private float goalCooldown = 0.75f; // anti-double-score
+    [SerializeField] private float outOfBoundsY = -20f;   
+    [SerializeField] private float resetCooldown = 1.0f;  
 
     // Estado
     private bool _matchActive;
@@ -30,6 +32,7 @@ public class SoccerMinigameController : MinigameController
     private int _scoreA;
     private int _scoreB;
     private float _lastGoalAt;
+    private float _lastResetAt;
 
     // Pontuações (para scoreboard e resultados)
     private readonly Dictionary<ulong, int> _liveScoresByPlayer = new();
@@ -162,6 +165,20 @@ public class SoccerMinigameController : MinigameController
         if (!_matchActive) return;
         // Fallback para quem usa física própria (sem Rigidbody): valida sobreposição manual
         ServerManualGoalCheck();
+        ServerOutOfBoundsCheck();
+    }
+
+    [Server]
+    private void ServerOutOfBoundsCheck()
+    {
+        if (ball == null) return;
+        if (Time.time - _lastResetAt < resetCooldown) return;
+        if (Time.time - _lastGoalAt < goalCooldown) return;
+        if (ball.transform.position.y < outOfBoundsY)
+        {
+            _lastResetAt = Time.time;
+            ServerResetBall();
+        }
     }
 
     [Server]

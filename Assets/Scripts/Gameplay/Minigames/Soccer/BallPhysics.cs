@@ -18,6 +18,10 @@ public class BallPhysics : NetworkBehaviour, IDamageable
     [SerializeField] private float groundCheckOffset = 0.02f;
     [SerializeField] private float groundPadding = 0.1f;
     [SerializeField] private float velocityEpsilon = 0.01f;
+    [Header("Anti-Atravessar")]
+    [SerializeField, Min(1)] private int maxCollisionSubsteps = 4;             // divide deslocamento longo em subpassos
+    [SerializeField, Min(1)] private int depenetrationPasses = 2;              // quantas tentativas para sair de sobreposição
+    [SerializeField, Min(0f)] private float shellOffset = 0.001f;              // folga para afastar da superfície
 
     [Header("Push (Server)")]
     [SerializeField, Min(0f)] private float pushForce = 10f;   // força horizontal agregada por tick
@@ -157,26 +161,65 @@ public class BallPhysics : NetworkBehaviour, IDamageable
 
     [Server] private void MoveAndCollide(float dt)
     {
-        Vector3 current = _t.position;
+        Vector3 start = _t.position;
         Vector3 disp = _velocity * dt;
-        float dist = disp.magnitude;
-        if (dist < Mathf.Epsilon)
+        float totalDist = disp.magnitude;
+        if (totalDist < Mathf.Epsilon)
         {
-            _t.position = current + disp;
+            _t.position = start + disp;
             return;
         }
 
         Vector3 dir = disp.normalized;
-        if (Physics.SphereCast(current, radius, dir, out var hit, dist, collisionMask, QueryTriggerInteraction.Ignore))
+        int steps = Mathf.Clamp(Mathf.CeilToInt(totalDist / Mathf.Max(radius * 0.5f, 0.05f)), 1, maxCollisionSubsteps);
+        float stepDist = totalDist / steps;
+        Vector3 pos = start;
+
+        for (int i = 0; i < steps; i++)
         {
-            Vector3 newPos = hit.point + hit.normal * radius;
-            _t.position = newPos;
-            _velocity = Vector3.Reflect(_velocity, hit.normal) * restitution;
-            if (Mathf.Abs(_velocity.y) < velocityEpsilon && IsGrounded()) _velocity.y = 0f;
+            if (Physics.SphereCast(pos, radius, dir, out var hit, stepDist, collisionMask, QueryTriggerInteraction.Ignore))
+            {
+                pos = hit.point + hit.normal * (radius + shellOffset);
+                _velocity = Vector3.Reflect(_velocity, hit.normal) * restitution;
+                if (Mathf.Abs(_velocity.y) < velocityEpsilon && IsGrounded()) _velocity.y = 0f;
+                dir = _velocity.normalized;
+            }
+            else
+            {
+                pos += dir * stepDist;
+            }
         }
-        else
+
+        _t.position = pos;
+        ResolveOverlaps();
+    }
+
+    [Server] private void ResolveOverlaps()
+    {
+        if (depenetrationPasses <= 0) return;
+        for (int pass = 0; pass < depenetrationPasses; pass++)
         {
-            _t.position = current + disp;
+            var hits = Physics.OverlapSphere(_t.position, radius, collisionMask, QueryTriggerInteraction.Ignore);
+            bool moved = false;
+            for (int i = 0; i < hits.Length; i++)
+            {
+                var other = hits[i];
+                if (other.attachedRigidbody == _rb && other == _col) continue;
+                if (!other.enabled) continue;
+
+                if (Physics.ComputePenetration(
+                        _col, _t.position, _t.rotation,
+                        other, other.transform.position, other.transform.rotation,
+                        out Vector3 separationDir, out float separationDist))
+                {
+                    if (separationDist > 0f)
+                    {
+                        _t.position += separationDir * (separationDist + shellOffset);
+                        moved = true;
+                    }
+                }
+            }
+            if (!moved) break;
         }
     }
 
