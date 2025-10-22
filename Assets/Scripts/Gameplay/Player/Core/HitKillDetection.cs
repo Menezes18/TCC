@@ -1,4 +1,6 @@
 using UnityEngine;
+using Mirror;
+using System.Reflection;
 
 
 public class HitKillDetection : MonoBehaviour
@@ -62,18 +64,45 @@ public class HitKillDetection : MonoBehaviour
     {
         if (other == null) return;
 
-        var player = other.transform.root.GetComponent<PlayerScript>();
-        if (player != null)
+
+        var ps = other.GetComponentInParent<PlayerScript>();
+        var pd = other.GetComponentInParent<PlayerData>();
+
+        if (ps != null && ps.isOwned)
         {
-            player.OnContextualHit(cause, permanent);
-            return;
+            ps.OnContextualHit(cause, permanent);
         }
 
-        IHitKillable ik = other.transform.GetComponent<IHitKillable>();
-        if (ik == null) return;
+        if (NetworkServer.active && pd != null)
+        {
+            var controller = FindAnyObjectByType<MinigameController>();
+            if (controller != null)
+            {
+                var elim = controller.GetType().GetMethod("Eliminate", BindingFlags.Instance | BindingFlags.Public, null, new[] { typeof(PlayerData) }, null);
+                if (elim != null)
+                {
+                    try { elim.Invoke(controller, new object[] { pd }); }
+                    catch { /* ignore reflection errors */ }
+                }
+            }
 
-        if (permanent) ik.OnHitSpectate();
-        else ik.OnHitKill();
+            if (ps != null)
+            {
+                var conn = pd.GetComponent<NetworkIdentity>()?.connectionToClient;
+                if (conn != null)
+                {
+                    ps.TargetRpcContextualDeath(conn, cause, permanent, ps.transform.position, ps.transform.rotation);
+                }
+            }
+        }
+
+
+        IHitKillable ik = other.GetComponent<IHitKillable>();
+        if (ik != null)
+        {
+            if (permanent) ik.OnHitSpectate();
+            else ik.OnHitKill();
+        }
     }
 
     private void OnDrawGizmosSelected()

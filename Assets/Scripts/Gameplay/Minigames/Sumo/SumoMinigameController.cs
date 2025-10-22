@@ -44,6 +44,8 @@ public class SumoMinigameController : MinigameController, IObserver
     {
         _startGame = true;
     }
+
+    public override bool UseAliveStatusOnScoreboard => true;
     public override void StartMatch()
     {
         base.StartMatch();
@@ -199,18 +201,16 @@ public class SumoMinigameController : MinigameController, IObserver
     public override Dictionary<ulong,int> GetLiveScores()
     {
         var live = new Dictionary<ulong,int>();
-        int baseScore = alivePlayers.Count + eliminationOrder.Count;
 
         foreach (var pd in alivePlayers)
-            live[pd.playerInfo.steamId] = baseScore;
+            live[pd.playerInfo.steamId] = 1;
 
-        for (int i = 0; i < eliminationOrder.Count; i++)
-        {
-            var pd = eliminationOrder[i];
-            live[pd.playerInfo.steamId] = baseScore - (i + 1);
-        }
+        foreach (var pd in eliminationOrder)
+            live[pd.playerInfo.steamId] = 0;
 
         return live;
     }
+
+    
 
 }

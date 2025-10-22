@@ -11,6 +11,8 @@ public abstract class MinigameController : NetworkBehaviour, IScoreRule, ISubjec
     public event Action OnMatchEnded;
     private readonly List<IObserver> _observers = new();
     
+    public virtual bool UseAliveStatusOnScoreboard => false;
+    
     
     [Server]
     public virtual void SetupMiniGame()

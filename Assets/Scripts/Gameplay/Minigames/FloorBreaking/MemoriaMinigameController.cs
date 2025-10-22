@@ -147,4 +147,6 @@ public class MemoriaMinigameController : MinigameController, IObserver
 
         return live;
     }
+
+    
 }

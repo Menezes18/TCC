@@ -89,7 +89,17 @@ public class ScoreboardUI : NetworkBehaviour, IObserver
                 if (database != null && colors[i] >= 0 && colors[i] < database.playerColors.Count)
                     c = database.playerColors[colors[i]].color;
                 activeSlots[i].gameObject.SetActive(true);
-                activeSlots[i].Refresh(i + 1, names[i], points[i], c);
+                string label;
+                if (controller != null && controller.UseAliveStatusOnScoreboard)
+                {
+                    // Any non-zero treated as alive
+                    label = points[i] != 0 ? "Vivo" : "Morto";
+                }
+                else
+                {
+                    label = points[i].ToString();
+                }
+                activeSlots[i].Refresh(i + 1, names[i], label, c);
             }
             else
             {

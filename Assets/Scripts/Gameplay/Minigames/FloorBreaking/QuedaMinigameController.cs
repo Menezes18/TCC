@@ -110,6 +110,8 @@ public class QuedaMinigameController : MinigameController, IObserver
         }
     }
 
+    
+
     public override Dictionary<ulong,int> GetResults() => finalScores;
     public override Dictionary<ulong,int> GetLiveScores()
     {

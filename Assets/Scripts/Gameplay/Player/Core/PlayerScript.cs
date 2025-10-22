@@ -1357,15 +1357,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         
         if (permaDeath)
         {
-            // Cliente solicita ao servidor para entrar no modo espectador,
-            // o servidor então envia o TargetRpc para o dono.
             CmdRequestSpectate();
         }
         else
         {
-            // Temporary death, will respawn
             _controller.enabled = false;
-            // Não ocultar imediatamente; aguardar RPC aplicar anima/VFX e ocultar com atraso
             InternalResetProperties();
             CmdDeath();
         }
@@ -1374,8 +1370,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [Command]
     private void CmdRequestSpectate()
     {
-        // Executa no servidor; envia TargetRpc ao cliente dono deste objeto
         RpcSpectate();
+    }
+
+    [TargetRpc]
+    public void TargetRpcContextualDeath(NetworkConnection coon, DeathCause cause, bool perma, Vector3 pos, Quaternion rot)
+    {
+        OnContextualHit(cause, perma);
     }
 
     public void OnContextualHit(DeathCause cause, bool perma)
@@ -1398,6 +1399,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [Command]
     private void CmdDeathWithCause(DeathCause cause, bool perma, Vector3 pos, Quaternion rot)
     {
+        this.EventOnDeathServerSide?.Invoke();
         RpcOnDeathWithCause(cause, perma, pos, rot);
     }
 
@@ -1544,11 +1546,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     #endregion
     
     #region Customization
-    // ============= CUSTOMIZATION =============
-    /// <summary>
-    /// Aplica a customização salva do jogador no modelo do player
-    /// Este método é chamado tanto para o player local quanto para sincronizar via rede
-    /// </summary>
+
     public void ApplyPlayerCustomization()
     {
         var applier = GetComponentInChildren<CustomizationApplier>();
@@ -1558,7 +1556,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             return;
         }
         
-        // Se é o player local, envia para o servidor via PlayerData
         if (isLocalPlayer)
         {
             if (CustomizationManager.Instance == null)
@@ -1570,7 +1567,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             var customization = CustomizationManager.Instance.GetCurrentCustomization();
             if (customization != null)
             {
-                // Envia para o servidor através do PlayerData
                 var playerData = GetComponent<PlayerData>();
                 if (playerData != null)
                 {
@@ -1578,14 +1574,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
                     Debug.Log($"📤 [PlayerScript] Sent customization to server via PlayerData: {customization}");
                 }
                 
-                // Aplica localmente também
                 applier.ApplyCustomization(customization);
                 Debug.Log("✅ [PlayerScript] Customization applied to local player");
             }
         }
         else
         {
-            // Para players remotos, lê do PlayerData (SyncVars)
             var playerData = GetComponent<PlayerData>();
             if (playerData != null)
             {
@@ -1600,13 +1594,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         }
     }
     
-    /// <summary>
-    /// Aplica customização de players remotos quando SyncVars mudam
-    /// Chamado pelos hooks do PlayerData
-    /// </summary>
+
     public void ApplyRemoteCustomization(int hatIndex, int glassesIndex, int shirtIndex)
     {
-        if (isLocalPlayer) return; // Ignora para player local
+        if (isLocalPlayer) return; 
         
         var applier = GetComponentInChildren<CustomizationApplier>();
         if (applier != null)
@@ -1620,6 +1611,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             Debug.Log($"✅ [PlayerScript] Remote customization applied: Hat={hatIndex}, Glasses={glassesIndex}, Shirt={shirtIndex}");
         }
     }
-    // ============= END CUSTOMIZATION =============
+
     #endregion
 }
