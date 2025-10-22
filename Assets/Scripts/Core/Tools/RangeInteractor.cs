@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public enum InteractPanelType
 {
@@ -14,6 +15,7 @@ public class RangeInteractor : MonoBehaviour
     private bool _inZone;
     private bool _inColorZone;
     private bool _inMinigameZone;
+    private bool _wasInZone;
     private int _colorZoneCount;
     private int _minigameZoneCount;
     [SerializeField] private HUDSO HUDSO;
@@ -27,6 +29,11 @@ public class RangeInteractor : MonoBehaviour
     [SerializeField] private float alignSpeed = 500f;
     private bool _usePanelCamera;
     private float _nextInteractTime;
+
+    private string GetHintText()
+    {
+        return "Aperte E para interagir";
+    }
 
     private void SetCursorForPanel(bool open)
     {
@@ -46,7 +53,6 @@ public class RangeInteractor : MonoBehaviour
         catch { /* ignore in headless */ }
     }
     
-    // Garante que o HUD seja atribuído no cliente local mesmo sem Zone
     private void TryAutoAssignHUD()
     {
         if (HUDSO != null) return;
@@ -110,16 +116,13 @@ public class RangeInteractor : MonoBehaviour
     public bool TryInteract()
     {
         if (_player == null) return false;
-        // Debounce: evita duplo toggle no mesmo frame ou por múltiplos bindings
         if (Time.time < _nextInteractTime) return true;
         _nextInteractTime = Time.time + 0.2f;
-        // Em clientes, tenta atribuir HUD automaticamente antes do toggle
         TryAutoAssignHUD();
         if (_inZone)
         {
             if (togglePanel && HUDSO != null)
             {
-                // Determina o modo preferencial conforme zonas ativas (prioriza cor se ambas ativas)
                 var effectiveMode = _currentMode;
                 if (_inColorZone) effectiveMode = InteractPanelType.ColorChange;
                 else if (_inMinigameZone) effectiveMode = InteractPanelType.MinigameSelection;
@@ -137,6 +140,7 @@ public class RangeInteractor : MonoBehaviour
                             Debug.Log("[RangeInteractor] Abrindo painel de minigames");
                             if (_player != null) _player.UILocked = true;
                             if (!playerScript.panel) Painel();
+                            HUDSO?.HideInteractHint();
                         }
                         else
                         {
@@ -144,6 +148,7 @@ public class RangeInteractor : MonoBehaviour
                             Debug.Log("[RangeInteractor] Fechando painel de minigames");
                             if (_player != null) _player.UILocked = _colorChangeOpen;
                             if (!_colorChangeOpen && playerScript.panel) Painel();
+                            if (_inZone) HUDSO?.ShowInteractHint(GetHintText());
                         }
                         break;
                     }
@@ -158,6 +163,7 @@ public class RangeInteractor : MonoBehaviour
                             Debug.Log("[RangeInteractor] Abrindo painel de troca de cor");
                             if (_player != null) _player.UILocked = true;
                             if (!playerScript.panel) Painel();
+                            HUDSO?.HideInteractHint();
                         }
                         else
                         {
@@ -165,6 +171,7 @@ public class RangeInteractor : MonoBehaviour
                             Debug.Log("[RangeInteractor] Fechando painel de troca de cor");
                             if (_player != null) _player.UILocked = _minigameSelectionOpen;
                             if (!_minigameSelectionOpen && playerScript.panel) Painel();
+                            if (_inZone) HUDSO?.ShowInteractHint(GetHintText());
                         }
                         break;
                     }
@@ -200,8 +207,9 @@ public class RangeInteractor : MonoBehaviour
         _inColorZone = _colorZoneCount > 0;
         _inMinigameZone = _minigameZoneCount > 0;
         _inZone = _inColorZone || _inMinigameZone;
+        bool entering = _inZone && !_wasInZone;
+        bool exitingAll = !_inZone && _wasInZone;
 
-        // Escolhe modo corrente baseado nas zonas ativas (prioriza cor)
         if (_inColorZone) _currentMode = InteractPanelType.ColorChange;
         else if (_inMinigameZone) _currentMode = InteractPanelType.MinigameSelection;
 
@@ -215,13 +223,16 @@ public class RangeInteractor : MonoBehaviour
                     _player.UILocked = true;
                     if (!playerScript.panel) Painel(); else _aligning = true;
                 }
+                else if (entering)
+                {
+                    HUDSO.ShowInteractHint(GetHintText());
+                }
             }
         }
         if (!inside && closeOnExit)
         {
             if (HUDSO != null)
             {
-                // Fecha apenas ao sair da ÚLTIMA zona desse tipo
                 if (mode == InteractPanelType.MinigameSelection && _minigameZoneCount == 0 && _minigameSelectionOpen)
                     HUDSO.HideMinigameSelectionPanel();
                 if (mode == InteractPanelType.ColorChange && _colorZoneCount == 0 && _colorChangeOpen)
@@ -233,8 +244,13 @@ public class RangeInteractor : MonoBehaviour
                 _player.UILocked = anyOpen;
                 if (!anyOpen && playerScript.panel) Painel();
             }
-
+            if (exitingAll)
+            {
+                HUDSO?.HideInteractHint();
+            }
         }
+
+        _wasInZone = _inZone;
     }
 
     public void SetHUD(HUDSO hud)
@@ -275,6 +291,7 @@ public class RangeInteractor : MonoBehaviour
         _player.UILocked = anyOpen;
         if (!anyOpen) SetCursorForPanel(false);
         if (!anyOpen && playerScript.panel) Painel();
+        if (_inZone) HUDSO?.ShowInteractHint(GetHintText());
     }
 
     private void OnHideColorChangePanel()
@@ -285,6 +302,7 @@ public class RangeInteractor : MonoBehaviour
         _player.UILocked = anyOpen;
         if (!anyOpen) SetCursorForPanel(false);
         if (!anyOpen && playerScript.panel) Painel();
+        if (_inZone) HUDSO?.ShowInteractHint(GetHintText());
     }
 
     private void OnShowMinigameSelectionPanel()
@@ -295,6 +313,7 @@ public class RangeInteractor : MonoBehaviour
         _player.UILocked = true;
         SetCursorForPanel(true);
         if (!playerScript.panel) Painel(); else _aligning = true;
+        HUDSO?.HideInteractHint();
     }
 
     private void OnShowColorChangePanel()
@@ -305,6 +324,7 @@ public class RangeInteractor : MonoBehaviour
         _player.UILocked = true;
         SetCursorForPanel(true);
         if (!playerScript.panel) Painel(); else _aligning = true;
+        HUDSO?.HideInteractHint();
     }
 
     public void ConfigurePanelCamera(bool use, Transform anchor, float alignSpeed)

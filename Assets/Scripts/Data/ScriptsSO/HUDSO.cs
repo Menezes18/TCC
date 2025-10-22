@@ -72,5 +72,19 @@ public class HUDSO : ScriptableObject{
     {
         this.EventOnHideCustomizationPanel?.Invoke();
     }
+
+    // Interaction hint (local-only)
+    public event Action<string> EventOnShowInteractHint;
+    public event Action EventOnHideInteractHint;
+
+    public void ShowInteractHint(string message)
+    {
+        this.EventOnShowInteractHint?.Invoke(message);
+    }
+
+    public void HideInteractHint()
+    {
+        this.EventOnHideInteractHint?.Invoke();
+    }
 }
 
