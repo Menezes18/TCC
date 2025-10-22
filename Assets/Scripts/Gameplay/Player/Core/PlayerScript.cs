@@ -1373,12 +1373,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         RpcSpectate();
     }
 
-    [TargetRpc]
-    public void TargetRpcContextualDeath(NetworkConnection coon, DeathCause cause, bool perma, Vector3 pos, Quaternion rot)
-    {
-        OnContextualHit(cause, perma);
-    }
-
     public void OnContextualHit(DeathCause cause, bool perma)
     {
         if (!base.isOwned) return;
@@ -1399,7 +1393,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [Command]
     private void CmdDeathWithCause(DeathCause cause, bool perma, Vector3 pos, Quaternion rot)
     {
-        this.EventOnDeathServerSide?.Invoke();
         RpcOnDeathWithCause(cause, perma, pos, rot);
     }
 

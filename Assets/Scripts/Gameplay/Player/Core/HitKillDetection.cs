@@ -1,6 +1,6 @@
 using UnityEngine;
+using UnityEngine.Events;
 using Mirror;
-using System.Reflection;
 
 
 public class HitKillDetection : MonoBehaviour
@@ -13,6 +13,7 @@ public class HitKillDetection : MonoBehaviour
     public bool useTrigger = true;
     public bool useCollision = false;
     public bool usePeriodicCheck = false;
+    public UnityEvent<PlayerData> onDeath;
 
     [Header("Periodic Check (OverlapBox)")]
     public LayerMask targetMask;
@@ -64,45 +65,31 @@ public class HitKillDetection : MonoBehaviour
     {
         if (other == null) return;
 
-
-        var ps = other.GetComponentInParent<PlayerScript>();
-        var pd = other.GetComponentInParent<PlayerData>();
-
-        if (ps != null && ps.isOwned)
+        var player = other.transform.root.GetComponent<PlayerScript>();
+        var pd = other.transform.root.GetComponent<PlayerData>();
+        if (player != null)
         {
-            ps.OnContextualHit(cause, permanent);
+            player.OnContextualHit(cause, permanent);
+
+            if (NetworkServer.active && pd != null)
+            {
+                onDeath?.Invoke(pd);
+            }
+            return;
         }
+
+        IHitKillable ik = other.transform.GetComponent<IHitKillable>();
+        if (ik == null) return;
 
         if (NetworkServer.active && pd != null)
         {
-            var controller = FindAnyObjectByType<MinigameController>();
-            if (controller != null)
-            {
-                var elim = controller.GetType().GetMethod("Eliminate", BindingFlags.Instance | BindingFlags.Public, null, new[] { typeof(PlayerData) }, null);
-                if (elim != null)
-                {
-                    try { elim.Invoke(controller, new object[] { pd }); }
-                    catch { /* ignore reflection errors */ }
-                }
-            }
-
-            if (ps != null)
-            {
-                var conn = pd.GetComponent<NetworkIdentity>()?.connectionToClient;
-                if (conn != null)
-                {
-                    ps.TargetRpcContextualDeath(conn, cause, permanent, ps.transform.position, ps.transform.rotation);
-                }
-            }
+            onDeath?.Invoke(pd);
         }
-
-
-        IHitKillable ik = other.GetComponent<IHitKillable>();
-        if (ik != null)
+        if (permanent)
         {
-            if (permanent) ik.OnHitSpectate();
-            else ik.OnHitKill();
+            ik.OnHitSpectate();
         }
+        else ik.OnHitKill();
     }
 
     private void OnDrawGizmosSelected()
