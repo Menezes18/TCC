@@ -43,8 +43,13 @@ public class ResultsUI : MonoBehaviour
     [Header("Saída / Contagem para Sair")]
     [SerializeField] bool showExitTimer = true;
     [Min(0f)] public float exitTimerSeconds = 10f;
-    [SerializeField] TMP_Text exitTimerText; 
+    [SerializeField] TMP_Text exitTimerText;
 
+
+    void Start()
+    {
+        Debug.Log("ResultsUI started " + gameObject.name);
+    }
 
     private RectTransform EnsureAnimRoot(GameObject row)
     {
@@ -77,14 +82,14 @@ public class ResultsUI : MonoBehaviour
 
     float _showStartTime;
 
-    public void Show(string[] names, int[] totals, int[] gains)
+    public void Show(string[] names, int[] totals, int[] gains, Color32[] colors = null)
     {
         _showStartTime = Time.time;
         StopAllCoroutines();
-        StartCoroutine(DoSequence(names, totals, gains));
+        StartCoroutine(DoSequence(names, totals, gains, colors));
     }
 
-    private IEnumerator DoSequence(string[] names, int[] totals, int[] gains)
+    private IEnumerator DoSequence(string[] names, int[] totals, int[] gains, Color32[] colors = null)
     {
         if (listRoot == null || rowPrefab == null)
         {
@@ -129,21 +134,31 @@ public class ResultsUI : MonoBehaviour
             _spawned.Add(row);
 
             Color rowColor = Color.white;
-            try
+            
+            // Prioriza cor do parâmetro (sincronizada via RPC)
+            if (colors != null && i < colors.Length)
             {
-                var manager = MyNetworkManager.manager;
-                if (manager != null && manager.scoreboard != null && db != null && db.playerColors != null)
+                rowColor = colors[i];
+            }
+            else
+            {
+                // Fallback: tenta obter do scoreboard local
+                try
                 {
-                    var sb = manager.scoreboard.players;
-                    if (i < sb.Count)
+                    var manager = MyNetworkManager.manager;
+                    if (manager != null && manager.scoreboard != null && db != null && db.playerColors != null)
                     {
-                        int ci = sb[i].color;
-                        if (ci >= 0 && ci < db.playerColors.Count)
-                            rowColor = db.playerColors[ci].color;
+                        var sb = manager.scoreboard.players;
+                        if (i < sb.Count)
+                        {
+                            int ci = sb[i].color;
+                            if (ci >= 0 && ci < db.playerColors.Count)
+                                rowColor = db.playerColors[ci].color;
+                        }
                     }
                 }
+                catch { }
             }
-            catch { }
 
             var rowComp = row.GetComponent<ResultsRow>();
             rowComp.SetupForAnimation(names[i], gains[i], totals[i], i + 1, rowColor);

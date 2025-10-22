@@ -28,14 +28,14 @@ public class MatchManager : NetworkBehaviour
     }
 
     [ClientRpc]
-    void RpcShowSimpleResults(string[] names, int[] totals, int[] gains)
+    void RpcShowSimpleResults(string[] names, int[] totals, int[] gains, Color32[] colors)
     {
-        StartCoroutine(ShowResultsRoutine(names, totals, gains));
+        StartCoroutine(ShowResultsRoutine(names, totals, gains, colors));
     }
 
-    IEnumerator ShowResultsRoutine(string[] names, int[] totals, int[] gains)
+    IEnumerator ShowResultsRoutine(string[] names, int[] totals, int[] gains, Color32[] colors)
     {
-        const string overlayScene = "ResultsOverlay"; // nome da cena aditiva com a UI
+        const string overlayScene = "ResultsOverlay"; 
         var scn = SceneManager.GetSceneByName(overlayScene);
         if (!scn.isLoaded)
         {
@@ -51,7 +51,7 @@ public class MatchManager : NetworkBehaviour
             Debug.LogWarning("[ResultsUI] SimpleResultsUI não encontrado na cena aditiva 'ResultsOverlay'.");
             yield break;
         }
-        ui.Show(names, totals, gains);
+        ui.Show(names, totals, gains, colors);
     }
 
     [Server]
@@ -242,20 +242,46 @@ public class MatchManager : NetworkBehaviour
             ps.isFrozen = true;
         }
 
-        // Prepara arrays para UI (ordem do scoreboard)
         var sb = MyNetworkManager.manager.scoreboard.players;
         int n = sb.Count;
-        string[] names = new string[n];
-        int[] totals = new int[n];
-        int[] gains = new int[n];
+        
+        var sortedPlayers = new List<(string name, int total, int gain, Color32 color)>();
+        
         for (int i = 0; i < n; i++)
         {
             var p = sb[i];
-            names[i] = p.playerName;
-            totals[i] = p.points;
-            gains[i] = (miniResults != null && miniResults.TryGetValue(p.steamID, out var g)) ? g : 0;
+            string name = p.playerName;
+            int total = p.points;
+            int gain = (miniResults != null && miniResults.TryGetValue(p.steamID, out var g)) ? g : 0;
+            
+            Color32 color = Color.white;
+            if (db != null && db.playerColors != null && p.color >= 0 && p.color < db.playerColors.Count)
+                color = db.playerColors[p.color].color;
+                
+            sortedPlayers.Add((name, total, gain, color));
         }
-        RpcShowSimpleResults(names, totals, gains);
+        
+        sortedPlayers.Sort((a, b) =>
+        {
+            int cmpGain = b.gain.CompareTo(a.gain);
+            if (cmpGain != 0) return cmpGain;
+            return b.total.CompareTo(a.total);
+        });
+        
+        string[] names = new string[n];
+        int[] totals = new int[n];
+        int[] gains = new int[n];
+        Color32[] colors = new Color32[n];
+        
+        for (int i = 0; i < n; i++)
+        {
+            names[i] = sortedPlayers[i].name;
+            totals[i] = sortedPlayers[i].total;
+            gains[i] = sortedPlayers[i].gain;
+            colors[i] = sortedPlayers[i].color;
+        }
+        
+        RpcShowSimpleResults(names, totals, gains, colors);
 
         _gameOver = "Acabou!";
 

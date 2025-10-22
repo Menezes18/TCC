@@ -8930,8 +8930,8 @@ GameObject:
   - component: {fileID: 1584339840}
   - component: {fileID: 1584339839}
   - component: {fileID: 1584339838}
-  - component: {fileID: 1584339843}
   - component: {fileID: 1584339842}
+  - component: {fileID: 1584339843}
   m_Layer: 0
   m_Name: trigger
   m_TagString: Untagged
@@ -9025,7 +9025,7 @@ Transform:
   m_GameObject: {fileID: 1584339837}
   serializedVersion: 2
   m_LocalRotation: {x: -1, y: 0, z: 0, w: 0}
-  m_LocalPosition: {x: 0, y: -5.9, z: 0}
+  m_LocalPosition: {x: 0, y: -6.5, z: 0}
   m_LocalScale: {x: 160.19705, y: 1, z: 198.75096}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9057,29 +9057,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 1584339837}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a23831ab502aa4a46b5402e79ce4ef75, type: 3}
+  m_Script: {fileID: 11500000, guid: c5af1df2b4afda948b3d792ba057f5ba, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
-  onDeath:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1118189575}
-        m_TargetAssemblyTypeName: SumoMinigameController, Assembly-CSharp
-        m_MethodName: Eliminate
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  spectate: 1
-  players: {fileID: 0}
+  m_EditorClassIdentifier: Assembly-CSharp::HitKillDetection
+  cause: 1
+  permanent: 1
+  useTrigger: 1
+  useCollision: 1
+  usePeriodicCheck: 1
+  targetMask:
+    serializedVersion: 2
+    m_Bits: 128
+  checkHalfExtents: {x: 78.8, y: 3.12, z: 63}
+  checkOffset: {x: 0, y: 0, z: 0}
+  checkInterval: 0.1
 --- !u!1 &1617276196
 GameObject:
   m_ObjectHideFlags: 0
@@ -11175,6 +11166,13 @@ MonoBehaviour:
   spinEase: 27
   popOvershoot: 1.15
   popBackDuration: 0.12
+  timerPulseScale: 1.15
+  timerPulseDuration: 0.5
+  timerNormalColor: {r: 1, g: 1, b: 1, a: 1}
+  timerWarningColor: {r: 1, g: 0.84, b: 0.3, a: 1}
+  timerCriticalColor: {r: 1, g: 0.36, b: 0.36, a: 1}
+  warningThreshold: 30
+  criticalThreshold: 10
 --- !u!114 &1846947896
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14637,7 +14635,8 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 1085864186548293189, guid: 26984be0e30cfe844b25e4c0efdc0f7b, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
