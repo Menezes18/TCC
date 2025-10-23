@@ -112,7 +112,6 @@ using UnityEngine.InputSystem;
         private void PlayerInputSO_OnPush(CallbackContext obj)
         {
             if (playerScript.UILocked) return;
-            // Use started em vez de performed para evitar duplo disparo (press/release)
             if (obj.started)
             {
                 PlayerControlsSO.Push();
@@ -138,8 +137,8 @@ using UnityEngine.InputSystem;
 
         private void PlayerInputSO_OnMenuCelular(CallbackContext obj)
         {
-            if (playerScript.UILocked) return;
-            if(obj.performed){
+            if (obj.started)
+            {
                 PlayerControlsSO.MenuCelular();
             }
         }
