@@ -100257,6 +100257,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 89.99998
       objectReference: {fileID: 0}
+    - target: {fileID: 6565837260324877751, guid: 18cdcc027b4fa1f4184c16ff1992a2a7,
+        type: 3}
+      propertyPath: sceneId
+      value: 4165895483
+      objectReference: {fileID: 0}
     - target: {fileID: 6635599221871139089, guid: 18cdcc027b4fa1f4184c16ff1992a2a7,
         type: 3}
       propertyPath: m_StaticEditorFlags
@@ -125641,7 +125646,7 @@ PrefabInstance:
     - target: {fileID: 6889371125552889419, guid: 803c08f82d5ab0c4cbd62008a7cf43c3,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: -107.5
+      value: -107.62
       objectReference: {fileID: 0}
     - target: {fileID: 6889371125552889419, guid: 803c08f82d5ab0c4cbd62008a7cf43c3,
         type: 3}
@@ -140783,6 +140788,9 @@ MonoBehaviour:
   useTrigger: 1
   useCollision: 0
   usePeriodicCheck: 0
+  onDeath:
+    m_PersistentCalls:
+      m_Calls: []
   targetMask:
     serializedVersion: 2
     m_Bits: 0
@@ -145984,6 +145992,13 @@ MonoBehaviour:
   spinEase: 27
   popOvershoot: 1.15
   popBackDuration: 0.12
+  timerPulseScale: 1.15
+  timerPulseDuration: 0.5
+  timerNormalColor: {r: 1, g: 1, b: 1, a: 1}
+  timerWarningColor: {r: 1, g: 0.84, b: 0.3, a: 1}
+  timerCriticalColor: {r: 1, g: 0.36, b: 0.36, a: 1}
+  warningThreshold: 30
+  criticalThreshold: 10
 --- !u!114 &1277420656
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -237339,6 +237354,9 @@ MonoBehaviour:
   useTrigger: 1
   useCollision: 0
   usePeriodicCheck: 0
+  onDeath:
+    m_PersistentCalls:
+      m_Calls: []
   targetMask:
     serializedVersion: 2
     m_Bits: 0

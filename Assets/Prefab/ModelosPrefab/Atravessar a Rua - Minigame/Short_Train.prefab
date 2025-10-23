@@ -3911,7 +3911,6 @@ GameObject:
   - component: {fileID: 9202772071568737387}
   - component: {fileID: 8632056695263548165}
   - component: {fileID: 547843557988428996}
-  - component: {fileID: 6923001375314734101}
   m_Layer: 10
   m_Name: Short_Train
   m_TagString: Untagged
@@ -3983,14 +3982,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5af1df2b4afda948b3d792ba057f5ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
   cause: 0
   permanent: 0
   useTrigger: 1
   useCollision: 0
   usePeriodicCheck: 0
+  onDeath:
+    m_PersistentCalls:
+      m_Calls: []
   targetMask:
     serializedVersion: 2
     m_Bits: 0
@@ -4039,23 +4038,6 @@ LODGroup:
     - renderer: {fileID: 3156973800832765679}
     - renderer: {fileID: 9166935030233146045}
   m_Enabled: 1
---- !u!114 &6923001375314734101
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3204703081171192573}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
-  sceneId: 0
-  _assetId: 3824310718
-  serverOnly: 0
-  visibility: 0
-  hasSpawned: 0
 --- !u!1 &3206128568298997316
 GameObject:
   m_ObjectHideFlags: 0

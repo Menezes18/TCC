@@ -210,6 +210,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public MainMenu mainMenu;
     [SerializeField] private GameObject cooldownUIPrefab;
     GameObject cooldownUIInstance;
+    
+    [Header("Minigame Street - Banana")]
+    [SerializeField] private Transform bananaAttachPoint; // Ponto nas costas do jogador
+    private GameObject bananaInstance;
 
     // Spectator System
     [Header("Spectator")]
@@ -359,6 +363,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private void OnDestroy()
     {
         if (!this.isOwned) return;
+        
+        // Limpa a banana se existir
+        HideBanana();
+        
         PlayerControlsSO.OnMove -= PlayerControlsSO_OnMove;
         PlayerControlsSO.OnLook -= PlayerControlsSO_OnLook;
         PlayerControlsSO.OnJump -= PlayerControlsSO_OnJump;
@@ -654,7 +662,50 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [Server] public void ServerSetHotPotatoHolder(bool active) { _isHotPotatoHolder = active; }
     [Server] public void ServerSetBoostMultiplier(float multiplier) { _boostSpeedMultiplier = Mathf.Clamp(multiplier, 0.1f, 10f); }
     [Server] public void ServerClearBoost() { _boostSpeedMultiplier = 1f; }
-    private void OnCarryingChanged(bool oldVal, bool newVal) { }
+    
+    private void OnCarryingChanged(bool oldVal, bool newVal) 
+    { 
+        // Sincroniza a visualização da banana em todos os clientes
+        if (newVal)
+            ShowBanana();
+        else
+            HideBanana();
+    }
+    
+    private void ShowBanana()
+    {
+        // Se já existe, não criar outro
+        if (bananaInstance != null) return;
+        
+        // Verifica se tem o prefab configurado no Database
+        if (db == null || db.streetBananaPrefab == null)
+        {
+            Debug.LogWarning("⚠️ [PlayerScript] Banana prefab não configurado no Database!");
+            return;
+        }
+        
+        Transform parent = bananaAttachPoint != null ? bananaAttachPoint : transform;
+        
+        bananaInstance = Instantiate(db.streetBananaPrefab, parent);
+        
+        var pd = GetComponent<PlayerData>();
+        string playerName = pd?.playerInfo.username ?? "jogador";
+        Debug.Log($"🍌 [PlayerScript] Banana mostrada para {playerName}");
+    }
+    
+    private void HideBanana()
+    {
+        if (bananaInstance != null)
+        {
+            Destroy(bananaInstance);
+            bananaInstance = null;
+            
+            var pd = GetComponent<PlayerData>();
+            string playerName = pd?.playerInfo.username ?? "jogador";
+            Debug.Log($"🍌 [PlayerScript] Banana escondida para {playerName}");
+        }
+    }
+    
     private void OnBoostChanged(float oldVal, float newVal) { }
     private float GetSpeedMultiplier()
     {

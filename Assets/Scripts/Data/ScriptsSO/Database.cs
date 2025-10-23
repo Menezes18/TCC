@@ -71,6 +71,8 @@ public class Database : ScriptableObject{
     public Vector3 projectileLocalOffset = new Vector3(0f, 1f, 0.5f);
     public float playerThrowCooldown;
 
+    [Header("Minigame Street")]
+    public GameObject streetBananaPrefab; 
 
 
     [Header("Server Side")] 
