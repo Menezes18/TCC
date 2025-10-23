@@ -200,6 +200,12 @@ public class MatchManager : NetworkBehaviour
 
     private void TeleportPlayer()
     {
+        var mc = FindFirstObjectByType<MinigameController>();
+        if (mc != null && mc.HandlesInitialSpawns)
+        {
+            // Minigame vai cuidar do teleporte inicial
+            return;
+        }
         foreach (PlayerData pd in PlayerList.singleton.players)
         {
             if (_activePlayers.Contains(pd)) return;

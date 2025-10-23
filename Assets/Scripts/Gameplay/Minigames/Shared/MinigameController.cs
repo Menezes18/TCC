@@ -12,6 +12,8 @@ public abstract class MinigameController : NetworkBehaviour, IScoreRule, ISubjec
     private readonly List<IObserver> _observers = new();
     
     public virtual bool UseAliveStatusOnScoreboard => false;
+    // Quando true, o MatchManager não fará teleporte inicial; o minigame cuidará do spawn
+    public virtual bool HandlesInitialSpawns => false;
     
     
     [Server]

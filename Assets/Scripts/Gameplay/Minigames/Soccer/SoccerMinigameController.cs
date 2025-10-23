@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Mirror;
@@ -7,6 +8,7 @@ using UnityEngine.Events;
 
 public class SoccerMinigameController : MinigameController
 {
+    public override bool HandlesInitialSpawns => true;
     [Header("Settings")]
     [SerializeField] private SettingsMiniGameData settingsData;
 
@@ -33,17 +35,27 @@ public class SoccerMinigameController : MinigameController
     private int _scoreB;
     private float _lastGoalAt;
     private float _lastResetAt;
+    private bool _teamsAssigned;
 
     // Pontuações (para scoreboard e resultados)
     private readonly Dictionary<ulong, int> _liveScoresByPlayer = new();
     private readonly Dictionary<ulong, int> _finalPointsByPlayer = new();
     private readonly Dictionary<ulong, UnityAction> _deathHandlerByPlayer = new();
+    private readonly Dictionary<uint, int> _playerTeamByNetId = new();
+    private readonly HashSet<ulong> _teleportedSids = new();
+    private readonly HashSet<uint> _teleportedNids = new();
 
     private PlayerList PlayerList => PlayerList.singleton;
 
     // Times replicados para clientes (para UI identificar)
     public readonly SyncList<ulong> teamAIds = new();
     public readonly SyncList<ulong> teamBIds = new();
+
+    [Header("Player Team Spawns")]
+    [SerializeField] private List<Transform> blueSpawns = new();
+    [SerializeField] private List<Transform> redSpawns = new();
+    private readonly List<Transform> _blueUsed = new();
+    private readonly List<Transform> _redUsed = new();
 
     private void Awake()
     {
@@ -84,6 +96,7 @@ public class SoccerMinigameController : MinigameController
     public override void SetupMiniGame()
     {
         base.SetupMiniGame();
+        StartCoroutine(ServerPrepareAndTeleportRoutine());
     }
 
     [Server]
@@ -95,16 +108,14 @@ public class SoccerMinigameController : MinigameController
 
         _scoreA = 0;
         _scoreB = 0;
-        _playerTeam.Clear();
-        _teamA.Clear();
-        _teamB.Clear();
         _finalPointsByPlayer.Clear();
         _liveScoresByPlayer.Clear();
 
-        // sorteia os times A/B
-        ServerAssignTeamsRandomly();
 
-        // replicar listas de times para clientes
+        ServerEnsureTeamsAssigned();
+        ServerBackfillSteamMappings();
+        ServerTeleportPlayersToTeamSpawns(false);
+
         teamAIds.Clear();
         teamBIds.Clear();
         foreach (var sid in _teamA) teamAIds.Add(sid);
@@ -136,6 +147,174 @@ public class SoccerMinigameController : MinigameController
                 playerScript.EventOnDeathServerSide.AddListener(onDeathHandler);
             }
         }
+    }
+
+    [Server]
+    private void ServerBackfillSteamMappings()
+    {
+        foreach (var pd in PlayerList.players)
+        {
+            ulong sid = pd.playerInfo.steamId;
+            if (sid == 0UL) continue;
+            if (_playerTeam.ContainsKey(sid)) continue;
+            uint nid = pd.GetComponent<NetworkIdentity>() != null ? pd.GetComponent<NetworkIdentity>().netId : 0u;
+            if (nid == 0u) continue;
+            if (_playerTeamByNetId.TryGetValue(nid, out var team))
+            {
+                _playerTeam[sid] = team;
+                if (team == 0 && !_teamA.Contains(sid)) _teamA.Add(sid);
+                if (team == 1 && !_teamB.Contains(sid)) _teamB.Add(sid);
+            }
+        }
+    }
+
+    [Server]
+    private void ServerEnsureTeamsAssigned()
+    {
+        if (_teamsAssigned && _teamA.Count > 0 && _teamB.Count > 0) return;
+
+        _playerTeam.Clear();
+        _playerTeamByNetId.Clear();
+        _teamA.Clear();
+        _teamB.Clear();
+        ServerAssignTeamsRandomly();
+
+        _teamsAssigned = true;
+    }
+
+    [Server]
+    private void ServerReplicateTeamLists()
+    {
+        teamAIds.Clear();
+        teamBIds.Clear();
+        foreach (var sid in _teamA) teamAIds.Add(sid);
+        foreach (var sid in _teamB) teamBIds.Add(sid);
+    }
+
+    private bool AllPlayerIdsReady()
+    {
+        var list = PlayerList.players;
+        if (list == null || list.Count == 0) return false;
+        foreach (var pd in list)
+            if (pd.playerInfo.steamId == 0UL)
+                return false;
+        return true;
+    }
+
+    [Server]
+    private void ServerTeleportPlayersToTeamSpawns(bool force)
+    {
+        if (!isServer) return;
+
+        foreach (var pd in PlayerList.players)
+        {
+            int team = GetTeamOf(pd); // 0 = Azul, 1 = Vermelho
+            Transform spawn = ServerGetNextTeamSpawn(team);
+
+
+            if (spawn == null)
+            {
+                var mm = MatchManager.singleton;
+                if (mm != null)
+                    spawn = mm.GetRandomSpawnPoint();
+            }
+            if (spawn == null)
+                spawn = transform;
+
+            var ps = pd.GetComponent<PlayerScript>();
+            if (ps == null) continue;
+            var conn = pd.GetComponent<NetworkIdentity>()?.connectionToClient;
+            if (conn == null) continue;
+
+            ulong sid = pd.playerInfo.steamId;
+            uint nid = pd.GetComponent<NetworkIdentity>() != null ? pd.GetComponent<NetworkIdentity>().netId : 0u;
+            bool already = (sid != 0 && _teleportedSids.Contains(sid)) || (nid != 0 && _teleportedNids.Contains(nid));
+            if (force || !already)
+            {
+                Debug.Log($"[Soccer] Teleport {pd.alias} (sid={sid}, nid={nid}) team={(team==0?"Azul":team==1?"Vermelho":"?")} to '{spawn.name}' pos={spawn.position}");
+                ps.TargetRpcTeleport(conn, spawn.position, spawn.rotation);
+                if (sid != 0) _teleportedSids.Add(sid);
+                if (nid != 0) _teleportedNids.Add(nid);
+            }
+        }
+    }
+
+    [Server]
+    private IEnumerator ServerPrepareAndTeleportRoutine()
+    {
+
+        float start = Time.time;
+        while (!AllPlayerIdsReady() && Time.time - start < 3f)
+            yield return new WaitForSeconds(0.1f);
+
+        ServerEnsureTeamsAssigned();
+        ServerBackfillSteamMappings();
+        ServerReplicateTeamLists();
+        AnnounceTeams();
+        _teleportedSids.Clear();
+        _teleportedNids.Clear();
+        ServerTeleportPlayersToTeamSpawns(true);
+        // tentativas adicionais para garantir
+        yield return new WaitForSeconds(0.5f);
+        ServerBackfillSteamMappings();
+        ServerTeleportPlayersToTeamSpawns(false);
+        yield return new WaitForSeconds(1.0f);
+        ServerTeleportPlayersToTeamSpawns(false);
+    }
+
+    private int GetTeamOf(PlayerData pd)
+    {
+        ulong sid = pd.playerInfo.steamId;
+        if (sid != 0 && _playerTeam.TryGetValue(sid, out var tBySid)) return tBySid;
+        uint nid = pd.GetComponent<NetworkIdentity>() != null ? pd.GetComponent<NetworkIdentity>().netId : 0u;
+        if (nid != 0 && _playerTeamByNetId.TryGetValue(nid, out var tByNid)) return tByNid;
+        return -1;
+    }
+
+    private Transform ServerGetNextTeamSpawn(int team)
+    {
+        if (team == 0)
+        {
+            if (blueSpawns == null || blueSpawns.Count == 0)
+                return null;
+            var idx = UnityEngine.Random.Range(0, blueSpawns.Count);
+            var t = blueSpawns[idx];
+            blueSpawns.RemoveAt(idx);
+            _blueUsed.Add(t);
+            if (blueSpawns.Count == 0)
+            {
+                blueSpawns = _blueUsed.ToList();
+                _blueUsed.Clear();
+            }
+            return t;
+        }
+        else if (team == 1)
+        {
+            if (redSpawns == null || redSpawns.Count == 0)
+                return null;
+            var idx = UnityEngine.Random.Range(0, redSpawns.Count);
+            var t = redSpawns[idx];
+            redSpawns.RemoveAt(idx);
+            _redUsed.Add(t);
+            if (redSpawns.Count == 0)
+            {
+                redSpawns = _redUsed.ToList();
+                _redUsed.Clear();
+            }
+            return t;
+        }
+        return null;
+    }
+
+    [ContextMenu("Force Team Respawn (Server)")]
+    [Server]
+    public void ServerForceTeamRespawn()
+    {
+        ServerEnsureTeamsAssigned();
+        _teleportedSids.Clear();
+        _teleportedNids.Clear();
+        ServerTeleportPlayersToTeamSpawns(true);
+        RpcToast("Reposicionando jogadores nos spawns do time…");
     }
 
     [Server]
@@ -232,21 +411,34 @@ public class SoccerMinigameController : MinigameController
     [Server]
     private void ServerAssignTeamsRandomly()
     {
-        var sids = PlayerList.players.Select(p => p.playerInfo.steamId).ToList();
+        var players = PlayerList.players.ToList();
         // shuffle
-        for (int i = 0; i < sids.Count; i++)
+        for (int i = 0; i < players.Count; i++)
         {
-            int j = UnityEngine.Random.Range(i, sids.Count);
-            (sids[i], sids[j]) = (sids[j], sids[i]);
+            int j = UnityEngine.Random.Range(i, players.Count);
+            (players[i], players[j]) = (players[j], players[i]);
         }
-        int half = Mathf.CeilToInt(sids.Count / 2f);
+        int half = Mathf.CeilToInt(players.Count / 2f);
 
-        for (int i = 0; i < sids.Count; i++)
+        for (int i = 0; i < players.Count; i++)
         {
-            ulong id = sids[i];
+            var pd = players[i];
+            ulong sid = pd.playerInfo.steamId;
+            uint nid = pd.GetComponent<NetworkIdentity>() != null ? pd.GetComponent<NetworkIdentity>().netId : 0u;
             int team = (i < half) ? 0 : 1; // 0 = A, 1 = B
-            _playerTeam[id] = team;
-            if (team == 0) _teamA.Add(id); else _teamB.Add(id);
+
+            // Map por steamId quando disponível (para scoreboard etc.)
+            if (sid != 0UL)
+            {
+                _playerTeam[sid] = team;
+                if (team == 0) _teamA.Add(sid); else _teamB.Add(sid);
+            }
+
+            // Map por netId para uso imediato no teleporte
+            if (nid != 0u)
+            {
+                _playerTeamByNetId[nid] = team;
+            }
         }
     }
 
