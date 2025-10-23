@@ -179,6 +179,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private bool isStaggered;
 
     private bool _menuOpen = false;
+    private float _nextMenuToggleTime = 0f; // debounce para abrir/fechar menu (ESC/TAB)
     public bool panel = false;
     [SerializeField] private bool _uiLocked = false;
     public bool UILocked { get => _uiLocked; set => _uiLocked = value; }
@@ -1185,6 +1186,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private void EventOnCelularMenu()
     {
         if (base.isOwned == false) return;
+        // Debounce para evitar toggles múltiplos quando há vários jogadores (ParrelSync/instâncias)
+        if (Time.time < _nextMenuToggleTime) return;
+        _nextMenuToggleTime = Time.time + 0.2f;
         
         // Se o painel de cores está aberto, fecha ele
         if (panel)

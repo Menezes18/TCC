@@ -163,9 +163,9 @@ using UnityEngine.InputSystem;
         
         private void PlayerInputSO_OnCancel(CallbackContext obj)
         {
+            // Usa started para evitar múltiplos disparos em sessões com vários jogadores
             if (!playerScript.isLocalPlayer) return;
-            if (!obj.performed) return;
-            
+            if (!obj.started) return;
             PlayerControlsSO.ClosePanel();
         }
         
