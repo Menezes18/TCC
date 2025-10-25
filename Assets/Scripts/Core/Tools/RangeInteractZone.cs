@@ -1,5 +1,6 @@
 using Mirror;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class RangeInteractZone : MonoBehaviour
 {
@@ -26,6 +27,8 @@ public class RangeInteractZone : MonoBehaviour
     private RangeInteractor _localInteractor;
     private bool _wasInside;
     private bool _configuredForLocal;
+    public UnityEvent onPlayerEnter;
+    public UnityEvent onPlayerExit;
 
     private void Update()
     {
@@ -85,6 +88,12 @@ public class RangeInteractZone : MonoBehaviour
         {
             Debug.Log(inside ? "[RangeInteractZone] entrou no range" : "[RangeInteractZone] saiu do range");
             _localInteractor.SetInZone(inside, panelMode);
+
+            if (inside) 
+                onPlayerEnter?.Invoke();
+            else
+                onPlayerExit?.Invoke();
+
             _wasInside = inside;
         }
     }
