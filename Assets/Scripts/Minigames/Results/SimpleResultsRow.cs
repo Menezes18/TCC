@@ -51,10 +51,8 @@ public class ResultsRow : MonoBehaviour
         if (gainText)
         {
             gainText.text = FormatGain(0);
-            // _gainCG = EnsureCanvasGroup(gainText);
-            // Se não há ganho, já inicia invisível
-            Debug.LogError("IGNORE");
-            _gainCG.alpha = (_targetGain == 0) ? 0f : 1f;
+            if (_gainCG == null) _gainCG = EnsureCanvasGroup(gainText);
+            if (_gainCG != null) _gainCG.alpha = (_targetGain == 0) ? 0f : 1f;
         }
         if (totalText)
             totalText.text = (_finalTotal - _targetGain).ToString();;
@@ -145,6 +143,7 @@ public class ResultsRow : MonoBehaviour
     {
         if (c == null) return null;
         var cg = c.GetComponent<CanvasGroup>();
+        if (cg == null) cg = c.gameObject.AddComponent<CanvasGroup>();
         return cg;
     }
 
@@ -158,5 +157,8 @@ public class ResultsRow : MonoBehaviour
     }
 
 
-    
+    public void SetPosition(int position)
+    {
+        if (positionText) positionText.text = position.ToString();
+    }
 }

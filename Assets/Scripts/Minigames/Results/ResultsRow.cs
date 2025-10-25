@@ -45,6 +45,17 @@ public class ResultsUI : MonoBehaviour
     [Min(0f)] public float exitTimerSeconds = 10f;
     [SerializeField] TMP_Text exitTimerText;
 
+    [Header("Fase Global")]
+    [SerializeField] bool showGlobalPhase = true;
+    [SerializeField] string globalTitle = "GLOBAL";
+    [SerializeField, Min(0f)] float delayBeforeGlobalPhase = 0.6f;
+    [SerializeField, Min(0f)] float globalSlideOutDuration = 0.22f;
+    [SerializeField, Min(0f)] float globalSlideInDuration = 0.30f;
+    [SerializeField, Min(0f)] float globalItemStagger = 0.06f;
+    [SerializeField] float globalWinnerPopScale = 1.1f;
+    [SerializeField, Min(0f)] float globalWinnerPopUp = 0.12f;
+    [SerializeField, Min(0f)] float globalWinnerPopDown = 0.10f;
+
 
     void Start()
     {
@@ -192,6 +203,11 @@ public class ResultsUI : MonoBehaviour
         while (_pendingNumberAnims > 0)
             yield return null;
 
+        if (showGlobalPhase)
+        {
+            yield return RunGlobalPhase(names, totals, colors);
+        }
+
         if (showExitTimer)
             yield return DoExitCountdown(exitTimerSeconds);
     }
@@ -228,5 +244,94 @@ public class ResultsUI : MonoBehaviour
         LeanTween.value(text.gameObject, 1f, 0f, 0.2f).setOnUpdate((float a) => text.alpha = a).setEaseInQuad();
         yield return new WaitForSeconds(0.21f);
         MatchManager.singleton.StartCoroutine(MatchManager.singleton.WaitAndReturnToLobby(1f));
+    }
+
+    private IEnumerator RunGlobalPhase(string[] names, int[] totals, Color32[] colors)
+    {
+        if (listRoot == null || _spawned.Count == 0) yield break;
+
+        // Header "Ranking Global"
+        if (!string.IsNullOrWhiteSpace(globalTitle) && acabouText != null)
+        {
+            yield return new WaitForSeconds(delayBeforeGlobalPhase);
+            var rt = (RectTransform)acabouText.transform;
+            acabouText.text = globalTitle;
+            acabouText.alpha = 0f;
+            rt.localScale = Vector3.one * 0.92f;
+            LeanTween.value(acabouText.gameObject, 0f, 1f, 0.28f).setOnUpdate((float a) => acabouText.alpha = a).setEaseOutQuad();
+            LeanTween.scale(rt, Vector3.one, 0.3f).setEaseOutBack();
+            yield return new WaitForSeconds(0.45f);
+            // mantém visível enquanto reordena
+        }
+
+        // Calcula ordem global (por total desc)
+        int count = Mathf.Min(names?.Length ?? 0, totals?.Length ?? 0);
+        var indices = new List<int>(count);
+        for (int i = 0; i < count; i++) indices.Add(i);
+        indices.Sort((a, b) => totals[b].CompareTo(totals[a]));
+
+        // Calcula largura para deslocar
+        LayoutRebuilder.ForceRebuildLayoutImmediate(listRoot);
+        float containerW = listRoot.rect.width;
+        float off = containerW + slideExtraOffset;
+
+        // Saída (slide-out) por ordem atual
+        for (int i = 0; i < _spawned.Count; i++)
+        {
+            var row = _spawned[i];
+            if (row == null) continue;
+            var animRT = EnsureAnimRoot(row);
+            var cg = animRT.GetComponent<CanvasGroup>();
+            if (cg == null) cg = animRT.gameObject.AddComponent<CanvasGroup>();
+            LeanTween.alphaCanvas(cg, 0.0f, globalSlideOutDuration).setEaseInQuad();
+            LeanTween.move(animRT, new Vector2(off, 0f), globalSlideOutDuration).setEaseInCubic();
+            yield return new WaitForSeconds(globalItemStagger);
+        }
+
+        // Reordena objetos e atualiza posição (ranking)
+        var newOrder = new List<GameObject>(count);
+        foreach (var idx in indices)
+        {
+            if (idx >= 0 && idx < _spawned.Count)
+                newOrder.Add(_spawned[idx]);
+        }
+
+        // Define siblingIndex conforme nova ordem e atualiza número da posição
+        for (int i = 0; i < newOrder.Count; i++)
+        {
+            var row = newOrder[i];
+            if (row == null) continue;
+            row.transform.SetSiblingIndex(i);
+            var comp = row.GetComponent<ResultsRow>();
+            if (comp != null) comp.SetPosition(i + 1);
+        }
+        _spawned.Clear();
+        _spawned.AddRange(newOrder);
+
+        // Entrada (slide-in) por nova ordem
+        for (int i = 0; i < _spawned.Count; i++)
+        {
+            var row = _spawned[i];
+            if (row == null) continue;
+            var animRT = EnsureAnimRoot(row);
+            var cg = animRT.GetComponent<CanvasGroup>();
+            if (cg == null) cg = animRT.gameObject.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            animRT.anchoredPosition = new Vector2(-off, 0f);
+            LeanTween.alphaCanvas(cg, 1f, globalSlideInDuration).setEaseOutQuad();
+            LeanTween.move(animRT, Vector2.zero, globalSlideInDuration).setEaseOutCubic();
+            yield return new WaitForSeconds(globalItemStagger);
+        }
+
+        // Destaque do líder global
+        if (_spawned.Count > 0)
+        {
+            var leader = _spawned[0];
+            var animRT = EnsureAnimRoot(leader);
+            LeanTween.scale(animRT, Vector3.one * Mathf.Max(1f, globalWinnerPopScale), Mathf.Max(0f, globalWinnerPopUp)).setEaseOutBack();
+            if (globalWinnerPopUp > 0f) yield return new WaitForSeconds(globalWinnerPopUp);
+            LeanTween.scale(animRT, Vector3.one, Mathf.Max(0f, globalWinnerPopDown)).setEaseInQuad();
+            if (globalWinnerPopDown > 0f) yield return new WaitForSeconds(globalWinnerPopDown);
+        }
     }
 }
