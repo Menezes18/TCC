@@ -178,8 +178,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SyncVar(hook = nameof(OnStaggerChanged))]
     private bool isStaggered;
 
+    private float _lastPredictedImpulseTime = -999f;
+    private const float PredictedImpulseReconcileWindow = 0.15f;
+
     private bool _menuOpen = false;
-    private float _nextMenuToggleTime = 0f; // debounce para abrir/fechar menu (ESC/TAB)
+    private float _nextMenuToggleTime = 0f;
     public bool panel = false;
     [SerializeField] private bool _uiLocked = false;
     public bool UILocked { get => _uiLocked; set => _uiLocked = value; }
@@ -1094,10 +1097,18 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [TargetRpc]
     public void TargetRpcApplyImpulse(NetworkConnection coon, Vector3 horizontalDir, float horizontalStrength, float verticalStrength, float stunDuration, bool setStagger)
     {
+
+        if (this.isOwned && isLocalPlayer)
+        {
+            if (Time.time - _lastPredictedImpulseTime <= PredictedImpulseReconcileWindow)
+            {
+                return;
+            }
+        }
+
         ApplyImpulseLocal(horizontalDir, horizontalStrength, verticalStrength, stunDuration, setStagger);
     }
 
-    // Permite aplicar impulso localmente (modo offline ou utilitários internos).
     public void ApplyImpulseLocal(Vector3 horizontalDir, float horizontalStrength, float verticalStrength, float stunDuration, bool setStagger)
     {
         if (setStagger)
@@ -1107,13 +1118,19 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         _inertia = h;
         InertiaCap = h.magnitude;
         _move.y = Mathf.Max(_move.y, verticalStrength);
-        _ignoreGroundedNextFrame = true;         // garante detecção aérea na próxima verificação
-        _groundSnapLockTimer = Mathf.Max(_groundSnapLockTimer, 0.1f); // evita clamp no frame do impulso
+        _ignoreGroundedNextFrame = true;
+        _groundSnapLockTimer = Mathf.Max(_groundSnapLockTimer, 0.1f);
         if (stunDuration > 0f)
             _staggerTimer = Mathf.Max(_staggerTimer, stunDuration);
+
     }
 
-    // Exposto para hazards no servidor consultarem um estado consistente
+    public void MarkPredictedImpulse()
+    {
+        if (!isLocalPlayer || !this.isOwned) return;
+        _lastPredictedImpulseTime = Time.time;
+    }
+
     public bool IsAirborneServerFlag => _isAirborneServer;
 
     [Command]

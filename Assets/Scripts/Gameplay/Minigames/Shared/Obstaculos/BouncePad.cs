@@ -92,15 +92,10 @@ public class BouncePad : NetworkBehaviour
     {
         if (NetworkClient.active && !NetworkServer.active)
         {
-            // Predição no cliente para reduzir delay visual
             var rootC = other.transform.root;
             var psC = rootC.GetComponent<PlayerScript>();
             if (psC == null) return;
             if (!psC.isOwned) return;
-
-            bool authorizedC = psC.IsAirborne;
-            bool descendingC = IsDescendingOffline(psC.transform, psC.GetInstanceID());
-            if (!(authorizedC || descendingC)) return;
 
             int keyC = psC.GetInstanceID();
             if (_lastClientPredHit.TryGetValue(keyC, out var lastLocalPred) && (Time.time - lastLocalPred) < hitCooldown)
@@ -109,26 +104,13 @@ public class BouncePad : NetworkBehaviour
             _lastClientPredHit[keyC] = Time.time;
             Vector3 dirPred = GetDir();
             psC.ApplyImpulseLocal(dirPred, horizontalStrength, verticalStrength, stunDuration, setStagger: false);
+            psC.MarkPredictedImpulse();
             return;
         }
 
         var root = other.transform.root;
         var ps = root.GetComponent<PlayerScript>();
         if (ps == null) return;
-
-        bool authorized = IsAirborneAuthorized(ps);
-        bool descending = false;
-        if (NetworkServer.active)
-        {
-            var ni = ps.GetComponent<NetworkIdentity>();
-            if (ni != null)
-                descending = IsDescendingServer(ps.transform, ni.netId);
-        }
-        else if (!NetworkClient.active)
-        {
-            descending = IsDescendingOffline(ps.transform, ps.GetInstanceID());
-        }
-        if (!(authorized || descending)) return;
 
         TryBounce(ps);
     }
@@ -137,15 +119,10 @@ public class BouncePad : NetworkBehaviour
     {
         if (NetworkClient.active && !NetworkServer.active)
         {
-            // Predição no cliente para reduzir delay visual
             var rootC = other.transform.root;
             var psC = rootC.GetComponent<PlayerScript>();
             if (psC == null) return;
             if (!psC.isOwned) return;
-
-            bool authorizedC = psC.IsAirborne;
-            bool descendingC = IsDescendingOffline(psC.transform, psC.GetInstanceID());
-            if (!(authorizedC || descendingC)) return;
 
             int keyC = psC.GetInstanceID();
             if (_lastClientPredHit.TryGetValue(keyC, out var lastLocalPred) && (Time.time - lastLocalPred) < hitCooldown)
@@ -154,27 +131,13 @@ public class BouncePad : NetworkBehaviour
             _lastClientPredHit[keyC] = Time.time;
             Vector3 dirPred = GetDir();
             psC.ApplyImpulseLocal(dirPred, horizontalStrength, verticalStrength, stunDuration, setStagger: false);
+            psC.MarkPredictedImpulse();
             return;
         }
 
         var root = other.transform.root;
         var ps = root.GetComponent<PlayerScript>();
         if (ps == null) return;
-
-        bool authorized = IsAirborneAuthorized(ps);
-        bool descending = false;
-        if (NetworkServer.active)
-        {
-            var ni = ps.GetComponent<NetworkIdentity>();
-            if (ni != null)
-                descending = IsDescendingServer(ps.transform, ni.netId);
-        }
-        else if (!NetworkClient.active)
-        {
-            descending = IsDescendingOffline(ps.transform, ps.GetInstanceID());
-        }
-        if (!(authorized || descending)) return;
-
 
         TryBounce(ps);
     }
