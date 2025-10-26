@@ -1,7 +1,6 @@
 using Mirror;
 using UnityEngine;
 
-[AddComponentMenu("Minigames/Obstaculos/Portas/Fall Guys Door Row")]
 public class FallGuysDoorRow : NetworkBehaviour
 {
     [Tooltip("Se verdadeiro, escolhe exatamente 1 porta verdadeira nesta fileira.")]

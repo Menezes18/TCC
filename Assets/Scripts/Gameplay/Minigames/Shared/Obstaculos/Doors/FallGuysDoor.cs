@@ -25,10 +25,17 @@ public class FallGuysDoor : NetworkBehaviour
     [SerializeField] private float liftStrength = 1.0f;
     [SerializeField] private float stunDuration = 0.1f;
 
-    [SyncVar] private bool isReal = false;   
+    [SyncVar(hook = nameof(OnIsRealChanged))] private bool isReal = false;   
     [SyncVar] private bool opened = false;
 
     private Quaternion _initialRot;
+
+    private void Awake()
+    {
+        doorVisual = doorVisual != null ? doorVisual : transform;
+        if (doorRb == null) doorRb = GetComponent<Rigidbody>();
+        _initialRot = doorVisual.localRotation;
+    }
 
     private void Reset()
     {
@@ -45,6 +52,12 @@ public class FallGuysDoor : NetworkBehaviour
         base.OnStartServer();
         opened = false;
         RpcResetDoor();
+    }
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        ApplyRealMode(isReal);
     }
 
     [Server]
@@ -102,6 +115,26 @@ public class FallGuysDoor : NetworkBehaviour
             doorRb.isKinematic = true;
             doorRb.linearVelocity = Vector3.zero;
             doorRb.angularVelocity = Vector3.zero;
+        }
+    }
+
+    private void OnIsRealChanged(bool oldValue, bool newValue)
+    {
+        ApplyRealMode(newValue);
+    }
+
+    private void ApplyRealMode(bool real)
+    {
+        if (doorRb == null) return;
+        if (real)
+        {
+            doorRb.constraints = RigidbodyConstraints.None;
+            doorRb.isKinematic = true;
+        }
+        else
+        {
+            doorRb.isKinematic = true;
+            doorRb.constraints = RigidbodyConstraints.FreezeAll;
         }
     }
 
