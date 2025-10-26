@@ -158,6 +158,32 @@ public class RaceMinigameController : MinigameController
                 : Mathf.RoundToInt(prog * 100f);
             _finalPointsByPlayer[id] = pts;
         }
+
+        // Override: pontuação final por colocação (1º..4º), incluindo não-finalistas por progresso
+        var ranked = new List<ulong>();
+        ranked.AddRange(_finishOrder);
+        var nonFinishers = new List<(ulong id, float prog)>();
+        foreach (var pd2 in PlayerList.players)
+        {
+            ulong nid = pd2.playerInfo.steamId;
+            if (_finished.Contains(nid)) continue;
+            nonFinishers.Add((nid, GetNormalizedProgress(pd2)));
+        }
+        nonFinishers.Sort((a, b) => b.prog.CompareTo(a.prog));
+        foreach (var nf in nonFinishers) ranked.Add(nf.id);
+        _finalPointsByPlayer.Clear();
+        for (int ri = 0; ri < ranked.Count; ri++)
+        {
+            int p = ri switch
+            {
+                0 => settingsData?.firstPlaceBonus ?? 0,
+                1 => settingsData?.secondPlaceBonus ?? 0,
+                2 => settingsData?.thirdPlaceBonus  ?? 0,
+                3 => settingsData?.fourthPlaceBonus ?? 0,
+                _ => 0
+            };
+            _finalPointsByPlayer[ranked[ri]] = p;
+        }
     }
 
     public override Dictionary<ulong, int> GetResults() =>

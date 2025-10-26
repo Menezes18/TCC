@@ -6,7 +6,8 @@ using System.Linq;
 public class ChegadaPodio : MonoBehaviour, IObserver
 {
     public List<PlayerData> podio = new List<PlayerData>();
-    public int pontosBase = 4;
+    [SerializeField] private SettingsMiniGameData settingsData;
+    public int pontosBase = 4; // legado; mantenho para compatibilidade mas não usamos mais
     public bool isKillGame = false;
     
     private void Awake()
@@ -49,24 +50,27 @@ public class ChegadaPodio : MonoBehaviour, IObserver
     [ServerCallback]
     private void DistribuirPontos()
     {
-        int jogadoresNoRanking = podio.Count;
-        
-        for (int i = 0; i < jogadoresNoRanking; i++)
+        // Monta ranking conforme tipo:
+        // - Corrida (isKillGame == false): ordem de chegada = podio
+        // - Sobrevivência (isKillGame == true): todos eliminados em 'podio' (ordem de morte) recebem do último ao primeiro
+        var ranked = new List<PlayerData>();
+
+        if (!isKillGame)
         {
-            int pontuacao;
-            
-            if (isKillGame)
-            {
-                pontuacao = 1 + i;
-            }
-            else
-            {
-                pontuacao = pontosBase - i;
-                if (pontuacao < 1) pontuacao = 1;
-            }
-            
-            MyNetworkManager.manager.AddPoints(podio[i].playerInfo.steamId, pontuacao);
-            
+            ranked.AddRange(podio);
+        }
+        else
+        {
+            // tempo não acabou: todos morreram -> survivors = 0; usa ordem inversa de eliminação
+            for (int i = podio.Count - 1; i >= 0; i--)
+                ranked.Add(podio[i]);
+        }
+
+        for (int i = 0; i < ranked.Count; i++)
+        {
+            int pts = PointsForPlacement(i);
+            if (pts > 0)
+                MyNetworkManager.manager.AddPoints(ranked[i].playerInfo.steamId, pts);
         }
     }
     
@@ -75,27 +79,41 @@ public class ChegadaPodio : MonoBehaviour, IObserver
     {
         if (isKillGame && subject is ContadorTempo)
         {
-            Debug.Log("Tempo esgotado! Distribuindo pontos para sobreviventes...");
-            
-            List<PlayerData> jogadoresVivos = new List<PlayerData>();
-            
-            foreach (PlayerData cliente in MyNetworkManager.manager.allClients)
+            Debug.Log("Tempo esgotado! Distribuindo pontos por ranking de sobrevivência...");
+
+            // Ranking: sobreviventes primeiro (empatados em ordem de iteração), depois eliminados do último para o primeiro
+            var ranked = new List<PlayerData>();
+            var all = MyNetworkManager.manager.allClients;
+
+            foreach (var pd in all)
+                if (!podio.Contains(pd)) ranked.Add(pd);
+
+            for (int i = podio.Count - 1; i >= 0; i--)
+                ranked.Add(podio[i]);
+
+            for (int i = 0; i < ranked.Count; i++)
             {
-                if (!podio.Contains(cliente))
-                {
-                    jogadoresVivos.Add(cliente);
-                }
+                int pts = PointsForPlacement(i);
+                if (pts > 0)
+                    MyNetworkManager.manager.AddPoints(ranked[i].playerInfo.steamId, pts);
             }
-            
-            foreach (PlayerData sobrevivente in jogadoresVivos)
-            {
-                MyNetworkManager.manager.AddPoints(sobrevivente.playerInfo.steamId, pontosBase);
-                
-                Debug.Log($"SOBREVIVENTE {sobrevivente.playerInfo.steamId} recebeu {pontosBase} pontos");
-            }
-            
+
             // Final scene flow should be orchestrated centrally (e.g., MatchManager)
             NetworkManager.singleton.ServerChangeScene("Vitoria");
         }
+    }
+
+    private int PointsForPlacement(int placementIndex)
+    {
+        // 0=1º, 1=2º, 2=3º, 3=4º
+        if (settingsData == null) return Mathf.Max(0, pontosBase - placementIndex);
+        return placementIndex switch
+        {
+            0 => settingsData.firstPlaceBonus,
+            1 => settingsData.secondPlaceBonus,
+            2 => settingsData.thirdPlaceBonus,
+            3 => settingsData.fourthPlaceBonus,
+            _ => 0
+        };
     }
 }

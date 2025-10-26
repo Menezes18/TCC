@@ -18,6 +18,7 @@ public class StreetCourierZone : NetworkBehaviour
     [SerializeField] private Transform _playerSpawnPoint;
     [Tooltip("VFX opcional para destacar esta entrega apenas para o dono.")]
     [SerializeField] private GameObject _highlightVfx;
+    [SerializeField] private Renderer[] renderers;
 
     private void Reset()
     {
@@ -84,7 +85,7 @@ public class StreetCourierZone : NetworkBehaviour
 
     void ApplyTint(Color32 color)
     {
-        var renderers = GetComponentsInChildren<Renderer>(true);
+        // renderers = GetComponentsInChildren<Renderer>(true);
         foreach (var r in renderers)
         {
             if (r != null && r.material != null)

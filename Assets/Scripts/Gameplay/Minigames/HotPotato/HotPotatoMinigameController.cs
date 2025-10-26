@@ -437,16 +437,31 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     {
         finalScores.Clear();
 
+        int posIndex = 0;
+
         if (alivePlayers.Count == 1)
         {
             var winner = alivePlayers[0];
-            finalScores[winner.playerInfo.steamId] = settingsData.firstPlaceBonus;
+            // 1º lugar
+            finalScores[winner.playerInfo.steamId] = settingsData != null ? settingsData.firstPlaceBonus : 0;
+            posIndex++;
         }
 
-        for (int i = 0; i < eliminationOrder.Count; i++)
+        // Do último eliminado ao primeiro eliminado para formar 2º, 3º, 4º...
+        for (int i = eliminationOrder.Count - 1; i >= 0; i--)
         {
             var pd = eliminationOrder[i];
-            finalScores[pd.playerInfo.steamId] = settingsData.secondPlaceBonus;
+            int pts = 0;
+            switch (posIndex)
+            {
+                case 0: pts = settingsData != null ? settingsData.firstPlaceBonus  : 0; break;
+                case 1: pts = settingsData != null ? settingsData.secondPlaceBonus : 0; break;
+                case 2: pts = settingsData != null ? settingsData.thirdPlaceBonus  : 0; break;
+                case 3: pts = settingsData != null ? settingsData.fourthPlaceBonus : 0; break;
+                default: pts = 0; break;
+            }
+            finalScores[pd.playerInfo.steamId] = pts;
+            posIndex++;
         }
     }
 
