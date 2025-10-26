@@ -14,7 +14,7 @@ public class RaceMinigameController : MinigameController
     [SerializeField] private Transform startReference; // ponto inicial opcional para cálculo de progresso
     [SerializeField] private RaceFinishTrigger finishTrigger;
     [SerializeField] private List<RaceCheckpoint> checkpoints = new();
-
+    [SerializeField] private int maxPoints = 250;
     private bool _matchActive;
     private PlayerList PlayerList => PlayerList.singleton;
 
@@ -119,7 +119,7 @@ public class RaceMinigameController : MinigameController
             ulong id = pd.playerInfo.steamId;
             float prog = GetNormalizedProgress(pd);
             int pts = settingsData != null
-                ? Mathf.RoundToInt(prog * Mathf.Max(0, settingsData.maxPoints))
+                ? Mathf.RoundToInt(prog * Mathf.Max(0, maxPoints))
                 : Mathf.RoundToInt(prog * 100f);
             _liveScoresByPlayer[id] = pts;
         }
@@ -153,9 +153,7 @@ public class RaceMinigameController : MinigameController
             if (_finished.Contains(id)) continue;
 
             float prog = GetNormalizedProgress(pd);
-            int pts = settingsData != null
-                ? Mathf.RoundToInt(prog * Mathf.Max(0, settingsData.maxPoints))
-                : Mathf.RoundToInt(prog * 100f);
+            int pts = Mathf.RoundToInt(prog * Mathf.Max(0, maxPoints));
             _finalPointsByPlayer[id] = pts;
         }
 
