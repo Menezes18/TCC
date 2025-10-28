@@ -36,6 +36,10 @@ public class HUDSO : ScriptableObject{
     
     public void MatchTimerUpdate(float value) {this.EventOnMatchTimerUpdated?.Invoke(value);}
     
+    public event Action<float> EventOnVotingTimerUpdated;
+    
+    public void VotingTimerUpdate(float value) {this.EventOnVotingTimerUpdated?.Invoke(value);}
+    
     public event Action<float> EventOnRespawnTimerUpdated;
     public void RespawnTimerUpdate(float value) {this.EventOnRespawnTimerUpdated?.Invoke(value);}
     

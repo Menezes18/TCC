@@ -508,6 +508,13 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         {
             listaAleatoria();
         }
+
+        // Reset the minigame rotation state for voting system
+        if (MinigameRotationState.Instance != null)
+        {
+            MinigameRotationState.Instance.Reset();
+            Debug.Log("🔄 [VOTING] MinigameRotationState reset after victory scene loaded");
+        }
     }
 
     private bool EnsureCatalogAssigned()
