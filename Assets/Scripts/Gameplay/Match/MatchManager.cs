@@ -61,8 +61,20 @@ public class MatchManager : NetworkBehaviour
         _activePlayers.Clear();
         _winnerPlayers .Clear();
         
-        // Centralized network scene change
-        NetworkManager.singleton.ServerChangeScene("RASCUNHO");
+        // Check if we should load the next scene in rotation (including victory scene)
+        var manager = MyNetworkManager.manager;
+        if (manager != null && manager.TryGetSceneNameAt(manager.indexScene, out var nextScene))
+        {
+            Debug.Log($"🎮 [MATCH] Loading next scene in rotation: {nextScene}");
+            NetworkManager.singleton.ServerChangeScene(nextScene);
+            manager.AdvanceScenePointer();
+        }
+        else
+        {
+            // Fallback to lobby if rotation fails
+            Debug.LogWarning("🎮 [MATCH] No scene found in rotation, returning to lobby");
+            NetworkManager.singleton.ServerChangeScene("RASCUNHO");
+        }
     }
 
     #endregion

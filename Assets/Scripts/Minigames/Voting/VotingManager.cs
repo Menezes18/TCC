@@ -157,7 +157,13 @@ public class VotingManager : NetworkBehaviour
         foreach (var entry in selectedOptions)
         {
             _optionIds.Add(entry.id);
-            _optionNames.Add(entry.displayName ?? entry.id);
+            // Ensure displayName is never null or empty - use id as fallback
+            string displayName = entry.displayName;
+            if (string.IsNullOrWhiteSpace(displayName))
+            {
+                displayName = entry.id;
+            }
+            _optionNames.Add(displayName);
             _optionScenes.Add(entry.SceneIdentifier);
             _voteCounts.Add(0);
         }

@@ -223,6 +223,26 @@ public class LobbyController : NetworkBehaviour
                 if (MinigameRotationState.Instance != null)
                 {
                     MinigameRotationState.Instance.MarkAsPlayed(_votingWinner.id);
+                    
+                    // Check if all minigames have been played - if so, load victory scene
+                    var eligible = MinigameRotationState.Instance.GetEligibleMinigames();
+                    if (eligible.Count == 0)
+                    {
+                        Debug.Log("🏆 [LOBBY] All minigames played! Loading victory scene");
+                        var manager = MyNetworkManager.manager;
+                        if (manager != null && minigameCatalog != null)
+                        {
+                            string victoryScene = minigameCatalog.VictorySceneIdentifier;
+                            if (!string.IsNullOrWhiteSpace(victoryScene))
+                            {
+                                NetworkManager.singleton.ServerChangeScene(victoryScene);
+                                _votingInProgress = false;
+                                _votingWinner = null;
+                                return;
+                            }
+                        }
+                        Debug.LogWarning("🏆 [LOBBY] Victory scene not configured, loading winning minigame");
+                    }
                 }
 
                 // Load the winning scene
