@@ -25,8 +25,8 @@ public class LobbySlot : MonoBehaviour
     {
         nameText.text = alias;
         readyIndicator.color = isReady ? Color.green : Color.red;
-        readyIndicator.text = "Pronto!";
-        readyPrompt.gameObject.SetActive(false);
+        readyIndicator.text = isReady ? "Pronto!" : "Pronto?";
+        readyPrompt.gameObject.SetActive(isReady);
         playerColor.color = database.GetColor(colorPlayer);
     }
 }
