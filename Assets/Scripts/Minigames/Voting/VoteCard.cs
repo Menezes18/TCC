@@ -43,9 +43,14 @@ public class VoteCard : MonoBehaviour
         _option = option;
         _optionIndex = optionIndex;
 
+        // Debug: Log what we're receiving
+        Debug.Log($"🎴 [VOTE CARD] Initializing card {optionIndex}: ID='{option.id}', DisplayName='{option.displayName}'");
+
         if (nameText != null)
         {
-            nameText.text = option.displayName ?? option.id;
+            string displayText = !string.IsNullOrWhiteSpace(option.displayName) ? option.displayName : option.id;
+            nameText.text = displayText;
+            Debug.Log($"  📝 Setting text to: '{displayText}'");
         }
 
         if (iconImage != null)

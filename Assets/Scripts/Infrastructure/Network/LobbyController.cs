@@ -40,7 +40,32 @@ public class LobbyController : NetworkBehaviour
         _prepareTimer = -1;
         _startTimer = -1;
         _votingTimer = -1;
-        Invoke("StartGameWithParty", 0.5f );
+        
+        // Start checking for ready players periodically
+        if (isServer)
+        {
+            InvokeRepeating(nameof(CheckPlayersReady), 0.5f, 1.0f);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (isServer)
+        {
+            CancelInvoke(nameof(CheckPlayersReady));
+        }
+    }
+
+    [Server]
+    private void CheckPlayersReady()
+    {
+        // Only check if game hasn't started yet
+        if (!MyNetworkManager.manager.startGame && MyNetworkManager.manager.AllPlayersReady())
+        {
+            Debug.Log("✅ [LOBBY] All players ready, starting game!");
+            CmdPrepareMath();
+            MyNetworkManager.manager.startGame = true;
+        }
     }
 
     private void Update()
@@ -93,21 +118,26 @@ public class LobbyController : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Legacy method - kept for compatibility. The ready check is now done automatically via CheckPlayersReady.
+    /// </summary>
     public void StartGameWithParty() 
     {
-        Debug.Log($"🎮 [LOBBY] AllPlayersReady? {MyNetworkManager.manager.AllPlayersReady()}");
+        if (!isServer) return;
+        
+        Debug.Log($"🎮 [LOBBY] StartGameWithParty called - AllPlayersReady? {MyNetworkManager.manager.AllPlayersReady()}");
+        
         if(MyNetworkManager.manager.startGame){
-            Debug.Log("🎮 [LOBBY] Forçando início via CmdStartMath()");
+            Debug.Log("🎮 [LOBBY] Game already started, forcing via CmdStartMath()");
             CmdStartMath();
             return;
         }
+        
         if (MyNetworkManager.manager.AllPlayersReady()){
-            
+            Debug.Log("✅ [LOBBY] All players ready, starting game");
             CmdPrepareMath();
             MyNetworkManager.manager.startGame = true;
-            Debug.Log("✅ [LOBBY] Game started");
         }
-        
     }
 
     [Command(requiresAuthority = false)]

@@ -520,6 +520,11 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             MinigameRotationState.Instance.Reset();
             Debug.Log("🔄 [VOTING] MinigameRotationState reset after victory scene loaded");
         }
+
+        // Reset game state - require all players to ready up again
+        Debug.Log("🔄 [VICTORY] Resetting game state - players must ready up again");
+        startGame = false;
+        ResetAllPlayersReady();
     }
 
     private bool EnsureCatalogAssigned()
