@@ -154,6 +154,7 @@ public class VotingManager : NetworkBehaviour
         _currentOptionEntries.AddRange(selectedOptions);
 
         // Populate SyncLists for network replication
+        Debug.Log($"🗳️ [VOTING SERVER] Populating SyncLists with {selectedOptions.Count} options:");
         foreach (var entry in selectedOptions)
         {
             _optionIds.Add(entry.id);
@@ -162,10 +163,13 @@ public class VotingManager : NetworkBehaviour
             if (string.IsNullOrWhiteSpace(displayName))
             {
                 displayName = entry.id;
+                Debug.LogWarning($"  ⚠️ Entry '{entry.id}' has no displayName, using ID as fallback");
             }
             _optionNames.Add(displayName);
             _optionScenes.Add(entry.SceneIdentifier);
             _voteCounts.Add(0);
+            
+            Debug.Log($"  ✅ Added: ID='{entry.id}', DisplayName='{displayName}', Scene='{entry.SceneIdentifier}'");
         }
 
         Debug.Log($"🗳️ [VOTING] Started voting round with {optionCount} options: {string.Join(", ", selectedOptions.Select(o => o.displayName))}");
@@ -367,15 +371,21 @@ public class VotingManager : NetworkBehaviour
     {
         _clientOptions.Clear();
         
+        Debug.Log($"🔄 [VOTING CLIENT] Rebuilding options. IDs: {_optionIds.Count}, Names: {_optionNames.Count}, Scenes: {_optionScenes.Count}");
+        
         for (int i = 0; i < _optionIds.Count; i++)
         {
+            string displayName = i < _optionNames.Count ? _optionNames[i] : _optionIds[i];
+            
             var option = new MinigameOptionRuntime
             {
                 id = _optionIds[i],
-                displayName = i < _optionNames.Count ? _optionNames[i] : _optionIds[i],
+                displayName = displayName,
                 sceneIdentifier = i < _optionScenes.Count ? _optionScenes[i] : ""
             };
             _clientOptions.Add(option);
+            
+            Debug.Log($"  Option {i}: ID='{option.id}', DisplayName='{option.displayName}', Scene='{option.sceneIdentifier}'");
         }
 
         // Try to load icons from catalog if available

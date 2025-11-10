@@ -56,13 +56,20 @@ public class MinigameRotationState : MonoBehaviour
             return new List<MinigameCatalog.MinigameEntry>();
         }
 
-        return _catalog.Entries
+        Debug.Log($"🔍 [ROTATION] Checking eligibility - Active IDs: [{string.Join(", ", activeIds)}]");
+        Debug.Log($"🔍 [ROTATION] Already played: [{string.Join(", ", _playedMinigames)}]");
+
+        var eligible = _catalog.Entries
             .Where(entry => entry != null && 
                            entry.HasValidScene && 
                            !string.IsNullOrWhiteSpace(entry.id) &&
                            activeIds.Contains(entry.id) &&  // Only include active minigames
                            !_playedMinigames.Contains(entry.id))
             .ToList();
+        
+        Debug.Log($"✅ [ROTATION] Found {eligible.Count} eligible minigames: [{string.Join(", ", eligible.Select(e => e.displayName ?? e.id))}]");
+        
+        return eligible;
     }
 
     /// <summary>
