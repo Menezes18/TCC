@@ -52,6 +52,11 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     private readonly List<string> _workingSceneBuffer = new List<string>();
 
     public IReadOnlyList<string> SceneRotation => _sceneRotation;
+    
+    /// <summary>
+    /// Gets the list of currently active minigame IDs (enabled in MinigameSelection).
+    /// </summary>
+    public IReadOnlyList<string> ActiveMinigameIds => _activeMinigameIds;
 
     // Telemetry: per-client load progress and start times (server-side)
     private readonly Dictionary<ulong, float> _clientLoadProgress = new();

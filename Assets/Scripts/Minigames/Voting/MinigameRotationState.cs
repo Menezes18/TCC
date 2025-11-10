@@ -35,7 +35,8 @@ public class MinigameRotationState : MonoBehaviour
     private readonly HashSet<string> _playedMinigames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Gets all minigames that have NOT been played yet this match.
+    /// Gets all minigames that have NOT been played yet this match AND are currently active.
+    /// Only includes minigames that are enabled in the MinigameSelection UI.
     /// </summary>
     public List<MinigameCatalog.MinigameEntry> GetEligibleMinigames()
     {
@@ -45,10 +46,21 @@ public class MinigameRotationState : MonoBehaviour
             return new List<MinigameCatalog.MinigameEntry>();
         }
 
+        // Get the list of active minigames from NetworkManager
+        var manager = MyNetworkManager.manager;
+        var activeIds = manager?.ActiveMinigameIds;
+        
+        if (activeIds == null || activeIds.Count == 0)
+        {
+            Debug.LogWarning("[MinigameRotationState] No active minigames found in NetworkManager!");
+            return new List<MinigameCatalog.MinigameEntry>();
+        }
+
         return _catalog.Entries
             .Where(entry => entry != null && 
                            entry.HasValidScene && 
                            !string.IsNullOrWhiteSpace(entry.id) &&
+                           activeIds.Contains(entry.id) &&  // Only include active minigames
                            !_playedMinigames.Contains(entry.id))
             .ToList();
     }

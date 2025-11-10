@@ -213,6 +213,33 @@ public class LobbyController : NetworkBehaviour
 
         Debug.Log("🗳️ [LOBBY] Ending voting and transitioning to winner");
 
+        // Check if all active minigames have been played - if so, load victory scene
+        if (MinigameRotationState.Instance != null)
+        {
+            var eligible = MinigameRotationState.Instance.GetEligibleMinigames();
+            if (eligible.Count == 0)
+            {
+                Debug.Log("🏆 [LOBBY] All active minigames have been played! Loading victory scene");
+                var manager = MyNetworkManager.manager;
+                if (manager != null && minigameCatalog != null)
+                {
+                    string victoryScene = minigameCatalog.VictorySceneIdentifier;
+                    if (!string.IsNullOrWhiteSpace(victoryScene))
+                    {
+                        NetworkManager.singleton.ServerChangeScene(victoryScene);
+                        _votingInProgress = false;
+                        _votingWinner = null;
+                        return;
+                    }
+                }
+                Debug.LogWarning("🏆 [LOBBY] Victory scene not configured, resetting rotation");
+                if (MinigameRotationState.Instance != null)
+                {
+                    MinigameRotationState.Instance.Reset();
+                }
+            }
+        }
+
         if (VotingManager.Instance != null)
         {
             _votingWinner = VotingManager.Instance.EndVoting();
@@ -223,26 +250,6 @@ public class LobbyController : NetworkBehaviour
                 if (MinigameRotationState.Instance != null)
                 {
                     MinigameRotationState.Instance.MarkAsPlayed(_votingWinner.id);
-                    
-                    // Check if all minigames have been played - if so, load victory scene
-                    var eligible = MinigameRotationState.Instance.GetEligibleMinigames();
-                    if (eligible.Count == 0)
-                    {
-                        Debug.Log("🏆 [LOBBY] All minigames played! Loading victory scene");
-                        var manager = MyNetworkManager.manager;
-                        if (manager != null && minigameCatalog != null)
-                        {
-                            string victoryScene = minigameCatalog.VictorySceneIdentifier;
-                            if (!string.IsNullOrWhiteSpace(victoryScene))
-                            {
-                                NetworkManager.singleton.ServerChangeScene(victoryScene);
-                                _votingInProgress = false;
-                                _votingWinner = null;
-                                return;
-                            }
-                        }
-                        Debug.LogWarning("🏆 [LOBBY] Victory scene not configured, loading winning minigame");
-                    }
                 }
 
                 // Load the winning scene
