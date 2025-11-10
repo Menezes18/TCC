@@ -4,11 +4,13 @@ using UnityEngine;
 using Mirror;
 using TMPro;
 using UnityEngine.UI;
+using Unity.VisualScripting;
 
 public class LobbySlot : MonoBehaviour
 {
     [SerializeField] TMP_Text nameText;
-    [SerializeField] Image readyIndicator;
+    [SerializeField] TMP_Text readyIndicator;
+    [SerializeField] Image readyPrompt;
     [SerializeField] Image playerColor;
 
     [SerializeField] Database database;
@@ -23,6 +25,8 @@ public class LobbySlot : MonoBehaviour
     {
         nameText.text = alias;
         readyIndicator.color = isReady ? Color.green : Color.red;
+        readyIndicator.text = "Pronto!";
+        readyPrompt.gameObject.SetActive(false);
         playerColor.color = database.GetColor(colorPlayer);
     }
 }
