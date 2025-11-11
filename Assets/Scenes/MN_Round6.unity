@@ -673,6 +673,12 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 97022326}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &108828488 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1320906799749366, guid: 946ab6c23f91a5648a10f6b06cccea74,
+    type: 3}
+  m_PrefabInstance: {fileID: 998406549}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &145858543
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1957,7 +1963,11 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1009839215037420, guid: 0e8b339777f291f46a21854b1f5f9b04,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1122662200}
   m_SourcePrefab: {fileID: 100100000, guid: 0e8b339777f291f46a21854b1f5f9b04, type: 3}
 --- !u!4 &371433684 stripped
 Transform:
@@ -5368,7 +5378,11 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1534744360255530, guid: 711657b179c657e4a9b8b1d4381e8467,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1599473133}
   m_SourcePrefab: {fileID: 100100000, guid: 711657b179c657e4a9b8b1d4381e8467, type: 3}
 --- !u!4 &921495444 stripped
 Transform:
@@ -5569,7 +5583,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &967655478
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5756,7 +5770,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4267028669337420, guid: 946ab6c23f91a5648a10f6b06cccea74, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 68.4
+      value: 79.7
       objectReference: {fileID: 0}
     - target: {fileID: 4267028669337420, guid: 946ab6c23f91a5648a10f6b06cccea74, type: 3}
       propertyPath: m_LocalPosition.y
@@ -5764,7 +5778,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4267028669337420, guid: 946ab6c23f91a5648a10f6b06cccea74, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -435.6
+      value: -448
       objectReference: {fileID: 0}
     - target: {fileID: 4267028669337420, guid: 946ab6c23f91a5648a10f6b06cccea74, type: 3}
       propertyPath: m_LocalRotation.w
@@ -5808,7 +5822,11 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1320906799749366, guid: 946ab6c23f91a5648a10f6b06cccea74,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 998406551}
   m_SourcePrefab: {fileID: 100100000, guid: 946ab6c23f91a5648a10f6b06cccea74, type: 3}
 --- !u!4 &998406550 stripped
 Transform:
@@ -5816,6 +5834,32 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 998406549}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &998406551
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 108828488}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ce0fb2a574215c4e8548f3f519ff087, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BobAndSway
+  target: {fileID: 998406550}
+  enableBob: 1
+  bobAxis: {x: 1, y: 1, z: 1}
+  bobAmplitude: 2.8
+  bobFrequency: 0.1
+  bobInLocalSpace: 0
+  enableSway: 1
+  swayAxis: {x: 1, y: 1, z: 1}
+  swayDegrees: 6
+  swayFrequency: 0.2
+  useUnscaledTime: 0
+  phaseOffsetPos: 5.438743
+  phaseOffsetRot: 5.9679465
+  randomizePhaseOnEnable: 1
 --- !u!1 &1012285892
 GameObject:
   m_ObjectHideFlags: 0
@@ -6547,6 +6591,38 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1114252236}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1122662199 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1009839215037420, guid: 0e8b339777f291f46a21854b1f5f9b04,
+    type: 3}
+  m_PrefabInstance: {fileID: 371433683}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1122662200
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1122662199}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ce0fb2a574215c4e8548f3f519ff087, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BobAndSway
+  target: {fileID: 371433684}
+  enableBob: 1
+  bobAxis: {x: 1, y: 1, z: 1}
+  bobAmplitude: 2.8
+  bobFrequency: 0.1
+  bobInLocalSpace: 0
+  enableSway: 1
+  swayAxis: {x: 1, y: 1, z: 1}
+  swayDegrees: 6
+  swayFrequency: 0.2
+  useUnscaledTime: 0
+  phaseOffsetPos: 5.438743
+  phaseOffsetRot: 5.9679465
+  randomizePhaseOnEnable: 1
 --- !u!1 &1128635486
 GameObject:
   m_ObjectHideFlags: 0
@@ -7898,6 +7974,12 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1283178988}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1300505227 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1320906799749366, guid: 946ab6c23f91a5648a10f6b06cccea74,
+    type: 3}
+  m_PrefabInstance: {fileID: 2004940119}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1308443407
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8012,6 +8094,12 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1308443407}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1318355142 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1534744360255530, guid: 711657b179c657e4a9b8b1d4381e8467,
+    type: 3}
+  m_PrefabInstance: {fileID: 1991291299}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1327860020
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8079,7 +8167,11 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1307591353797982, guid: 05a22b6dc2b27b24a9a5342b2c71880b,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1359173131}
   m_SourcePrefab: {fileID: 100100000, guid: 05a22b6dc2b27b24a9a5342b2c71880b, type: 3}
 --- !u!4 &1327860021 stripped
 Transform:
@@ -8343,6 +8435,38 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1355641857}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1359173130 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1307591353797982, guid: 05a22b6dc2b27b24a9a5342b2c71880b,
+    type: 3}
+  m_PrefabInstance: {fileID: 1327860020}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1359173131
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1359173130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ce0fb2a574215c4e8548f3f519ff087, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BobAndSway
+  target: {fileID: 1327860021}
+  enableBob: 1
+  bobAxis: {x: 1, y: 1, z: 1}
+  bobAmplitude: 2.8
+  bobFrequency: 0.1
+  bobInLocalSpace: 0
+  enableSway: 1
+  swayAxis: {x: 1, y: 1, z: 1}
+  swayDegrees: 6
+  swayFrequency: 0.2
+  useUnscaledTime: 0
+  phaseOffsetPos: 5.438743
+  phaseOffsetRot: 5.9679465
+  randomizePhaseOnEnable: 1
 --- !u!1 &1386405928
 GameObject:
   m_ObjectHideFlags: 0
@@ -8874,6 +8998,12 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1443364020}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1470698552 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1009839215037420, guid: 0e8b339777f291f46a21854b1f5f9b04,
+    type: 3}
+  m_PrefabInstance: {fileID: 2126984901}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1507146569
 GameObject:
   m_ObjectHideFlags: 0
@@ -9003,7 +9133,11 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1307591353797982, guid: 05a22b6dc2b27b24a9a5342b2c71880b,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1864813221}
   m_SourcePrefab: {fileID: 100100000, guid: 05a22b6dc2b27b24a9a5342b2c71880b, type: 3}
 --- !u!4 &1520343154 stripped
 Transform:
@@ -9804,6 +9938,38 @@ MonoBehaviour:
   checkHalfExtents: {x: 81.8, y: 0.5, z: 105.17}
   checkOffset: {x: 0, y: 0, z: 0}
   checkInterval: 0.1
+--- !u!1 &1599473132 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1534744360255530, guid: 711657b179c657e4a9b8b1d4381e8467,
+    type: 3}
+  m_PrefabInstance: {fileID: 921495443}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1599473133
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1599473132}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ce0fb2a574215c4e8548f3f519ff087, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BobAndSway
+  target: {fileID: 921495444}
+  enableBob: 1
+  bobAxis: {x: 1, y: 1, z: 1}
+  bobAmplitude: 2.8
+  bobFrequency: 0.1
+  bobInLocalSpace: 0
+  enableSway: 1
+  swayAxis: {x: 1, y: 1, z: 1}
+  swayDegrees: 6
+  swayFrequency: 0.2
+  useUnscaledTime: 0
+  phaseOffsetPos: 5.438743
+  phaseOffsetRot: 5.9679465
+  randomizePhaseOnEnable: 1
 --- !u!1001 &1632151553
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10914,7 +11080,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1846947894
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11059,6 +11225,38 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!1 &1864813220 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1307591353797982, guid: 05a22b6dc2b27b24a9a5342b2c71880b,
+    type: 3}
+  m_PrefabInstance: {fileID: 1520343153}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1864813221
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1864813220}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ce0fb2a574215c4e8548f3f519ff087, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BobAndSway
+  target: {fileID: 1520343154}
+  enableBob: 1
+  bobAxis: {x: 1, y: 1, z: 1}
+  bobAmplitude: 2.8
+  bobFrequency: 0.1
+  bobInLocalSpace: 0
+  enableSway: 1
+  swayAxis: {x: 1, y: 1, z: 1}
+  swayDegrees: 6
+  swayFrequency: 0.2
+  useUnscaledTime: 0
+  phaseOffsetPos: 5.438743
+  phaseOffsetRot: 5.9679465
+  randomizePhaseOnEnable: 1
 --- !u!1 &1872309238
 GameObject:
   m_ObjectHideFlags: 0
@@ -12025,22 +12223,22 @@ PrefabInstance:
     - target: {fileID: 813780564666757504, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchorMax.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 813780564666757504, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchorMin.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 813780564666757504, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 184.7836
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 813780564666757504, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -590.5189
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2295458757352748224, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
@@ -12170,62 +12368,62 @@ PrefabInstance:
     - target: {fileID: 4801667087246462423, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchorMax.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4801667087246462423, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchorMin.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4801667087246462423, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 184.7836
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4801667087246462423, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -322.41275
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6288749958237892763, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchorMax.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6288749958237892763, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchorMin.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6288749958237892763, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 184.7836
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6288749958237892763, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -456.46585
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6622836061832114613, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchorMax.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6622836061832114613, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchorMin.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6622836061832114613, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 184.7836
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6622836061832114613, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -188.35965
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6956628831618690423, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
@@ -12235,7 +12433,7 @@ PrefabInstance:
     - target: {fileID: 6956628831618690423, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7342059171249788656, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
@@ -12260,22 +12458,22 @@ PrefabInstance:
     - target: {fileID: 9191171809086251182, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchorMax.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 9191171809086251182, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchorMin.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 9191171809086251182, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 184.7836
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 9191171809086251182, guid: 26984be0e30cfe844b25e4c0efdc0f7b,
         type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -54.30655
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 2034695520148940261, guid: 26984be0e30cfe844b25e4c0efdc0f7b, type: 3}
@@ -12779,7 +12977,11 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1534744360255530, guid: 711657b179c657e4a9b8b1d4381e8467,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1991291301}
   m_SourcePrefab: {fileID: 100100000, guid: 711657b179c657e4a9b8b1d4381e8467, type: 3}
 --- !u!4 &1991291300 stripped
 Transform:
@@ -12787,6 +12989,32 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1991291299}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1991291301
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1318355142}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ce0fb2a574215c4e8548f3f519ff087, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BobAndSway
+  target: {fileID: 1991291300}
+  enableBob: 1
+  bobAxis: {x: 1, y: 1, z: 1}
+  bobAmplitude: 2.8
+  bobFrequency: 0.1
+  bobInLocalSpace: 0
+  enableSway: 1
+  swayAxis: {x: 1, y: 1, z: 1}
+  swayDegrees: 6
+  swayFrequency: 0.2
+  useUnscaledTime: 0
+  phaseOffsetPos: 5.438743
+  phaseOffsetRot: 5.9679465
+  randomizePhaseOnEnable: 1
 --- !u!1001 &1995763919
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -12995,7 +13223,11 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1320906799749366, guid: 946ab6c23f91a5648a10f6b06cccea74,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2004940121}
   m_SourcePrefab: {fileID: 100100000, guid: 946ab6c23f91a5648a10f6b06cccea74, type: 3}
 --- !u!4 &2004940120 stripped
 Transform:
@@ -13003,6 +13235,32 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 2004940119}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2004940121
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1300505227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ce0fb2a574215c4e8548f3f519ff087, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BobAndSway
+  target: {fileID: 2004940120}
+  enableBob: 1
+  bobAxis: {x: 1, y: 1, z: 1}
+  bobAmplitude: 2.8
+  bobFrequency: 0.1
+  bobInLocalSpace: 0
+  enableSway: 1
+  swayAxis: {x: 1, y: 1, z: 1}
+  swayDegrees: 6
+  swayFrequency: 0.2
+  useUnscaledTime: 0
+  phaseOffsetPos: 5.438743
+  phaseOffsetRot: 5.9679465
+  randomizePhaseOnEnable: 1
 --- !u!1 &2011496971
 GameObject:
   m_ObjectHideFlags: 0
@@ -13875,7 +14133,11 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1009839215037420, guid: 0e8b339777f291f46a21854b1f5f9b04,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2126984903}
   m_SourcePrefab: {fileID: 100100000, guid: 0e8b339777f291f46a21854b1f5f9b04, type: 3}
 --- !u!4 &2126984902 stripped
 Transform:
@@ -13883,6 +14145,32 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 2126984901}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2126984903
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1470698552}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ce0fb2a574215c4e8548f3f519ff087, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BobAndSway
+  target: {fileID: 2126984902}
+  enableBob: 1
+  bobAxis: {x: 1, y: 1, z: 1}
+  bobAmplitude: 2.8
+  bobFrequency: 0.1
+  bobInLocalSpace: 0
+  enableSway: 1
+  swayAxis: {x: 1, y: 1, z: 1}
+  swayDegrees: 6
+  swayFrequency: 0.2
+  useUnscaledTime: 0
+  phaseOffsetPos: 5.438743
+  phaseOffsetRot: 5.9679465
+  randomizePhaseOnEnable: 1
 --- !u!1 &2133596718
 GameObject:
   m_ObjectHideFlags: 0
