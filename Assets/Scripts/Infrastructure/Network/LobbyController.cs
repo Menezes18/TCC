@@ -59,8 +59,20 @@ public class LobbyController : NetworkBehaviour
     [Server]
     private void CheckPlayersReady()
     {
-        // Only check if game hasn't started yet
-        if (!MyNetworkManager.manager.startGame && MyNetworkManager.manager.AllPlayersReady())
+        // If game already started and we're back in lobby, continue the flow
+        if (MyNetworkManager.manager.startGame)
+        {
+            // Check if we should start a new round (no timers running)
+            if (_prepareTimer <= 0 && _startTimer <= 0 && !_votingInProgress)
+            {
+                Debug.Log("🔄 [LOBBY] Back from minigame, starting new round");
+                CmdPrepareMath();
+            }
+            return;
+        }
+        
+        // Initial game start - wait for all players to ready up
+        if (MyNetworkManager.manager.AllPlayersReady())
         {
             Debug.Log("✅ [LOBBY] All players ready, starting game!");
             CmdPrepareMath();

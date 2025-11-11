@@ -183,13 +183,9 @@ public class VotingManager : NetworkBehaviour
         }).ToArray();
         string[] scenes = selectedOptions.Select(e => e.SceneIdentifier).ToArray();
         
-        // Send to all clients via RPC
+        // Send to all clients via RPC (this will trigger OnVotingStarted for everyone including host)
         RpcSyncVotingOptions(ids, names, scenes);
         Debug.Log($"📡 [VOTING SERVER] Sent RPC with {names.Length} options");
-
-        // Notify listeners (server-side)
-        var runtimeOptions = selectedOptions.Select(MinigameOptionRuntime.FromCatalogEntry).ToList();
-        OnVotingStarted?.Invoke(runtimeOptions);
 
         return true;
     }
@@ -201,25 +197,28 @@ public class VotingManager : NetworkBehaviour
     [ClientRpc]
     private void RpcSyncVotingOptions(string[] ids, string[] names, string[] scenes)
     {
-        if (isServer) return; // Server already has the correct data
+        // Don't skip on server - host needs UI updates too!
+        Debug.Log($"📡 [VOTING CLIENT] Received RPC with {names.Length} options (isServer: {isServer})");
         
-        Debug.Log($"📡 [VOTING CLIENT] Received RPC with {names.Length} options");
-        
-        // Clear and populate with received data
-        _optionIds.Clear();
-        _optionNames.Clear();
-        _optionScenes.Clear();
-        
-        for (int i = 0; i < ids.Length; i++)
+        // Only update SyncLists if we're a pure client (not server/host)
+        if (!isServer)
         {
-            _optionIds.Add(ids[i]);
-            _optionNames.Add(i < names.Length ? names[i] : ids[i]);
-            _optionScenes.Add(i < scenes.Length ? scenes[i] : "");
+            // Clear and populate with received data
+            _optionIds.Clear();
+            _optionNames.Clear();
+            _optionScenes.Clear();
             
-            Debug.Log($"  📥 Option {i}: ID='{ids[i]}', Name='{names[i]}', Scene='{scenes[i]}'");
+            for (int i = 0; i < ids.Length; i++)
+            {
+                _optionIds.Add(ids[i]);
+                _optionNames.Add(i < names.Length ? names[i] : ids[i]);
+                _optionScenes.Add(i < scenes.Length ? scenes[i] : "");
+                
+                Debug.Log($"  📥 Option {i}: ID='{ids[i]}', Name='{names[i]}', Scene='{scenes[i]}'");
+            }
         }
         
-        // Rebuild client options with the new data
+        // Rebuild client options with the new data (for both server and clients)
         RebuildClientOptions();
     }
 
