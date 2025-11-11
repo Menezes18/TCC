@@ -74,7 +74,6 @@ GameObject:
   m_Component:
   - component: {fileID: 5249170614363751031}
   - component: {fileID: 4342649978296738941}
-  - component: {fileID: 1300595855993576582}
   m_Layer: 0
   m_Name: Glove
   m_TagString: Untagged
@@ -158,27 +157,6 @@ SkinnedMeshRenderer:
     m_Center: {x: -0.0010509132, y: 0.023365352, z: 0.0010570618}
     m_Extent: {x: 0.004277821, y: 0.0068504103, z: 0.005192132}
   m_DirtyAABB: 0
---- !u!65 &1300595855993576582
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5797498907647543946}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.008555642, y: 0.013700819, z: 0.010384263}
-  m_Center: {x: -0.0010509281, y: 0.008016229, z: 0.0057639135}
 --- !u!1 &6162966773364000929
 GameObject:
   m_ObjectHideFlags: 0
@@ -482,6 +460,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1095081802540341542}
   - component: {fileID: 8722973597053089727}
+  - component: {fileID: 8605825676115046377}
+  - component: {fileID: 4750910767520952931}
+  - component: {fileID: 8504436967504070611}
   m_Layer: 0
   m_Name: Punch
   m_TagString: Untagged
@@ -530,3 +511,60 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!65 &8605825676115046377
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8982439445815766286}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.77754, y: 0.9999998, z: 1.4000006}
+  m_Center: {x: 0.688756, y: 0.4000001, z: -1.0000002}
+--- !u!114 &4750910767520952931
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8982439445815766286}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 13a03deddae8763448a696ca05ae0111, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PunchingGlove
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  knockbackStrength: 10
+  liftStrength: 5
+  stunDuration: 0.2
+  hitCooldown: 0.35
+--- !u!114 &8504436967504070611
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8982439445815766286}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 0
+  _assetId: 2110898543
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
