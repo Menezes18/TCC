@@ -14,12 +14,14 @@ public class VotingManager : NetworkBehaviour
     #region Singleton
 
     public static VotingManager Instance { get; private set; }
+    public static event Action<VotingManager> OnInstanceChanged;
 
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
+            OnInstanceChanged?.Invoke(this);
         }
         else if (Instance != this)
         {
@@ -90,9 +92,15 @@ public class VotingManager : NetworkBehaviour
         // Subscribe to SyncList changes on clients
         if (!isServer)
         {
-            // Don't subscribe to _optionIds or _optionNames changes
-            // Names are now synchronized via RpcSyncMinigameNames
+            _optionIds.Callback += OnOptionsChanged;
+            _optionNames.Callback += OnOptionsChanged;
+            _optionScenes.Callback += OnOptionsChanged;
             _voteCounts.Callback += OnVoteCountsChanged;
+
+            if (_optionIds.Count > 0)
+            {
+                RebuildClientOptions();
+            }
         }
     }
 
@@ -100,6 +108,23 @@ public class VotingManager : NetworkBehaviour
     {
         base.OnStartServer();
         ClearVotingState();
+    }
+
+    private void OnDestroy()
+    {
+        if (!isServer)
+        {
+            _optionIds.Callback -= OnOptionsChanged;
+            _optionNames.Callback -= OnOptionsChanged;
+            _optionScenes.Callback -= OnOptionsChanged;
+            _voteCounts.Callback -= OnVoteCountsChanged;
+        }
+
+        if (Instance == this)
+        {
+            Instance = null;
+            OnInstanceChanged?.Invoke(null);
+        }
     }
 
     #endregion

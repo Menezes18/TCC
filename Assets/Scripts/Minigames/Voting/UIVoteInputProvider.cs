@@ -19,6 +19,7 @@ public class UIVoteInputProvider : NetworkBehaviour, IVoteInputProvider
     private readonly List<VoteCard> _spawnedCards = new List<VoteCard>();
     private int _currentVote = -1;
     private bool _isActive;
+    private VotingManager _registeredVotingManager;
 
     public bool IsActive => _isActive;
 
@@ -30,14 +31,59 @@ public class UIVoteInputProvider : NetworkBehaviour, IVoteInputProvider
         }
     }
 
-    private void Start()
+    private void OnEnable()
     {
-        // Subscribe to VotingManager events
-        if (VotingManager.Instance != null)
+        VotingManager.OnInstanceChanged += HandleVotingManagerChanged;
+        HandleVotingManagerChanged(VotingManager.Instance);
+    }
+
+    private void OnDisable()
+    {
+        VotingManager.OnInstanceChanged -= HandleVotingManagerChanged;
+        DetachFromVotingManager();
+    }
+
+    private void HandleVotingManagerChanged(VotingManager manager)
+    {
+        if (_registeredVotingManager == manager)
+            return;
+
+        DetachFromVotingManager();
+
+        if (manager == null)
+            return;
+
+        _registeredVotingManager = manager;
+        _registeredVotingManager.OnVotingStarted += InitializeOptions;
+        _registeredVotingManager.OnVoteCountsUpdated += OnVoteCountsUpdated;
+        _registeredVotingManager.OnVotingEnded += OnVotingEnded;
+
+        var currentOptions = _registeredVotingManager.GetCurrentOptions();
+        if (currentOptions != null && currentOptions.Count > 0)
         {
-            VotingManager.Instance.OnVotingStarted += InitializeOptions;
-            VotingManager.Instance.OnVoteCountsUpdated += OnVoteCountsUpdated;
-            VotingManager.Instance.OnVotingEnded += OnVotingEnded;
+            InitializeOptions(currentOptions);
+
+            var counts = _registeredVotingManager.GetVoteCounts();
+            if (counts != null && counts.Length > 0)
+            {
+                OnVoteCountsUpdated(counts);
+            }
+        }
+    }
+
+    private void DetachFromVotingManager()
+    {
+        if (_registeredVotingManager != null)
+        {
+            _registeredVotingManager.OnVotingStarted -= InitializeOptions;
+            _registeredVotingManager.OnVoteCountsUpdated -= OnVoteCountsUpdated;
+            _registeredVotingManager.OnVotingEnded -= OnVotingEnded;
+            _registeredVotingManager = null;
+        }
+
+        if (_isActive)
+        {
+            CleanupVoting();
         }
     }
 
@@ -187,13 +233,6 @@ public class UIVoteInputProvider : NetworkBehaviour, IVoteInputProvider
 
     private void OnDestroy()
     {
-        if (VotingManager.Instance != null)
-        {
-            VotingManager.Instance.OnVotingStarted -= InitializeOptions;
-            VotingManager.Instance.OnVoteCountsUpdated -= OnVoteCountsUpdated;
-            VotingManager.Instance.OnVotingEnded -= OnVotingEnded;
-        }
-
         CleanupCards();
     }
 }

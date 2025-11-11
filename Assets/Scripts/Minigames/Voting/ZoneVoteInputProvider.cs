@@ -19,17 +19,61 @@ public class ZoneVoteInputProvider : NetworkBehaviour, IVoteInputProvider
     private readonly List<VoteZone> _spawnedZones = new List<VoteZone>();
     private readonly Dictionary<ulong, int> _playerCurrentZone = new Dictionary<ulong, int>();
     private bool _isActive;
+    private VotingManager _registeredVotingManager;
 
     public bool IsActive => _isActive;
 
-    private void Start()
+    private void OnEnable()
     {
-        // Subscribe to VotingManager events
-        if (VotingManager.Instance != null)
+        VotingManager.OnInstanceChanged += HandleVotingManagerChanged;
+        HandleVotingManagerChanged(VotingManager.Instance);
+    }
+
+    private void OnDisable()
+    {
+        VotingManager.OnInstanceChanged -= HandleVotingManagerChanged;
+        DetachFromVotingManager();
+    }
+
+    private void HandleVotingManagerChanged(VotingManager manager)
+    {
+        if (_registeredVotingManager == manager)
+            return;
+
+        DetachFromVotingManager();
+
+        if (manager == null)
+            return;
+
+        _registeredVotingManager = manager;
+        _registeredVotingManager.OnVotingStarted += InitializeOptions;
+        _registeredVotingManager.OnVoteCountsUpdated += OnVoteCountsUpdated;
+        _registeredVotingManager.OnVotingEnded += OnVotingEnded;
+
+        if (isServer)
         {
-            VotingManager.Instance.OnVotingStarted += InitializeOptions;
-            VotingManager.Instance.OnVoteCountsUpdated += OnVoteCountsUpdated;
-            VotingManager.Instance.OnVotingEnded += OnVotingEnded;
+            var options = _registeredVotingManager.GetCurrentOptions();
+            if (options != null && options.Count > 0)
+            {
+                InitializeOptions(options);
+                OnVoteCountsUpdated(_registeredVotingManager.GetVoteCounts());
+            }
+        }
+    }
+
+    private void DetachFromVotingManager()
+    {
+        if (_registeredVotingManager != null)
+        {
+            _registeredVotingManager.OnVotingStarted -= InitializeOptions;
+            _registeredVotingManager.OnVoteCountsUpdated -= OnVoteCountsUpdated;
+            _registeredVotingManager.OnVotingEnded -= OnVotingEnded;
+            _registeredVotingManager = null;
+        }
+
+        if (_isActive)
+        {
+            CleanupVoting();
         }
     }
 
@@ -204,13 +248,6 @@ public class ZoneVoteInputProvider : NetworkBehaviour, IVoteInputProvider
 
     private void OnDestroy()
     {
-        if (VotingManager.Instance != null)
-        {
-            VotingManager.Instance.OnVotingStarted -= InitializeOptions;
-            VotingManager.Instance.OnVoteCountsUpdated -= OnVoteCountsUpdated;
-            VotingManager.Instance.OnVotingEnded -= OnVotingEnded;
-        }
-
         CleanupZones();
     }
 
