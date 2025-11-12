@@ -3996,6 +3996,39 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 191524638}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &194125279
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 194125280}
+  m_Layer: 0
+  m_Name: Telao
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &194125280
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 194125279}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 828525133}
+  - {fileID: 1395253606}
+  m_Father: {fileID: 2014762148}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &198668924
 GameObject:
   m_ObjectHideFlags: 0
@@ -8501,69 +8534,13 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 447465431}
-  - component: {fileID: 447465430}
-  - component: {fileID: 447465429}
   m_Layer: 0
-  m_Name: Instrutor (2)
+  m_Name: Telao
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &447465429
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 447465428}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  sceneId: 996417364
-  _assetId: 0
-  serverOnly: 0
-  visibility: 0
-  hasSpawned: 0
---- !u!114 &447465430
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 447465428}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d61c8aad6a6c8b949b5895fec774e890, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
-  textoCor: {fileID: 1971125896}
-  textoCorUI: {fileID: 0}
-  textoTimer: {fileID: 2138016130}
-  imagem: {fileID: 1600396744}
-  tempoEntreAcoes: 4
-  tempoMemorizar: 5
-  tempoEspera: 2
-  tempoResolver: 3
-  colors:
-  - colorName: Vermelho
-    color: {r: 1, g: 0, b: 0, a: 1}
-  - colorName: Azul
-    color: {r: 0, g: 0, b: 1, a: 1}
-  - colorName: Verde
-    color: {r: 0, g: 1, b: 0, a: 1}
-  - colorName: Amarelo
-    color: {r: 1, g: 0.9, b: 0, a: 1}
-  canvasUIInstrutor: {fileID: 0}
-  currentPhase: 0
-  currentColor: {r: 0, g: 0, b: 0, a: 0}
-  currentColorName: 
-  currentTimerText: 
 --- !u!4 &447465431
 Transform:
   m_ObjectHideFlags: 0
@@ -8573,13 +8550,13 @@ Transform:
   m_GameObject: {fileID: 447465428}
   serializedVersion: 2
   m_LocalRotation: {x: -0.00000010484834, y: 0.7071064, z: -0.00000019007393, w: 0.7071072}
-  m_LocalPosition: {x: -4.093003, y: 50.000004, z: -19.13387}
-  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_LocalPosition: {x: -15.534893, y: 0, z: 15.291605}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1314433871}
   - {fileID: 833421978}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 2014762148}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!1 &449314018
 GameObject:
@@ -14293,7 +14270,7 @@ Transform:
   m_LocalScale: {x: 15, y: 10, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2014762148}
+  m_Father: {fileID: 194125280}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &828525134
 BoxCollider:
@@ -23112,69 +23089,13 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1308620686}
-  - component: {fileID: 1308620685}
-  - component: {fileID: 1308620684}
   m_Layer: 0
-  m_Name: Instrutor (1)
+  m_Name: Telao
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1308620684
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1308620683}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  sceneId: 1016673059
-  _assetId: 0
-  serverOnly: 0
-  visibility: 0
-  hasSpawned: 0
---- !u!114 &1308620685
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1308620683}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d61c8aad6a6c8b949b5895fec774e890, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
-  textoCor: {fileID: 227283360}
-  textoCorUI: {fileID: 0}
-  textoTimer: {fileID: 101042379}
-  imagem: {fileID: 1608888424}
-  tempoEntreAcoes: 4
-  tempoMemorizar: 5
-  tempoEspera: 2
-  tempoResolver: 3
-  colors:
-  - colorName: Vermelho
-    color: {r: 1, g: 0, b: 0, a: 1}
-  - colorName: Azul
-    color: {r: 0, g: 0, b: 1, a: 1}
-  - colorName: Verde
-    color: {r: 0, g: 1, b: 0, a: 1}
-  - colorName: Amarelo
-    color: {r: 1, g: 0.9, b: 0, a: 1}
-  canvasUIInstrutor: {fileID: 0}
-  currentPhase: 0
-  currentColor: {r: 0, g: 0, b: 0, a: 0}
-  currentColorName: 
-  currentTimerText: 
 --- !u!4 &1308620686
 Transform:
   m_ObjectHideFlags: 0
@@ -23184,13 +23105,13 @@ Transform:
   m_GameObject: {fileID: 1308620683}
   serializedVersion: 2
   m_LocalRotation: {x: -0.00000000356484, y: -0.70710677, z: 0.000000058357443, w: 0.7071069}
-  m_LocalPosition: {x: 52.06964, y: 49.999992, z: -17.568785}
-  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_LocalPosition: {x: 12.546429, y: 0, z: 16.074146}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1307120921}
   - {fileID: 1073605641}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 2014762148}
   m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
 --- !u!1001 &1309148827
 PrefabInstance:
@@ -25132,7 +25053,7 @@ RectTransform:
   - {fileID: 1979402449}
   - {fileID: 325526715}
   - {fileID: 449314019}
-  m_Father: {fileID: 2014762148}
+  m_Father: {fileID: 194125280}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -28697,69 +28618,13 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1582146694}
-  - component: {fileID: 1582146693}
-  - component: {fileID: 1582146692}
   m_Layer: 0
-  m_Name: Instrutor (3)
+  m_Name: Telao
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1582146692
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1582146691}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  sceneId: 2399902259
-  _assetId: 0
-  serverOnly: 0
-  visibility: 0
-  hasSpawned: 0
---- !u!114 &1582146693
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1582146691}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d61c8aad6a6c8b949b5895fec774e890, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
-  textoCor: {fileID: 1381169944}
-  textoCorUI: {fileID: 0}
-  textoTimer: {fileID: 1347340989}
-  imagem: {fileID: 1129562638}
-  tempoEntreAcoes: 4
-  tempoMemorizar: 5
-  tempoEspera: 2
-  tempoResolver: 3
-  colors:
-  - colorName: Vermelho
-    color: {r: 1, g: 0, b: 0, a: 1}
-  - colorName: Azul
-    color: {r: 0, g: 0, b: 1, a: 1}
-  - colorName: Verde
-    color: {r: 0, g: 1, b: 0, a: 1}
-  - colorName: Amarelo
-    color: {r: 1, g: 0.9, b: 0, a: 1}
-  canvasUIInstrutor: {fileID: 0}
-  currentPhase: 0
-  currentColor: {r: 0, g: 0, b: 0, a: 0}
-  currentColorName: 
-  currentTimerText: 
 --- !u!4 &1582146694
 Transform:
   m_ObjectHideFlags: 0
@@ -28769,13 +28634,13 @@ Transform:
   m_GameObject: {fileID: 1582146691}
   serializedVersion: 2
   m_LocalRotation: {x: 0.00000006026367, y: 1, z: -0.00000020854151, w: 0.00000013411044}
-  m_LocalPosition: {x: 27.078423, y: 49.00001, z: 3.0652914}
-  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_LocalPosition: {x: 0.050819397, y: -0.49999428, z: 26.391186}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1016512999}
   - {fileID: 1627927649}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 2014762148}
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
 --- !u!1001 &1584574093
 PrefabInstance:
@@ -36162,10 +36027,23 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  textoCor: {fileID: 325526717}
-  textoCorUI: {fileID: 1215449010}
-  textoTimer: {fileID: 449314021}
-  imagem: {fileID: 1979402447}
+  displays:
+  - canvas: {fileID: 1395253605}
+    textoCor: {fileID: 325526717}
+    textoTimer: {fileID: 449314021}
+    imagem: {fileID: 1979402447}
+  - canvas: {fileID: 1073605640}
+    textoCor: {fileID: 227283360}
+    textoTimer: {fileID: 101042379}
+    imagem: {fileID: 1608888424}
+  - canvas: {fileID: 833421977}
+    textoCor: {fileID: 1971125896}
+    textoTimer: {fileID: 2138016130}
+    imagem: {fileID: 1600396744}
+  - canvas: {fileID: 1627927648}
+    textoCor: {fileID: 1381169944}
+    textoTimer: {fileID: 1347340989}
+    imagem: {fileID: 1129562638}
   tempoEntreAcoes: 4
   tempoMemorizar: 5
   tempoEspera: 2
@@ -36179,7 +36057,6 @@ MonoBehaviour:
     color: {r: 0, g: 1, b: 0, a: 1}
   - colorName: Amarelo
     color: {r: 1, g: 0.9, b: 0, a: 1}
-  canvasUIInstrutor: {fileID: 222229993}
   currentPhase: 0
   currentColor: {r: 0, g: 0, b: 0, a: 0}
   currentColorName: 
@@ -36197,8 +36074,10 @@ Transform:
   m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 828525133}
-  - {fileID: 1395253606}
+  - {fileID: 194125280}
+  - {fileID: 1308620686}
+  - {fileID: 447465431}
+  - {fileID: 1582146694}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2018839790
@@ -39278,9 +39157,6 @@ SceneRoots:
   - {fileID: 1056418371}
   - {fileID: 1362513269}
   - {fileID: 2014762148}
-  - {fileID: 1308620686}
-  - {fileID: 447465431}
-  - {fileID: 1582146694}
   - {fileID: 2139741453}
   - {fileID: 1062122899}
   - {fileID: 198668927}
