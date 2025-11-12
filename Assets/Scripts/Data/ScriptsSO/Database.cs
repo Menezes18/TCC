@@ -56,6 +56,7 @@ public class Database : ScriptableObject{
     [Header("Player Blind")] 
     public float playerBlindDuration;
     public AnimationCurve playerBlindCurve;
+    [Range(0f, 10f)] public float playerPoopSlowDuration = 1.5f;
     
     [Header("Player Roll")]
     public float playerRollSpeed;
