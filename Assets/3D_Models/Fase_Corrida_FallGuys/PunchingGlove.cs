@@ -3,53 +3,79 @@ using Mirror;
 using UnityEngine;
 
 [AddComponentMenu("Minigames/Obstaculos/Punching Glove (Luva de Soco)")]
-[RequireComponent(typeof(Animator))] // Garante que o Animator exista
+[RequireComponent(typeof(Animator))]
 public class PunchingGlove : NetworkBehaviour
 {
+    // NÃO PRECISAMOS MAIS DA REFERÊNCIA DO COLLIDER AQUI
+    
     [Header("Acerto (Hit)")]
-    [Tooltip("Força horizontal do empurrão quando o jogador é atingido.")]
+    [Tooltip("Força horizontal do empurrão.")]
     [SerializeField] private float knockbackStrength = 10f;
-    [Tooltip("Impulso vertical aplicado no acerto.")]
+    [Tooltip("Impulso vertical aplicado.")]
     [SerializeField] private float liftStrength = 5f;
-    [Tooltip("Duração do atordoamento (Stagger) após o acerto.")]
+    [Tooltip("Duração do atordoamento.")]
     [SerializeField] private float stunDuration = 0.2f;
-    [Tooltip("Tempo mínimo entre acertos por jogador para evitar spam (deve ser menor que a animação).")]
+    [Tooltip("Tempo mínimo entre acertos por jogador (para este soco).")]
     [SerializeField] private float hitCooldown = 0.35f;
 
-    // Dicionário para controlar o cooldown por jogador
+    public GameObject VFX_HitEffect;
+
     private readonly Dictionary<uint, float> _lastHitByNetId = new();
     
-    // Variável de estado controlada pelo Animator
+    // Variável de estado controlada pelos eventos da animação
     private bool _isPunching = false;
 
-    /// <summary>
-    /// Método público chamado pelo StateMachineBehaviour do Animator.
-    /// </summary>
-    public void SetPunchingState(bool isPunching)
+    private void Awake()
     {
-        _isPunching = isPunching;
-    }
-
-    /// <summary>
-    /// Limpa a lista de jogadores atingidos no início de cada soco.
-    /// </summary>
-    public void ResetHitPlayers()
-    {
-        _lastHitByNetId.Clear();
-    }
-
-   [ServerCallback]
-    private void OnTriggerEnter(Collider other)
-    {
-        // 1. O gatilho sequer disparou?
-        Debug.Log($"[PunchingGlove] Triggered by: {other.name}");
-
-        // 2. O estado _isPunching está correto?
-        if (!_isPunching) 
+        // Garante que o collider principal (o que tem este script)
+        // seja um trigger.
+        var mainCollider = GetComponent<Collider>();
+        if (mainCollider != null)
         {
-            Debug.Log("[PunchingGlove] Triggered, but NOT in punching state. Ignoring.");
-            return;
+            mainCollider.isTrigger = true;
         }
+        else
+        {
+            Debug.LogError("Objeto da Luva não tem um Collider!", this);
+        }
+        VFX_HitEffect.SetActive(false);
+    }
+
+    /// <summary>
+    /// Evento de Animação: Chamado no frame em que o soco começa
+    /// </summary>
+    [ServerCallback] // Garante que só rode no servidor
+    public void StartPunch()
+    {
+        _isPunching = true;
+        // Limpa a lista para que o novo soco possa acertar
+        _lastHitByNetId.Clear(); 
+        
+        Debug.Log("Punch STATE: START");
+    }
+
+    /// <summary>
+    /// Evento de Animação: Chamado no frame em que o soco termina
+    /// </summary>
+    [ServerCallback] // Garante que só rode no servidor
+    public void EndPunch()
+    {
+        _isPunching = false;
+
+        Debug.Log("Punch STATE: END");
+        VFX_HitEffect.SetActive(false);
+    }
+
+    /// <summary>
+    /// Disparado continuamente enquanto o jogador está no trigger
+    /// </summary>
+    [ServerCallback]
+    private void OnTriggerStay(Collider other)
+    {
+        // Só fazemos algo se a animação de soco estiver ativa
+        if (!_isPunching) return;
+        
+        // O resto da lógica é idêntico ao que você já tinha:
 
         if (!NetworkServer.active) return;
 
@@ -57,30 +83,24 @@ public class PunchingGlove : NetworkBehaviour
         var id = root.GetComponent<NetworkIdentity>();
         if (id == null) return;
 
-        // Verifica o cooldown (exatamente como no seu código de referência)
+        // O Cooldown é ESSENCIAL aqui para evitar 60 acertos por segundo
         if (_lastHitByNetId.TryGetValue(id.netId, out var last) && (Time.time - last) < hitCooldown)
-            return;
+            return; // Já acertamos este jogador neste soco
 
-        var ps = root.GetComponent<PlayerScript>(); // Assumindo que você tem um "PlayerScript"
+        var ps = root.GetComponent<PlayerScript>();
         if (ps == null) return;
 
+        // Registra o acerto
         _lastHitByNetId[id.netId] = Time.time;
 
-        // ===================================================================
-        // AQUI ESTÁ A MUDANÇA PRINCIPAL
-        // ===================================================================
-        
-        // Em vez de calcular tangentes, apenas pegamos a direção "para frente"
-        // do objeto da luva.
-        Vector3 punchDirection = transform.forward;
-        
-        // Achatamos o vetor para garantir que o impulso seja puramente horizontal
-        // (igual a referência fazia com "radial.y = 0f")
+        // Calcula a direção (mantendo sua correção)
+        Vector3 punchDirection = -transform.forward; 
         punchDirection.y = 0f;
         punchDirection.Normalize();
+
+        VFX_HitEffect.SetActive(true);
         
-        // Aplica o impulso usando a nova direção
-        Debug.Log($"[PunchingGlove] SUCCESS: Punching {other.name}!");
+        Debug.Log($"[PunchingGlove] Acertou {other.name} (via Stay) com força {knockbackStrength}");
         ps.ServerApplyImpulse(punchDirection, knockbackStrength, liftStrength, stunDuration, setStagger: true);
     }
 }
