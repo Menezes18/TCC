@@ -22,6 +22,7 @@ public class BouncePad : NetworkBehaviour
     private readonly Dictionary<int, float> _lastHitOfflineByInstance = new();
     // Predição local por cliente (cooldown do dono para evitar múltiplas aplicações)
     private readonly Dictionary<int, float> _lastClientPredHit = new();
+    [SerializeField] private Animator BounceAnim;
 
     private Vector3 GetDir()
     {
@@ -105,6 +106,7 @@ public class BouncePad : NetworkBehaviour
             Vector3 dirPred = GetDir();
             psC.ApplyImpulseLocal(dirPred, horizontalStrength, verticalStrength, stunDuration, setStagger: false);
             psC.MarkPredictedImpulse();
+            
             return;
         }
 
@@ -139,6 +141,10 @@ public class BouncePad : NetworkBehaviour
         var ps = root.GetComponent<PlayerScript>();
         if (ps == null) return;
 
+        //Animation
+        if(BounceAnim != null)
+        BounceAnim.SetBool("Bounce", true);
+
         TryBounce(ps);
     }
 
@@ -159,5 +165,8 @@ public class BouncePad : NetworkBehaviour
             _lastYOfflineByInstance.Remove(ps.GetInstanceID());
             _lastClientPredHit.Remove(ps.GetInstanceID());
         }
+
+        //Set Anim
+        if (BounceAnim != null)BounceAnim.SetBool("Bounce", false);
     }
 }
