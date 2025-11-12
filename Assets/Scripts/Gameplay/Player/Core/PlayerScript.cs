@@ -500,8 +500,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             }
         }
         if (Status == PlayerStatus.Blinded) {
-            if (_throwCooldown <= 0) {
-
+            if (_blindTimer <= 0f) {
+                _blindTimer = 0f;
                 Status = PlayerStatus.Default;
             }
         }
@@ -715,7 +715,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         float mult = 1f;
         float carryMul = db != null ? Mathf.Clamp(db.playerCarryingSpeedMultiplier, 0.1f, 1f) : carryingSpeedMultiplier;
-        if (_isCarrying) mult *= carryMul;
+        if (_isCarrying || Status == PlayerStatus.Blinded) mult *= carryMul;
         if (_isHotPotatoHolder) mult *= GetConfiguredHotPotatoMultiplier();
         mult *= Mathf.Max(0.1f, _boostSpeedMultiplier);
         return Mathf.Max(0.05f, mult);
