@@ -37,6 +37,8 @@ public class Database : ScriptableObject{
 
     [Header("Player Modifiers")]
     [Range(0.1f, 6f)] public float playerCarryingSpeedMultiplier = 0.8f;
+    [Range(0.1f, 6f)] public float playerPoopSpeedMultiplier = 0.5f;
+
 
     [Header("Minigame Modifiers")]
     [Range(1f, 6f)] public float hotPotatoHolderSpeedMultiplier = 1.25f;

@@ -193,6 +193,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SyncVar] private bool _isHotPotatoHolder;
     [SyncVar(hook = nameof(OnBoostChanged))] private float _boostSpeedMultiplier = 1f;
     [SerializeField, Range(0.3f, 1f)] private float carryingSpeedMultiplier = 0.8f; 
+    [SerializeField, Range(0.3f, 1f)] private float poopSpeedMultiplier = 0.5f;
     public bool IsCarrying => _isCarrying;
     
     [SyncVar] private bool _isAirborneServer;
@@ -715,7 +716,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         float mult = 1f;
         float carryMul = db != null ? Mathf.Clamp(db.playerCarryingSpeedMultiplier, 0.1f, 1f) : carryingSpeedMultiplier;
-        if (_isCarrying || Status == PlayerStatus.Blinded) mult *= carryMul;
+        float poopMul = db != null ? Mathf.Clamp(db.playerPoopSpeedMultiplier, 0.1f, 1f) : poopSpeedMultiplier;
+        if (_isCarrying) mult *= carryMul;
+        if (Status == PlayerStatus.Blinded) mult *= 0.5f;
         if (_isHotPotatoHolder) mult *= GetConfiguredHotPotatoMultiplier();
         mult *= Mathf.Max(0.1f, _boostSpeedMultiplier);
         return Mathf.Max(0.05f, mult);
