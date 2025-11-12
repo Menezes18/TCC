@@ -132,6 +132,9 @@ public class SoccerMinigameController : MinigameController
         Notifica();
         RpcUpdateSoccerScore(_scoreA, _scoreB);
 
+        // aplica cores de time nos jogadores (cliente)
+        RpcApplySoccerTeamColors();
+
         // listeners de morte (opcionalmente congelar carrying/efeitos)
         foreach (var pd in PlayerList.players)
         {
@@ -145,6 +148,27 @@ public class SoccerMinigameController : MinigameController
                 UnityAction onDeathHandler = () => OnPlayerDeath(pd);
                 _deathHandlerByPlayer[playerId] = onDeathHandler;
                 playerScript.EventOnDeathServerSide.AddListener(onDeathHandler);
+            }
+        }
+    }
+
+    [ClientRpc]
+    private void RpcApplySoccerTeamColors()
+    {
+        // Para cada jogador presente, encontra um TeamColorMaterialController e aplica a cor do time.
+        var allPlayers = FindObjectsByType<PlayerData>(FindObjectsSortMode.None);
+        for (int i = 0; i < allPlayers.Length; i++)
+        {
+            var pd = allPlayers[i];
+            if (pd == null) continue;
+            int team = GetTeamOf(pd.playerInfo.steamId);
+            if (team < 0) continue;
+
+            var appliers = pd.GetComponentsInChildren<TeamColorMaterialController>(true);
+            for (int j = 0; j < appliers.Length; j++)
+            {
+                if (appliers[j] != null)
+                    appliers[j].ApplyForTeam(team);
             }
         }
     }

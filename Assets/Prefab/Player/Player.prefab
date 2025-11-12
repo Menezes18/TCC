@@ -1863,6 +1863,7 @@ GameObject:
   - component: {fileID: 6178418409306749926}
   - component: {fileID: 842023108469740270}
   - component: {fileID: 7457348443271719209}
+  - component: {fileID: 6126911883598653545}
   m_Layer: 7
   m_Name: Player
   m_TagString: Player
@@ -2654,6 +2655,25 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   customizationApplier: {fileID: 842023108469740270}
+--- !u!114 &6126911883598653545
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9032602418151776553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8186e1e4e16edac44803b33178fd0f85, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TeamColorMaterialController
+  targetRenderer: {fileID: 7416674552252758390}
+  replaceMaterial: 1
+  materialTemplate: {fileID: 2100000, guid: 1dc55a65675278040ba68911787fa492, type: 2}
+  teamBlue: {r: 0, g: 0.31372547, b: 1, a: 1}
+  teamRed: {r: 1, g: 0, b: 0, a: 1}
+  alphaInSoccer: 1
+  alphaOutside: 0
 --- !u!1001 &143298760513819609
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4011,7 +4031,7 @@ PrefabInstance:
         type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
       value: 
-      objectReference: {fileID: 2100000, guid: 11c647e3c2b8bd647bde15c1c44248d9, type: 2}
+      objectReference: {fileID: 2100000, guid: 1dc55a65675278040ba68911787fa492, type: 2}
     - target: {fileID: 552665449424521348, guid: 2d710c6ce33f27140a5807f22fd8d2bc,
         type: 3}
       propertyPath: m_LocalPosition.x
