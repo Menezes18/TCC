@@ -143,7 +143,7 @@ public class BouncePad : NetworkBehaviour
 
         //Animation
         if(BounceAnim != null)
-        BounceAnim.SetTrigger("Bounce");
+        BounceAnim.SetBool("Bounce", true);
 
         TryBounce(ps);
     }
@@ -165,5 +165,8 @@ public class BouncePad : NetworkBehaviour
             _lastYOfflineByInstance.Remove(ps.GetInstanceID());
             _lastClientPredHit.Remove(ps.GetInstanceID());
         }
+
+        //Set Anim
+        if (BounceAnim != null)BounceAnim.SetBool("Bounce", false);
     }
 }

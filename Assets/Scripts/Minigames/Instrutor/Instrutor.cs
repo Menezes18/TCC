@@ -13,7 +13,7 @@ public class ColorInfo {
 
 public class Instrutor : NetworkBehaviour, ISubject
 {
-    public TMP_Text textoCor;
+    public TMP_Text textoCor, textoCorUI;
     public TMP_Text textoTimer;
     public Image   imagem;
     public float   tempoEntreAcoes = 4f; // legado
@@ -24,6 +24,8 @@ public class Instrutor : NetworkBehaviour, ISubject
     public List<IObserver> _observers = new List<IObserver>();
 
     public static Instrutor instrutor;
+
+    public GameObject canvasUIInstrutor;
 
     public enum MemoryPhase { Idle = 0, Reveal = 1, Hide = 2, Resolve = 3 }
 
@@ -53,6 +55,7 @@ public class Instrutor : NetworkBehaviour, ISubject
 
         imagem.color = currentColor;
         textoCor.text = currentColorName;
+        if(textoCorUI != null) textoCorUI.text = currentColorName;
         textoTimer.text = currentTimerText;
     }
 
@@ -70,6 +73,9 @@ public class Instrutor : NetworkBehaviour, ISubject
     {
         while (true)
         {
+            if (canvasUIInstrutor != null)
+                canvasUIInstrutor.SetActive(true);
+                
             // 1) Revela: cada chão mostra sua cor para memorizar
             currentPhase = MemoryPhase.Reveal;
             currentColor = Color.white;
@@ -80,7 +86,7 @@ public class Instrutor : NetworkBehaviour, ISubject
             // 2) Esconde: todos os chãos ficam neutros
             currentPhase = MemoryPhase.Hide;
             currentColor = Color.white;
-            currentColorName = "Prepare-se";
+            currentColorName = "Suba na cor...";
             Notifica(); // tiles escondem a cor
             yield return Countdown(tempoEspera, 1);
 
