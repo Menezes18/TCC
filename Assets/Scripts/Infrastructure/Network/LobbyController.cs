@@ -285,8 +285,13 @@ public class LobbyController : NetworkBehaviour
     [Server]
     void EndVotingAndTransition()
     {
+        Debug.Log("🗳️ [LOBBY] EndVotingAndTransition called");
+        
         if (!_votingInProgress)
+        {
+            Debug.LogWarning("🗳️ [LOBBY] Voting not in progress, ignoring");
             return;
+        }
 
         Debug.Log("🗳️ [LOBBY] Ending voting and transitioning to winner");
 
@@ -304,7 +309,16 @@ public class LobbyController : NetworkBehaviour
 
                 // Load the winning scene (always play the minigame first)
                 Debug.Log($"🏆 [LOBBY] Loading winner scene: {_votingWinner.displayName} ({_votingWinner.SceneIdentifier})");
+                Debug.Log($"🏆 [LOBBY] Calling MyNetworkManager.manager.ServerChangeSceneSynchronized...");
+                
+                if (MyNetworkManager.manager == null)
+                {
+                    Debug.LogError("🗳️ [LOBBY] MyNetworkManager.manager is NULL!");
+                    return;
+                }
+                
                 MyNetworkManager.manager.ServerChangeSceneSynchronized(_votingWinner.SceneIdentifier);
+                Debug.Log($"🏆 [LOBBY] ServerChangeSceneSynchronized called successfully");
             }
             else
             {

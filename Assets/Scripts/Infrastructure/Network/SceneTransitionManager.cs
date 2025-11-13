@@ -57,6 +57,8 @@ public class SceneTransitionManager : NetworkBehaviour
     [Server]
     public void ServerChangeSceneSynchronized(string sceneName)
     {
+        Debug.Log($"[SceneTransition] ServerChangeSceneSynchronized called with sceneName='{sceneName}'");
+        
         if (_isTransitioning)
         {
             Debug.LogWarning($"[SceneTransition] Already transitioning to {_targetSceneName}. Ignoring request for {sceneName}");

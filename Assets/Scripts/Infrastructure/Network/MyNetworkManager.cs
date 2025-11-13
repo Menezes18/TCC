@@ -103,10 +103,40 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         if (SceneTransitionManager.singleton == null)
         {
             GameObject go = new GameObject("SceneTransitionManager");
-            go.AddComponent<SceneTransitionManager>();
-            Debug.Log("[MyNetworkManager] Created SceneTransitionManager");
+            
+            // Add NetworkIdentity first (required for NetworkBehaviour)
+            var netId = go.AddComponent<NetworkIdentity>();
+            
+            // Add SceneTransitionManager
+            var manager = go.AddComponent<SceneTransitionManager>();
+            
+            // Spawn on server if server is active
+            if (NetworkServer.active)
+            {
+                NetworkServer.Spawn(go);
+                Debug.Log("[MyNetworkManager] Created and spawned SceneTransitionManager on server");
+            }
+            else
+            {
+                Debug.Log("[MyNetworkManager] Created SceneTransitionManager (will spawn when server starts)");
+            }
+        }
+        else
+        {
+            Debug.Log("[MyNetworkManager] SceneTransitionManager already exists");
         }
     }
+
+    /// <summary>
+    /// Called when server starts. Ensures SceneTransitionManager is created and spawned.
+    /// </summary>
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        EnsureSceneTransitionManager();
+        Debug.Log("[MyNetworkManager] OnStartServer - SceneTransitionManager ensured");
+    }
+
     [Server]
     public void StoreLastResults(Dictionary<ulong, int> results)
     {
@@ -589,15 +619,20 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             return;
         }
 
-        // Ensure SceneTransitionManager exists
+        Debug.Log($"[MyNetworkManager] ServerChangeSceneSynchronized called for scene '{sceneName}'");
+
+        // Try to ensure SceneTransitionManager exists
+        EnsureSceneTransitionManager();
+
+        // Check again after ensuring
         if (SceneTransitionManager.singleton == null)
         {
-            Debug.LogWarning("[MyNetworkManager] SceneTransitionManager not found, falling back to standard scene change");
+            Debug.LogWarning("[MyNetworkManager] SceneTransitionManager STILL not found after ensure, falling back to standard scene change");
             NetworkManager.singleton.ServerChangeScene(sceneName);
             return;
         }
 
-        Debug.Log($"[MyNetworkManager] Starting synchronized scene change to '{sceneName}'");
+        Debug.Log($"[MyNetworkManager] SceneTransitionManager found! Starting synchronized scene change to '{sceneName}'");
         SceneTransitionManager.singleton.ServerChangeSceneSynchronized(sceneName);
     }
 
