@@ -99,7 +99,7 @@ public class ChegadaPodio : MonoBehaviour, IObserver
             }
 
             // Final scene flow should be orchestrated centrally (e.g., MatchManager)
-            NetworkManager.singleton.ServerChangeScene("Vitoria");
+            MyNetworkManager.manager.ServerChangeSceneSynchronized("Vitoria");
         }
     }
 

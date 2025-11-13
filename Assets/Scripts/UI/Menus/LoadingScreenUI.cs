@@ -152,6 +152,27 @@ public class LoadingScreenUI : MonoBehaviour
         Debug.Log("[LoadingUI] Hide");
     }
 
+    /// <summary>
+    /// Atualiza o progresso da barra de loading manualmente.
+    /// Usado pelo SceneTransitionManager para mostrar progresso real.
+    /// </summary>
+    /// <param name="progress">Progresso de 0 a 1 (0% a 100%)</param>
+    public void SetProgress(float progress)
+    {
+        EnsureRuntimeUI();
+        float normalizedProgress = Mathf.Clamp01(progress);
+        
+        if (progressBar != null)
+        {
+            progressBar.value = normalizedProgress;
+        }
+        
+        if (progressText != null)
+        {
+            progressText.text = $"{(int)(normalizedProgress * 100)}%";
+        }
+    }
+
     private void EnsureRuntimeUI()
     {
         if (panel != null && progressBar != null)

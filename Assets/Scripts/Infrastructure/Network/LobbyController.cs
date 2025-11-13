@@ -250,7 +250,7 @@ public class LobbyController : NetworkBehaviour
                     string victoryScene = minigameCatalog.VictorySceneIdentifier;
                     if (!string.IsNullOrWhiteSpace(victoryScene))
                     {
-                        NetworkManager.singleton.ServerChangeScene(victoryScene);
+                        manager.ServerChangeSceneSynchronized(victoryScene);
                         return;
                     }
                     else
@@ -304,7 +304,7 @@ public class LobbyController : NetworkBehaviour
 
                 // Load the winning scene (always play the minigame first)
                 Debug.Log($"🏆 [LOBBY] Loading winner scene: {_votingWinner.displayName} ({_votingWinner.SceneIdentifier})");
-                NetworkManager.singleton.ServerChangeScene(_votingWinner.SceneIdentifier);
+                MyNetworkManager.manager.ServerChangeSceneSynchronized(_votingWinner.SceneIdentifier);
             }
             else
             {
@@ -393,7 +393,8 @@ public class LobbyController : NetworkBehaviour
             return;
         }
 
-        NetworkManager.singleton.ServerChangeScene(sceneName);
+        // Use synchronized scene change for better multiplayer experience
+        manager.ServerChangeSceneSynchronized(sceneName);
 
         manager.AdvanceScenePointer();
         //MyNetworkManager.manager.ChangeScenePlayer(PlayerList.singleton.players[0],sceneToLoad);

@@ -87,10 +87,25 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         }
 
         InitializeMinigameFlow();
+        EnsureSceneTransitionManager();
 
         //     if (UIManager.Instance != null)
         // UIManager.Instance.SpawnLocalUI();
         base.Awake();
+    }
+
+    /// <summary>
+    /// Ensures SceneTransitionManager exists in the scene.
+    /// Creates one if it doesn't exist.
+    /// </summary>
+    private void EnsureSceneTransitionManager()
+    {
+        if (SceneTransitionManager.singleton == null)
+        {
+            GameObject go = new GameObject("SceneTransitionManager");
+            go.AddComponent<SceneTransitionManager>();
+            Debug.Log("[MyNetworkManager] Created SceneTransitionManager");
+        }
     }
     [Server]
     public void StoreLastResults(Dictionary<ulong, int> results)
@@ -559,6 +574,31 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
         sceneName = null;
         return false;
+    }
+
+    /// <summary>
+    /// Server: Changes scene using synchronized preload system.
+    /// All clients preload the scene before it activates.
+    /// </summary>
+    [Server]
+    public void ServerChangeSceneSynchronized(string sceneName)
+    {
+        if (!NetworkServer.active)
+        {
+            Debug.LogError("[MyNetworkManager] ServerChangeSceneSynchronized can only be called on server!");
+            return;
+        }
+
+        // Ensure SceneTransitionManager exists
+        if (SceneTransitionManager.singleton == null)
+        {
+            Debug.LogWarning("[MyNetworkManager] SceneTransitionManager not found, falling back to standard scene change");
+            NetworkManager.singleton.ServerChangeScene(sceneName);
+            return;
+        }
+
+        Debug.Log($"[MyNetworkManager] Starting synchronized scene change to '{sceneName}'");
+        SceneTransitionManager.singleton.ServerChangeSceneSynchronized(sceneName);
     }
 
     // ===== Mirror scene hooks to integrate loading UI and wait-for-all =====
