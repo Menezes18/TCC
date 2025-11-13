@@ -268,6 +268,13 @@ public class LobbyController : NetworkBehaviour
             }
         }
 
+        // Check if there's already a scene transition in progress
+        if (SceneTransitionManager.singleton != null && SceneTransitionManager.singleton.IsTransitioning)
+        {
+            Debug.LogWarning("🗳️ [LOBBY] Cannot start voting - scene transition already in progress!");
+            return;
+        }
+
         // Start voting
         if (VotingManager.Instance != null && VotingManager.Instance.StartVotingRound())
         {
@@ -397,6 +404,14 @@ public class LobbyController : NetworkBehaviour
     void ChangeToRandomMinigame()
     {
         if (!isServer) return; // only server may change scenes
+        
+        // Check if there's already a scene transition in progress
+        if (SceneTransitionManager.singleton != null && SceneTransitionManager.singleton.IsTransitioning)
+        {
+            Debug.LogWarning("🎮 [LOBBY] Cannot change to random minigame - scene transition already in progress!");
+            return;
+        }
+        
         var manager = MyNetworkManager.manager;
         if (manager == null)
             return;

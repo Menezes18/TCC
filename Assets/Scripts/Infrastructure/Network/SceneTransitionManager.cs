@@ -29,8 +29,9 @@ public class SceneTransitionManager : NetworkBehaviour
     #endregion
 
     [Header("Configuration")]
-    [SerializeField] private float preloadTimeout = 30f;
-    [SerializeField] private float activationTimeout = 10f;
+    [SerializeField] private float preloadTimeout = 10f;
+    [SerializeField] private float activationTimeout = 5f;
+    [SerializeField] private bool forceActivateAfterTimeout = true;
 
     // Server-side tracking
     private readonly HashSet<int> _preloadAcks = new HashSet<int>();
@@ -80,7 +81,14 @@ public class SceneTransitionManager : NetworkBehaviour
         _activationAcks.Clear();
         
         // Count expected clients (all authenticated connections)
+        // If host, count server as a client too
         expectedClients = NetworkServer.connections.Count;
+        if (NetworkClient.active && NetworkServer.active)
+        {
+            // Host counts as both server and client - don't double count
+            Debug.Log("[SceneTransition] Running as Host - server will also load scene");
+        }
+        
         preloadedClients = 0;
         activatedClients = 0;
 
@@ -96,7 +104,7 @@ public class SceneTransitionManager : NetworkBehaviour
         // Tell all clients to preload
         RpcStartPreload(sceneName);
 
-        // Start timeout coroutine
+        // Start timeout coroutine with shorter timeout
         if (_transitionCoroutine != null)
             StopCoroutine(_transitionCoroutine);
         _transitionCoroutine = StartCoroutine(PreloadTimeoutCoroutine());
@@ -111,9 +119,24 @@ public class SceneTransitionManager : NetworkBehaviour
     {
         float startTime = Time.time;
         float lastLogTime = Time.time;
+        bool noResponseWarningShown = false;
 
         while (_preloadAcks.Count < expectedClients)
         {
+            float elapsed = Time.time - startTime;
+            
+            // If no clients responded after 2 seconds and we have a fallback option, warn and prepare to use standard scene change
+            if (!noResponseWarningShown && elapsed >= 2f && _preloadAcks.Count == 0)
+            {
+                Debug.LogWarning($"[SceneTransition] No clients responded after 2 seconds. This may indicate the RPC system isn't working properly.");
+                noResponseWarningShown = true;
+                
+                if (forceActivateAfterTimeout)
+                {
+                    Debug.LogWarning($"[SceneTransition] Will fall back to standard scene change at {preloadTimeout}s if no responses received.");
+                }
+            }
+            
             // Log progress every second
             if (Time.time - lastLogTime >= 1f)
             {
@@ -122,10 +145,21 @@ public class SceneTransitionManager : NetworkBehaviour
             }
 
             // Check timeout
-            if (Time.time - startTime >= preloadTimeout)
+            if (elapsed >= preloadTimeout)
             {
-                Debug.LogWarning($"[SceneTransition] Preload timeout! Only {_preloadAcks.Count}/{expectedClients} clients ready. Proceeding anyway...");
-                break;
+                if (_preloadAcks.Count == 0 && forceActivateAfterTimeout)
+                {
+                    Debug.LogError($"[SceneTransition] TIMEOUT with ZERO responses! Falling back to standard Mirror scene change.");
+                    // Use standard Mirror scene change as fallback
+                    _isTransitioning = false; // Reset state
+                    NetworkManager.singleton.ServerChangeScene(_targetSceneName);
+                    yield break;
+                }
+                else
+                {
+                    Debug.LogWarning($"[SceneTransition] Preload timeout! Only {_preloadAcks.Count}/{expectedClients} clients ready. Proceeding anyway...");
+                    break;
+                }
             }
 
             yield return null;
@@ -232,13 +266,14 @@ public class SceneTransitionManager : NetworkBehaviour
     [ClientRpc]
     private void RpcStartPreload(string sceneName)
     {
+        // Skip if this is a dedicated server (no client)
         if (NetworkServer.active && !NetworkClient.active)
         {
-            // Server-only, skip client preload
+            Debug.Log("[SceneTransition] Dedicated server - skipping client preload");
             return;
         }
 
-        Debug.Log($"[SceneTransition] CLIENT: Starting preload of '{sceneName}'");
+        Debug.Log($"[SceneTransition] CLIENT: Starting preload of '{sceneName}' (IsHost: {NetworkServer.active && NetworkClient.active})");
         _isPreloading = true;
         _waitingForActivation = true;
 
