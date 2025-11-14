@@ -6,6 +6,7 @@ using Steamworks;
 using UnityEngine.Events;
 using Random = UnityEngine.Random;
 using UnityEngine.SceneManagement;
+using TMPro;
 
 [System.Serializable]
 public struct PlayerInfoData 
@@ -31,7 +32,8 @@ public class PlayerData : NetworkBehaviour{
    [SyncVar(hook = nameof(PlayerInfoUpdate))] public PlayerInfoData playerInfo;
    [SyncVar (hook = nameof(HookOnAliasUpdated))] public string alias; // name steam
    [SyncVar (hook = nameof(HookOnColorUpdated))] public int color = -1;
-   [SyncVar] public int score;
+   [SyncVar(hook = nameof(HookOnScoreUpdated))] public int score;
+   public TextMeshProUGUI scoreText;
    // Estado de espectador (opcional) replicado para todos
    [SyncVar(hook = nameof(OnSpectatingChanged))] public bool isSpectating;
    
@@ -198,7 +200,12 @@ public class PlayerData : NetworkBehaviour{
    {
       this.OnAliasUpdated?.Invoke(newVal);
    }
+   void HookOnScoreUpdated(int oldVal, int newVal)
+   {
+      if (!isOwned) return;
 
+      scoreText.text = newVal.ToString();
+   }
    void HookOnColorUpdated(int oldVal, int newVal)
    {
       OnColorUpdated?.Invoke(newVal);

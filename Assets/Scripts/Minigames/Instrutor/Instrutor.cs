@@ -11,11 +11,18 @@ public class ColorInfo {
     public Color color;
 }
 
+[System.Serializable]
+public class InstrutorUIDisplay
+{
+    public GameObject canvas;
+    public TMP_Text textoCor;
+    public TMP_Text textoTimer;
+    public Image imagem;
+}
+
 public class Instrutor : NetworkBehaviour, ISubject
 {
-    public TMP_Text textoCor, textoCorUI;
-    public TMP_Text textoTimer;
-    public Image   imagem;
+    public List<InstrutorUIDisplay> displays = new List<InstrutorUIDisplay>();
     public float   tempoEntreAcoes = 4f; // legado
     public float   tempoMemorizar = 5f;
     public float   tempoEspera = 2f;
@@ -24,8 +31,6 @@ public class Instrutor : NetworkBehaviour, ISubject
     public List<IObserver> _observers = new List<IObserver>();
 
     public static Instrutor instrutor;
-
-    public GameObject canvasUIInstrutor;
 
     public enum MemoryPhase { Idle = 0, Reveal = 1, Hide = 2, Resolve = 3 }
 
@@ -53,10 +58,9 @@ public class Instrutor : NetworkBehaviour, ISubject
         base.OnStartClient();
         instrutor = this;
 
-        imagem.color = currentColor;
-        textoCor.text = currentColorName;
-        if(textoCorUI != null) textoCorUI.text = currentColorName;
-        textoTimer.text = currentTimerText;
+        ApplyColorToDisplays(currentColor);
+        ApplyColorNameToDisplays(currentColorName);
+        ApplyTimerToDisplays(currentTimerText);
     }
 
     private bool _isRunning = false;
@@ -73,8 +77,7 @@ public class Instrutor : NetworkBehaviour, ISubject
     {
         while (true)
         {
-            if (canvasUIInstrutor != null)
-                canvasUIInstrutor.SetActive(true);
+            SetCanvasesActive(true);
                 
             // 1) Revela: cada chão mostra sua cor para memorizar
             currentPhase = MemoryPhase.Reveal;
@@ -129,20 +132,17 @@ public class Instrutor : NetworkBehaviour, ISubject
 
     void OnColorChanged(Color oldC, Color newC)
     {
-        if (imagem != null)
-            imagem.color = newC;
+        ApplyColorToDisplays(newC);
     }
 
     void OnColorNameChanged(string oldName, string newName)
     {
-        if (textoCor != null)
-            textoCor.text = newName;
+        ApplyColorNameToDisplays(newName);
     }
 
     void OnTimerTextChanged(string oldText, string newText)
     {
-        if (textoTimer != null)
-            textoTimer.text = newText;
+        ApplyTimerToDisplays(newText);
     }
 
     ColorInfo EscolherCor()
@@ -164,5 +164,45 @@ public class Instrutor : NetworkBehaviour, ISubject
     {
         foreach (var observer in _observers)
             observer.Atualizacao(this);
+    }
+
+    void ApplyColorToDisplays(Color color)
+    {
+        foreach (var display in displays)
+        {
+            if (display == null) continue;
+            if (display.imagem != null)
+                display.imagem.color = color;
+        }
+    }
+
+    void ApplyColorNameToDisplays(string colorName)
+    {
+        foreach (var display in displays)
+        {
+            if (display == null) continue;
+            if (display.textoCor != null)
+                display.textoCor.text = colorName;
+        }
+    }
+
+    void ApplyTimerToDisplays(string timerText)
+    {
+        foreach (var display in displays)
+        {
+            if (display == null) continue;
+            if (display.textoTimer != null)
+                display.textoTimer.text = timerText;
+        }
+    }
+
+    void SetCanvasesActive(bool active)
+    {
+        foreach (var display in displays)
+        {
+            if (display == null) continue;
+            if (display.canvas != null)
+                display.canvas.SetActive(active);
+        }
     }
 }

@@ -322,12 +322,11 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         eliminationOrder.Add(pd);
 
         var ps = pd.GetComponent<PlayerScript>();
-        if (ps != null)
-        {
-            ps.isFrozen = true;
-            ps.InternalDeath(true);
-            ps.ServerSetHotPotatoHolder(false);
-        }
+
+        ps.isFrozen = true;
+        IHitKillable ik = pd.transform.GetComponent<IHitKillable>(); 
+        ik.OnHitSpectate();   
+        
 
         Notifica();
 

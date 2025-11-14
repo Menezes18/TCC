@@ -126,6 +126,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private float _rollTimer;
     private float _rollCooldown;
     private float _blindTimer;
+    private float _poopSlowTimer;
     private float _throwCooldown;
     private float _groundSnapLockTimer; // evita clamp vertical logo após impulso
 
@@ -193,6 +194,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SyncVar] private bool _isHotPotatoHolder;
     [SyncVar(hook = nameof(OnBoostChanged))] private float _boostSpeedMultiplier = 1f;
     [SerializeField, Range(0.3f, 1f)] private float carryingSpeedMultiplier = 0.8f; 
+    [SerializeField, Range(0.3f, 1f)] private float poopSpeedMultiplier = 0.5f;
     public bool IsCarrying => _isCarrying;
     
     [SyncVar] private bool _isAirborneServer;
@@ -405,6 +407,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (_throwCooldown > 0) _throwCooldown -= Time.deltaTime;
 
         if (_blindTimer > 0) _blindTimer -= Time.deltaTime;
+        if (_poopSlowTimer > 0f)
+        {
+            _poopSlowTimer -= Time.deltaTime;
+            if (_poopSlowTimer < 0f) _poopSlowTimer = 0f;
+        }
         if (_groundSnapLockTimer > 0f) _groundSnapLockTimer -= Time.deltaTime;
 
         if (_externalGroundTimer > 0f)
@@ -500,8 +507,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             }
         }
         if (Status == PlayerStatus.Blinded) {
-            if (_throwCooldown <= 0) {
-
+            if (_blindTimer <= 0f) {
+                _blindTimer = 0f;
                 Status = PlayerStatus.Default;
             }
         }
@@ -715,7 +722,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         float mult = 1f;
         float carryMul = db != null ? Mathf.Clamp(db.playerCarryingSpeedMultiplier, 0.1f, 1f) : carryingSpeedMultiplier;
+        float poopMul = db != null ? Mathf.Clamp(db.playerPoopSpeedMultiplier, 0.1f, 1f) : poopSpeedMultiplier;
         if (_isCarrying) mult *= carryMul;
+        if (Status == PlayerStatus.Blinded && _poopSlowTimer > 0f) mult *= poopMul;
         if (_isHotPotatoHolder) mult *= GetConfiguredHotPotatoMultiplier();
         mult *= Mathf.Max(0.1f, _boostSpeedMultiplier);
         return Mathf.Max(0.05f, mult);
@@ -1061,6 +1070,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
             Status = PlayerStatus.Blinded;
             _blindTimer = db.playerBlindDuration;
+            float slowDuration = db != null ? Mathf.Max(0f, db.playerPoopSlowDuration) : 0f;
+            if (slowDuration <= 0f && db != null)
+                slowDuration = Mathf.Max(0f, db.playerBlindDuration);
+            _poopSlowTimer = slowDuration;
 
             return;
         }
@@ -1523,6 +1536,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         _rollTimer = 0;
         _rollCooldown = 0;
         _blindTimer = 0;
+        _poopSlowTimer = 0;
         _throwCooldown = 0;
     }
     [Command]
