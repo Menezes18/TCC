@@ -59,6 +59,11 @@ public class LobbyController : NetworkBehaviour
     [Server]
     private void CheckPlayersReady()
     {
+        if (SceneTransitionManager.singleton != null && SceneTransitionManager.singleton.IsTransitioning)
+        {
+            return;
+        }
+
         // If game already started and we're back in lobby, continue the flow
         if (MyNetworkManager.manager.startGame)
         {

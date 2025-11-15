@@ -96,35 +96,15 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
     /// <summary>
     /// Ensures SceneTransitionManager exists in the scene.
-    /// Creates one if it doesn't exist.
     /// </summary>
     private void EnsureSceneTransitionManager()
     {
-        if (SceneTransitionManager.singleton == null)
-        {
-            GameObject go = new GameObject("SceneTransitionManager");
-            
-            // Add NetworkIdentity first (required for NetworkBehaviour)
-            var netId = go.AddComponent<NetworkIdentity>();
-            
-            // Add SceneTransitionManager
-            var manager = go.AddComponent<SceneTransitionManager>();
-            
-            // Spawn on server if server is active
-            if (NetworkServer.active)
-            {
-                NetworkServer.Spawn(go);
-                Debug.Log("[MyNetworkManager] Created and spawned SceneTransitionManager on server");
-            }
-            else
-            {
-                Debug.Log("[MyNetworkManager] Created SceneTransitionManager (will spawn when server starts)");
-            }
-        }
-        else
-        {
-            Debug.Log("[MyNetworkManager] SceneTransitionManager already exists");
-        }
+        if (SceneTransitionManager.singleton != null)
+            return;
+
+        GameObject go = new GameObject("SceneTransitionManager");
+        go.AddComponent<SceneTransitionManager>();
+        Debug.Log("[MyNetworkManager] Created SceneTransitionManager singleton");
     }
 
     /// <summary>

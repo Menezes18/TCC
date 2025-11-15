@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 /// Manages synchronized scene transitions across all clients.
 /// Ensures all players preload the scene before activating it.
 /// </summary>
-public class SceneTransitionManager : NetworkBehaviour
+public class SceneTransitionManager : MonoBehaviour
 {
     #region Singleton
     public static SceneTransitionManager singleton;
@@ -20,12 +20,163 @@ public class SceneTransitionManager : NetworkBehaviour
         {
             singleton = this;
             DontDestroyOnLoad(gameObject);
+            RegisterHandlers();
         }
         else
         {
             Destroy(gameObject);
         }
     }
+    #endregion
+
+    #region Message Registration
+
+    private void RegisterHandlers()
+    {
+        if (!_serverHandlersRegistered)
+        {
+            NetworkServer.RegisterHandler<ScenePreloadAckMessage>(OnServerReceivePreloadAck, false);
+            NetworkServer.RegisterHandler<SceneActivationAckMessage>(OnServerReceiveActivationAck, false);
+            _serverHandlersRegistered = true;
+        }
+
+        if (!_clientHandlersRegistered)
+        {
+            NetworkClient.RegisterHandler<ScenePreloadMessage>(OnClientReceivePreloadMessage, false);
+            NetworkClient.RegisterHandler<SceneActivationMessage>(OnClientReceiveActivationMessage, false);
+            _clientHandlersRegistered = true;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (singleton == this)
+        {
+            UnregisterHandlers();
+            singleton = null;
+        }
+    }
+
+    private void UnregisterHandlers()
+    {
+        if (_serverHandlersRegistered)
+        {
+            NetworkServer.UnregisterHandler<ScenePreloadAckMessage>();
+            NetworkServer.UnregisterHandler<SceneActivationAckMessage>();
+            _serverHandlersRegistered = false;
+        }
+
+        if (_clientHandlersRegistered)
+        {
+            NetworkClient.UnregisterHandler<ScenePreloadMessage>();
+            NetworkClient.UnregisterHandler<SceneActivationMessage>();
+            _clientHandlersRegistered = false;
+        }
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    private int CountConnectedClients()
+    {
+        int count = 0;
+
+        foreach (var kvp in NetworkServer.connections)
+        {
+            var conn = kvp.Value;
+            if (conn != null && conn.isAuthenticated)
+            {
+                count++;
+            }
+        }
+
+        var localConn = NetworkServer.localConnection;
+        if (localConn != null && localConn.isAuthenticated)
+        {
+            bool alreadyCounted = NetworkServer.connections.ContainsKey(localConn.connectionId);
+            if (!alreadyCounted)
+            {
+                count++;
+            }
+        }
+
+        if (count == 0 && NetworkClient.active && NetworkServer.active)
+        {
+            // Host fallback: treat local client as participant even if not listed yet
+            count = 1;
+        }
+
+        return count;
+    }
+
+    private void BroadcastToAll<T>(T message) where T : struct, NetworkMessage
+    {
+        if (!NetworkServer.active)
+            return;
+
+        NetworkServer.SendToAll(message);
+
+        var localConn = NetworkServer.localConnection;
+        if (localConn != null)
+        {
+            bool alreadyCounted = NetworkServer.connections.ContainsKey(localConn.connectionId);
+            if (!alreadyCounted)
+            {
+                localConn.Send(message);
+            }
+        }
+    }
+
+    private void SendPreloadAck()
+    {
+        if (!NetworkClient.active || NetworkClient.connection == null || _preloadAckSent)
+            return;
+
+        NetworkClient.Send(new ScenePreloadAckMessage());
+        _preloadAckSent = true;
+    }
+
+    private void SendActivationAck()
+    {
+        if (!NetworkClient.active || NetworkClient.connection == null || _activationAckSent)
+            return;
+
+        NetworkClient.Send(new SceneActivationAckMessage());
+        _activationAckSent = true;
+    }
+
+    private string ResolveClientName(NetworkConnectionToClient sender)
+    {
+        if (sender == null)
+            return "Unknown";
+
+        try
+        {
+            var identity = sender.identity;
+            if (identity != null)
+            {
+                try
+                {
+                    if (identity.TryGetComponent(out PlayerData pd) && pd != null)
+                    {
+                        return string.IsNullOrWhiteSpace(pd.alias) ? $"Connection {sender.connectionId}" : pd.alias;
+                    }
+                }
+                catch (MissingReferenceException)
+                {
+                    // fall through to default name
+                }
+            }
+        }
+        catch (MissingReferenceException)
+        {
+            // ignore
+        }
+
+        return $"Connection {sender.connectionId}";
+    }
+
     #endregion
 
     [Header("Configuration")]
@@ -45,9 +196,26 @@ public class SceneTransitionManager : NetworkBehaviour
     private bool _isPreloading = false;
     private bool _waitingForActivation = false;
 
-    [SyncVar] private int expectedClients = 0;
-    [SyncVar] private int preloadedClients = 0;
-    [SyncVar] private int activatedClients = 0;
+    private static bool _serverHandlersRegistered = false;
+    private static bool _clientHandlersRegistered = false;
+
+    [Serializable]
+    private struct ScenePreloadMessage : NetworkMessage
+    {
+        public string SceneName;
+    }
+
+    private struct SceneActivationMessage : NetworkMessage { }
+
+    private struct ScenePreloadAckMessage : NetworkMessage { }
+
+    private struct SceneActivationAckMessage : NetworkMessage { }
+
+    private int expectedClients = 0;
+    private int preloadedClients = 0;
+    private int activatedClients = 0;
+    private bool _preloadAckSent = false;
+    private bool _activationAckSent = false;
 
     #region Public API
 
@@ -55,11 +223,16 @@ public class SceneTransitionManager : NetworkBehaviour
     /// Server: Initiates a synchronized scene change.
     /// All clients will preload the scene before it activates.
     /// </summary>
-    [Server]
     public void ServerChangeSceneSynchronized(string sceneName)
     {
         Debug.Log($"[SceneTransition] ServerChangeSceneSynchronized called with sceneName='{sceneName}'");
         
+        if (!NetworkServer.active)
+        {
+            Debug.LogError("[SceneTransition] ServerChangeSceneSynchronized can only be called when the server is active");
+            return;
+        }
+
         if (_isTransitioning)
         {
             Debug.LogWarning($"[SceneTransition] Already transitioning to {_targetSceneName}. Ignoring request for {sceneName}");
@@ -79,14 +252,16 @@ public class SceneTransitionManager : NetworkBehaviour
         // Reset tracking
         _preloadAcks.Clear();
         _activationAcks.Clear();
+        _preloadAckSent = false;
+        _activationAckSent = false;
         
-        // Count expected clients (all authenticated connections)
-        // If host, count server as a client too
-        expectedClients = NetworkServer.connections.Count;
-        if (NetworkClient.active && NetworkServer.active)
+        expectedClients = CountConnectedClients();
+        if (expectedClients == 0)
         {
-            // Host counts as both server and client - don't double count
-            Debug.Log("[SceneTransition] Running as Host - server will also load scene");
+            Debug.LogWarning("[SceneTransition] No connected clients detected. Falling back to standard scene change.");
+            _isTransitioning = false;
+            NetworkManager.singleton.ServerChangeScene(sceneName);
+            return;
         }
         
         preloadedClients = 0;
@@ -101,8 +276,8 @@ public class SceneTransitionManager : NetworkBehaviour
             Debug.Log("[SceneTransition] Players frozen during transition");
         }
 
-        // Tell all clients to preload
-        RpcStartPreload(sceneName);
+        // Tell all clients to preload via network message
+        BroadcastToAll(new ScenePreloadMessage { SceneName = sceneName });
 
         // Start timeout coroutine with shorter timeout
         if (_transitionCoroutine != null)
@@ -114,7 +289,6 @@ public class SceneTransitionManager : NetworkBehaviour
 
     #region Server Methods
 
-    [Server]
     private IEnumerator PreloadTimeoutCoroutine()
     {
         float startTime = Time.time;
@@ -169,19 +343,20 @@ public class SceneTransitionManager : NetworkBehaviour
         ServerActivateScene();
     }
 
-    [Server]
     private void ServerActivateScene()
     {
+        if (!NetworkServer.active)
+            return;
+
         Debug.Log($"[SceneTransition] SERVER: Activating scene '{_targetSceneName}' for all clients");
         
         // Tell clients to activate their preloaded scenes
-        RpcActivatePreloadedScene();
+        BroadcastToAll(new SceneActivationMessage());
 
         // Server also needs to load the scene
         StartCoroutine(ServerLoadSceneCoroutine());
     }
 
-    [Server]
     private IEnumerator ServerLoadSceneCoroutine()
     {
         Debug.Log($"[SceneTransition] SERVER: Loading scene '{_targetSceneName}'");
@@ -214,7 +389,6 @@ public class SceneTransitionManager : NetworkBehaviour
         ServerFinishTransition();
     }
 
-    [Server]
     private void ServerFinishTransition()
     {
         Debug.Log("[SceneTransition] SERVER: Scene transition complete. Starting briefing flow...");
@@ -225,7 +399,6 @@ public class SceneTransitionManager : NetworkBehaviour
         // which triggers WaitAllConnectionsReadyThenStart -> BriefingManager.TriggerBriefing
     }
 
-    [Server]
     private void LogPreloadProgress()
     {
         var connections = NetworkServer.connections.Values;
@@ -242,7 +415,6 @@ public class SceneTransitionManager : NetworkBehaviour
         Debug.Log($"[SceneTransition] Preload Progress ({_preloadAcks.Count}/{expectedClients}):\n  " + string.Join("\n  ", status));
     }
 
-    [Server]
     private void LogActivationProgress()
     {
         var connections = NetworkServer.connections.Values;
@@ -263,40 +435,38 @@ public class SceneTransitionManager : NetworkBehaviour
 
     #region Client RPC
 
-    [ClientRpc]
-    private void RpcStartPreload(string sceneName)
+    private void OnClientReceivePreloadMessage(ScenePreloadMessage message)
     {
-        // Skip if this is a dedicated server (no client)
         if (NetworkServer.active && !NetworkClient.active)
         {
             Debug.Log("[SceneTransition] Dedicated server - skipping client preload");
             return;
         }
 
-        Debug.Log($"[SceneTransition] CLIENT: Starting preload of '{sceneName}' (IsHost: {NetworkServer.active && NetworkClient.active})");
+        Debug.Log($"[SceneTransition] CLIENT: Starting preload of '{message.SceneName}' (IsHost: {NetworkServer.active && NetworkClient.active})");
         _isPreloading = true;
         _waitingForActivation = true;
+        _preloadAckSent = false;
+        _activationAckSent = false;
 
         // Show loading screen
         LoadingScreenUI.Ensure();
-        LoadingScreenUI.Instance?.SetMirrorTargetScene(sceneName);
+        LoadingScreenUI.Instance?.SetMirrorTargetScene(message.SceneName);
         LoadingScreenUI.Instance?.ShowForMirror();
 
         // Start preload
-        StartCoroutine(ClientPreloadSceneCoroutine(sceneName));
+        StartCoroutine(ClientPreloadSceneCoroutine(message.SceneName));
     }
 
-    [ClientRpc]
-    private void RpcActivatePreloadedScene()
+    private void OnClientReceiveActivationMessage(SceneActivationMessage _)
     {
         if (NetworkServer.active && !NetworkClient.active)
         {
-            // Server-only, activation is handled separately
             return;
         }
 
         Debug.Log("[SceneTransition] CLIENT: Received activation signal");
-        
+
         if (!_waitingForActivation)
         {
             Debug.LogWarning("[SceneTransition] CLIENT: Received activation but not waiting for it!");
@@ -344,7 +514,7 @@ public class SceneTransitionManager : NetworkBehaviour
         Debug.Log($"[SceneTransition] CLIENT: Preload complete for '{sceneName}' (progress: {_preloadOperation.progress})");
         
         // Notify server that this client is ready
-        CmdNotifyPreloadComplete();
+        SendPreloadAck();
 
         // Wait for server to signal activation
         Debug.Log("[SceneTransition] CLIENT: Waiting for server activation signal...");
@@ -364,7 +534,7 @@ public class SceneTransitionManager : NetworkBehaviour
         _waitingForActivation = false;
 
         // Notify server that activation is complete
-        CmdNotifyActivationComplete();
+        SendActivationAck();
 
         // Hide loading screen (will be shown again by briefing if needed)
         LoadingScreenUI.Instance?.Hide();
@@ -372,23 +542,21 @@ public class SceneTransitionManager : NetworkBehaviour
 
     #endregion
 
-    #region Commands (Client -> Server)
+    #region Server Handlers for Client Messages
 
-    [Command(requiresAuthority = false)]
-    private void CmdNotifyPreloadComplete(NetworkConnectionToClient sender = null)
+    private void OnServerReceivePreloadAck(NetworkConnectionToClient sender, ScenePreloadAckMessage _)
     {
-        if (!isServer || sender == null) return;
+        if (!_isTransitioning || sender == null)
+            return;
 
         if (_preloadAcks.Add(sender.connectionId))
         {
             preloadedClients = _preloadAcks.Count;
-            
-            var pd = sender.identity?.GetComponent<PlayerData>();
-            string clientName = pd != null ? pd.alias : $"Connection {sender.connectionId}";
-            
+
+            string clientName = ResolveClientName(sender);
+
             Debug.Log($"[SceneTransition] SERVER: Client '{clientName}' preloaded ({preloadedClients}/{expectedClients})");
 
-            // If all clients are ready, activate immediately (don't wait for timeout)
             if (_preloadAcks.Count >= expectedClients && expectedClients > 0)
             {
                 if (_transitionCoroutine != null)
@@ -401,18 +569,17 @@ public class SceneTransitionManager : NetworkBehaviour
         }
     }
 
-    [Command(requiresAuthority = false)]
-    private void CmdNotifyActivationComplete(NetworkConnectionToClient sender = null)
+    private void OnServerReceiveActivationAck(NetworkConnectionToClient sender, SceneActivationAckMessage _)
     {
-        if (!isServer || sender == null) return;
+        if (!_isTransitioning || sender == null)
+            return;
 
         if (_activationAcks.Add(sender.connectionId))
         {
             activatedClients = _activationAcks.Count;
-            
-            var pd = sender.identity?.GetComponent<PlayerData>();
-            string clientName = pd != null ? pd.alias : $"Connection {sender.connectionId}";
-            
+
+            string clientName = ResolveClientName(sender);
+
             Debug.Log($"[SceneTransition] SERVER: Client '{clientName}' activated scene ({activatedClients}/{expectedClients})");
         }
     }
