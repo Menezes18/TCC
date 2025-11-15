@@ -789,7 +789,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: -10
+  m_SortingOrder: -1000
   m_TargetDisplay: 0
 --- !u!114 &5337818723837240062
 MonoBehaviour:
@@ -1584,7 +1584,7 @@ RectTransform:
   m_GameObject: {fileID: 6769175517239647664}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.77902, y: 0.77902, z: 0.77902}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7807754026768748713}
@@ -1657,7 +1657,7 @@ RectTransform:
   m_GameObject: {fileID: 7095593686177223168}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.5852904, y: 1.5852904, z: 1.5852904}
+  m_LocalScale: {x: 1.2069292, y: 1.2069292, z: 1.2069292}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3662593492499214751}
@@ -1667,7 +1667,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -330, y: -149}
+  m_AnchoredPosition: {x: -223, y: -97}
   m_SizeDelta: {x: 554.7465, y: 141.6448}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &7138347835060944044
@@ -2378,10 +2378,11 @@ GameObject:
   - component: {fileID: 3506028758495607294}
   - component: {fileID: 153738462810873773}
   - component: {fileID: 1988359917632990089}
-  - component: {fileID: 6178418409306749926}
   - component: {fileID: 842023108469740270}
   - component: {fileID: 7457348443271719209}
   - component: {fileID: 6126911883598653545}
+  - component: {fileID: 6178418409306749926}
+  - component: {fileID: 4885898478650212936}
   m_Layer: 7
   m_Name: Player
   m_TagString: Player
@@ -3126,23 +3127,6 @@ MonoBehaviour:
   togglePanel: 1
   closeOnExit: 1
   alignSpeed: 500
---- !u!114 &6178418409306749926
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9032602418151776553}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  sceneId: 0
-  _assetId: 2725291608
-  serverOnly: 0
-  visibility: 0
-  hasSpawned: 0
 --- !u!114 &842023108469740270
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3194,6 +3178,38 @@ MonoBehaviour:
   teamRed: {r: 1, g: 0, b: 0, a: 1}
   alphaInSoccer: 1
   alphaOutside: 0
+--- !u!114 &6178418409306749926
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9032602418151776553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sceneId: 0
+  _assetId: 2725291608
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
+--- !u!114 &4885898478650212936
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9032602418151776553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 199869060b8ee4b4dbbf09a419aa6e1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerCustomizationSync
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
 --- !u!1001 &143298760513819609
 PrefabInstance:
   m_ObjectHideFlags: 0

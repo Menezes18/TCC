@@ -307,7 +307,7 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     }
 
     [Server]
-    private void Eliminate(PlayerData pd)
+    public void Eliminate(PlayerData pd)
     {
         if (pd == null) return;
         
