@@ -10,7 +10,14 @@ public class MostrarPontosLobby : NetworkBehaviour, IObserverPontos
 
     void Awake()
     {
-        MyNetworkManager.manager.Adicionar(this);
+        if (MyNetworkManager.manager != null)
+            MyNetworkManager.manager.Adicionar(this);
+    }
+
+    void OnDestroy()
+    {
+        if (MyNetworkManager.manager != null)
+            MyNetworkManager.manager.Retira(this);
     }
 
     [ClientRpc]
@@ -46,7 +53,8 @@ public class MostrarPontosLobby : NetworkBehaviour, IObserverPontos
     }
     public override void OnStopClient()
     {
-        MyNetworkManager.manager.Retira(this);
+        if (MyNetworkManager.manager != null)
+            MyNetworkManager.manager.Retira(this);
         base.OnStopClient();
     }
 }

@@ -286,11 +286,18 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
     public void Adicionar(IObserverPontos observer)
     {
-        _observers.Add(observer);
+        if (observer == null)
+            return;
+
+        if (!_observers.Contains(observer))
+            _observers.Add(observer);
     }
 
     public void Retira(IObserverPontos observer)
     {
+        if (observer == null)
+            return;
+
         _observers.Remove(observer);
     }
 
@@ -305,6 +312,14 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             nomesJogadores[i] = scoreboard.players[i].playerName;
             pontosJogadores[i] = scoreboard.players[i].points;
             corplayer[i] = scoreboard.players[i].color;
+        }
+
+        for (int i = _observers.Count - 1; i >= 0; i--)
+        {
+            if (_observers[i] is UnityEngine.Object unityObj && unityObj == null)
+            {
+                _observers.RemoveAt(i);
+            }
         }
 
         foreach (IObserverPontos observer in _observers)
