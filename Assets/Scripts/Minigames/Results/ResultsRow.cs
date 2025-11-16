@@ -362,17 +362,35 @@ public class ResultsUI : MonoBehaviour
     {
         var allPlayers = FindObjectsByType<PlayerCustomizationSync>(FindObjectsSortMode.None);
         
+        Debug.Log($"[ResultsUI] Procurando customização para '{playerName}'. Total de players na cena: {allPlayers.Length}");
+        
         foreach (var playerSync in allPlayers)
         {
             var playerData = playerSync.GetComponent<PlayerData>();
             if (playerData != null)
             {
-                if (playerData.alias == playerName || playerData.playerInfo.username == playerName)
+                string syncName = !string.IsNullOrEmpty(playerData.alias) ? playerData.alias : playerData.playerInfo.username;
+                
+                Debug.Log($"[ResultsUI] Comparando: Procurando='{playerName}' | PlayerSync='{syncName}' | alias='{playerData.alias}' | username='{playerData.playerInfo.username}' | isLocal={playerData.isLocalPlayer}");
+                
+                bool match = string.Equals(syncName, playerName, System.StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(playerData.alias, playerName, System.StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(playerData.playerInfo.username, playerName, System.StringComparison.OrdinalIgnoreCase);
+                
+                if (match)
                 {
-                    return playerSync.GetCustomization();
+                    var customization = playerSync.GetCustomization();
+                    Debug.Log($"[ResultsUI] ✓ MATCH! Player '{syncName}' | Hat={customization.hatIndex}, Glasses={customization.glassesIndex}, Shirt={customization.shirtIndex}");
+                    return customization;
                 }
             }
+            else
+            {
+                Debug.LogWarning($"[ResultsUI] PlayerCustomizationSync sem PlayerData: {playerSync.gameObject.name}");
+            }
         }
+        
+        Debug.LogWarning($"[ResultsUI] Nenhum PlayerCustomizationSync encontrado para '{playerName}'. Tentando fallback local...");
         
         if (CustomizationManager.Instance != null)
         {
@@ -380,25 +398,39 @@ public class ResultsUI : MonoBehaviour
             if (localCustomization != null)
             {
                 var localPlayerName = GetLocalPlayerName();
-                if (localPlayerName == playerName)
+                Debug.Log($"[ResultsUI] Fallback: Nome local='{localPlayerName}' vs Procurando='{playerName}'");
+                
+                if (string.Equals(localPlayerName, playerName, System.StringComparison.OrdinalIgnoreCase))
                 {
+                    Debug.Log($"[ResultsUI] Usando customização local: Hat={localCustomization.hatIndex}");
                     return localCustomization;
                 }
             }
         }
         
+        Debug.LogError($"[ResultsUI] FALHA TOTAL: Nenhuma customização encontrada para '{playerName}'");
         return null;
     }
     
     private string GetLocalPlayerName()
     {
         var playerDatas = FindObjectsByType<PlayerData>(FindObjectsSortMode.None);
+        
+        Debug.Log($"[ResultsUI] Procurando player local. Total PlayerData encontrados: {playerDatas.Length}");
+        
         foreach (var data in playerDatas)
         {
+            Debug.Log($"[ResultsUI] PlayerData: name='{data.gameObject.name}' | alias='{data.alias}' | username='{data.playerInfo.username}' | isLocal={data.isLocalPlayer}");
+            
             if (data.isLocalPlayer)
-                return data.alias ?? data.playerInfo.username;
+            {
+                string name = !string.IsNullOrEmpty(data.alias) ? data.alias : data.playerInfo.username;
+                Debug.Log($"[ResultsUI] Player local encontrado: '{name}'");
+                return name;
+            }
         }
         
+        Debug.LogWarning("[ResultsUI] NENHUM player local encontrado!");
         return string.Empty;
     }
 }
