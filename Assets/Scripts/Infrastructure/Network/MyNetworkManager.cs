@@ -87,11 +87,36 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         }
 
         InitializeMinigameFlow();
+        EnsureSceneTransitionManager();
 
         //     if (UIManager.Instance != null)
         // UIManager.Instance.SpawnLocalUI();
         base.Awake();
     }
+
+    /// <summary>
+    /// Ensures SceneTransitionManager exists in the scene.
+    /// </summary>
+    private void EnsureSceneTransitionManager()
+    {
+        if (SceneTransitionManager.singleton != null)
+            return;
+
+        GameObject go = new GameObject("SceneTransitionManager");
+        go.AddComponent<SceneTransitionManager>();
+        Debug.Log("[MyNetworkManager] Created SceneTransitionManager singleton");
+    }
+
+    /// <summary>
+    /// Called when server starts. Ensures SceneTransitionManager is created and spawned.
+    /// </summary>
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        EnsureSceneTransitionManager();
+        Debug.Log("[MyNetworkManager] OnStartServer - SceneTransitionManager ensured");
+    }
+
     [Server]
     public void StoreLastResults(Dictionary<ulong, int> results)
     {
@@ -261,11 +286,18 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
     public void Adicionar(IObserverPontos observer)
     {
-        _observers.Add(observer);
+        if (observer == null)
+            return;
+
+        if (!_observers.Contains(observer))
+            _observers.Add(observer);
     }
 
     public void Retira(IObserverPontos observer)
     {
+        if (observer == null)
+            return;
+
         _observers.Remove(observer);
     }
 
@@ -280,6 +312,14 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             nomesJogadores[i] = scoreboard.players[i].playerName;
             pontosJogadores[i] = scoreboard.players[i].points;
             corplayer[i] = scoreboard.players[i].color;
+        }
+
+        for (int i = _observers.Count - 1; i >= 0; i--)
+        {
+            if (_observers[i] is UnityEngine.Object unityObj && unityObj == null)
+            {
+                _observers.RemoveAt(i);
+            }
         }
 
         foreach (IObserverPontos observer in _observers)
@@ -559,6 +599,36 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
         sceneName = null;
         return false;
+    }
+
+    /// <summary>
+    /// Server: Changes scene using synchronized preload system.
+    /// All clients preload the scene before it activates.
+    /// </summary>
+    [Server]
+    public void ServerChangeSceneSynchronized(string sceneName)
+    {
+        if (!NetworkServer.active)
+        {
+            Debug.LogError("[MyNetworkManager] ServerChangeSceneSynchronized can only be called on server!");
+            return;
+        }
+
+        Debug.Log($"[MyNetworkManager] ServerChangeSceneSynchronized called for scene '{sceneName}'");
+
+        // Try to ensure SceneTransitionManager exists
+        EnsureSceneTransitionManager();
+
+        // Check again after ensuring
+        if (SceneTransitionManager.singleton == null)
+        {
+            Debug.LogWarning("[MyNetworkManager] SceneTransitionManager STILL not found after ensure, falling back to standard scene change");
+            NetworkManager.singleton.ServerChangeScene(sceneName);
+            return;
+        }
+
+        Debug.Log($"[MyNetworkManager] SceneTransitionManager found! Starting synchronized scene change to '{sceneName}'");
+        SceneTransitionManager.singleton.ServerChangeSceneSynchronized(sceneName);
     }
 
     // ===== Mirror scene hooks to integrate loading UI and wait-for-all =====

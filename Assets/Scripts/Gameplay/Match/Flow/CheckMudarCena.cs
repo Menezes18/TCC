@@ -10,7 +10,7 @@ public class CheckMudarCena : NetworkBehaviour
     [Server]
     void TrocarCena(string cena)
     {
-        NetworkManager.singleton.ServerChangeScene(cena);
+        MyNetworkManager.manager.ServerChangeSceneSynchronized(cena);
     }
 
     [ServerCallback]

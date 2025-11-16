@@ -173,6 +173,8 @@ public class ResultsUI : MonoBehaviour
 
             var rowComp = row.GetComponent<ResultsRow>();
             rowComp.SetupForAnimation(names[i], gains[i], totals[i], i + 1, rowColor);
+            
+            TryLoadPlayerCustomization(rowComp, names[i]);
 
             var animRT = EnsureAnimRoot(row);
             var cg = animRT.GetComponent<CanvasGroup>();
@@ -250,7 +252,6 @@ public class ResultsUI : MonoBehaviour
     {
         if (listRoot == null || _spawned.Count == 0) yield break;
 
-        // Header "Ranking Global"
         if (!string.IsNullOrWhiteSpace(globalTitle) && acabouText != null)
         {
             yield return new WaitForSeconds(delayBeforeGlobalPhase);
@@ -261,21 +262,17 @@ public class ResultsUI : MonoBehaviour
             LeanTween.value(acabouText.gameObject, 0f, 1f, 0.28f).setOnUpdate((float a) => acabouText.alpha = a).setEaseOutQuad();
             LeanTween.scale(rt, Vector3.one, 0.3f).setEaseOutBack();
             yield return new WaitForSeconds(0.45f);
-            // mantém visível enquanto reordena
         }
 
-        // Calcula ordem global (por total desc)
         int count = Mathf.Min(names?.Length ?? 0, totals?.Length ?? 0);
         var indices = new List<int>(count);
         for (int i = 0; i < count; i++) indices.Add(i);
         indices.Sort((a, b) => totals[b].CompareTo(totals[a]));
 
-        // Calcula largura para deslocar
         LayoutRebuilder.ForceRebuildLayoutImmediate(listRoot);
         float containerW = listRoot.rect.width;
         float off = containerW + slideExtraOffset;
 
-        // Saída (slide-out) por ordem atual
         for (int i = 0; i < _spawned.Count; i++)
         {
             var row = _spawned[i];
@@ -288,7 +285,6 @@ public class ResultsUI : MonoBehaviour
             yield return new WaitForSeconds(globalItemStagger);
         }
 
-        // Reordena objetos e atualiza posição (ranking)
         var newOrder = new List<GameObject>(count);
         foreach (var idx in indices)
         {
@@ -296,7 +292,6 @@ public class ResultsUI : MonoBehaviour
                 newOrder.Add(_spawned[idx]);
         }
 
-        // Define siblingIndex conforme nova ordem e atualiza número da posição
         for (int i = 0; i < newOrder.Count; i++)
         {
             var row = newOrder[i];
@@ -308,7 +303,6 @@ public class ResultsUI : MonoBehaviour
         _spawned.Clear();
         _spawned.AddRange(newOrder);
 
-        // Entrada (slide-in) por nova ordem
         for (int i = 0; i < _spawned.Count; i++)
         {
             var row = _spawned[i];
@@ -323,7 +317,6 @@ public class ResultsUI : MonoBehaviour
             yield return new WaitForSeconds(globalItemStagger);
         }
 
-        // Destaque do líder global
         if (_spawned.Count > 0)
         {
             var leader = _spawned[0];
@@ -333,5 +326,79 @@ public class ResultsUI : MonoBehaviour
             LeanTween.scale(animRT, Vector3.one, Mathf.Max(0f, globalWinnerPopDown)).setEaseInQuad();
             if (globalWinnerPopDown > 0f) yield return new WaitForSeconds(globalWinnerPopDown);
         }
+    }
+    
+    private void TryLoadPlayerCustomization(ResultsRow row, string playerName)
+    {
+        if (row == null) return;
+        
+        var bannerModel = row.GetComponent<ResultsBannerModel>();
+        if (bannerModel == null)
+        {
+            bannerModel = row.GetComponentInChildren<ResultsBannerModel>();
+        }
+        
+        if (bannerModel == null)
+        {
+            Debug.LogWarning($"[ResultsUI] ResultsBannerModel não encontrado para {playerName}");
+            return;
+        }
+        
+        PlayerCustomizationData customization = FindPlayerCustomization(playerName);
+        
+        if (customization != null)
+        {
+            bannerModel.LoadModel(customization);
+            Debug.Log($"[ResultsUI] Customização carregada para {playerName}: {customization}");
+        }
+        else
+        {
+            bannerModel.LoadModel(null);
+            Debug.LogWarning($"[ResultsUI] Customização não encontrada para {playerName}, usando padrão");
+        }
+    }
+    
+    private PlayerCustomizationData FindPlayerCustomization(string playerName)
+    {
+        var allPlayers = FindObjectsByType<PlayerCustomizationSync>(FindObjectsSortMode.None);
+        
+        foreach (var playerSync in allPlayers)
+        {
+            var playerData = playerSync.GetComponent<PlayerData>();
+            if (playerData != null)
+            {
+                if (playerData.alias == playerName || playerData.playerInfo.username == playerName)
+                {
+                    return playerSync.GetCustomization();
+                }
+            }
+        }
+        
+        if (CustomizationManager.Instance != null)
+        {
+            var localCustomization = CustomizationManager.Instance.GetCurrentCustomization();
+            if (localCustomization != null)
+            {
+                var localPlayerName = GetLocalPlayerName();
+                if (localPlayerName == playerName)
+                {
+                    return localCustomization;
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    private string GetLocalPlayerName()
+    {
+        var playerDatas = FindObjectsByType<PlayerData>(FindObjectsSortMode.None);
+        foreach (var data in playerDatas)
+        {
+            if (data.isLocalPlayer)
+                return data.alias ?? data.playerInfo.username;
+        }
+        
+        return string.Empty;
     }
 }

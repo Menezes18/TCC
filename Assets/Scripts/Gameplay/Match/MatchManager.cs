@@ -62,7 +62,7 @@ public class MatchManager : NetworkBehaviour
         _winnerPlayers .Clear();
         
         // Always return to lobby (RASCUNHO) after each minigame
-        NetworkManager.singleton.ServerChangeScene("RASCUNHO");
+        MyNetworkManager.manager.ServerChangeSceneSynchronized("RASCUNHO");
     }
 
     #endregion

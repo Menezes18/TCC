@@ -59,6 +59,11 @@ public class LobbyController : NetworkBehaviour
     [Server]
     private void CheckPlayersReady()
     {
+        if (SceneTransitionManager.singleton != null && SceneTransitionManager.singleton.IsTransitioning)
+        {
+            return;
+        }
+
         // If game already started and we're back in lobby, continue the flow
         if (MyNetworkManager.manager.startGame)
         {
@@ -250,7 +255,7 @@ public class LobbyController : NetworkBehaviour
                     string victoryScene = minigameCatalog.VictorySceneIdentifier;
                     if (!string.IsNullOrWhiteSpace(victoryScene))
                     {
-                        NetworkManager.singleton.ServerChangeScene(victoryScene);
+                        manager.ServerChangeSceneSynchronized(victoryScene);
                         return;
                     }
                     else
@@ -266,6 +271,13 @@ public class LobbyController : NetworkBehaviour
                 Debug.LogWarning("🏆 [LOBBY] Victory scene not configured, resetting rotation");
                 MinigameRotationState.Instance.Reset();
             }
+        }
+
+        // Check if there's already a scene transition in progress
+        if (SceneTransitionManager.singleton != null && SceneTransitionManager.singleton.IsTransitioning)
+        {
+            Debug.LogWarning("🗳️ [LOBBY] Cannot start voting - scene transition already in progress!");
+            return;
         }
 
         // Start voting
@@ -285,8 +297,13 @@ public class LobbyController : NetworkBehaviour
     [Server]
     void EndVotingAndTransition()
     {
+        Debug.Log("🗳️ [LOBBY] EndVotingAndTransition called");
+        
         if (!_votingInProgress)
+        {
+            Debug.LogWarning("🗳️ [LOBBY] Voting not in progress, ignoring");
             return;
+        }
 
         Debug.Log("🗳️ [LOBBY] Ending voting and transitioning to winner");
 
@@ -304,7 +321,16 @@ public class LobbyController : NetworkBehaviour
 
                 // Load the winning scene (always play the minigame first)
                 Debug.Log($"🏆 [LOBBY] Loading winner scene: {_votingWinner.displayName} ({_votingWinner.SceneIdentifier})");
-                NetworkManager.singleton.ServerChangeScene(_votingWinner.SceneIdentifier);
+                Debug.Log($"🏆 [LOBBY] Calling MyNetworkManager.manager.ServerChangeSceneSynchronized...");
+                
+                if (MyNetworkManager.manager == null)
+                {
+                    Debug.LogError("🗳️ [LOBBY] MyNetworkManager.manager is NULL!");
+                    return;
+                }
+                
+                MyNetworkManager.manager.ServerChangeSceneSynchronized(_votingWinner.SceneIdentifier);
+                Debug.Log($"🏆 [LOBBY] ServerChangeSceneSynchronized called successfully");
             }
             else
             {
@@ -383,6 +409,14 @@ public class LobbyController : NetworkBehaviour
     void ChangeToRandomMinigame()
     {
         if (!isServer) return; // only server may change scenes
+        
+        // Check if there's already a scene transition in progress
+        if (SceneTransitionManager.singleton != null && SceneTransitionManager.singleton.IsTransitioning)
+        {
+            Debug.LogWarning("🎮 [LOBBY] Cannot change to random minigame - scene transition already in progress!");
+            return;
+        }
+        
         var manager = MyNetworkManager.manager;
         if (manager == null)
             return;
@@ -393,7 +427,8 @@ public class LobbyController : NetworkBehaviour
             return;
         }
 
-        NetworkManager.singleton.ServerChangeScene(sceneName);
+        // Use synchronized scene change for better multiplayer experience
+        manager.ServerChangeSceneSynchronized(sceneName);
 
         manager.AdvanceScenePointer();
         //MyNetworkManager.manager.ChangeScenePlayer(PlayerList.singleton.players[0],sceneToLoad);

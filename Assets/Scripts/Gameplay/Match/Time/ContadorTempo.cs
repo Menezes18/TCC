@@ -134,12 +134,12 @@ public class ContadorTempo : NetworkBehaviour, ISubject
 
             if (NetworkServer.active)
             {
-                // Centralized scene change via Mirror
-                NetworkManager.singleton.ServerChangeScene(nomeCena);
+                // Centralized scene change via Mirror with synchronization
+                MyNetworkManager.manager.ServerChangeSceneSynchronized(nomeCena);
             }
             else
             {
-                // Fallback: local load (shouldn’t normally happen in network game)
+                // Fallback: local load (shouldn't normally happen in network game)
                 LoadingScreenUI.Instance?.Show(nomeCena);
             }
         }
