@@ -104,6 +104,7 @@ public class SoccerMinigameController : MinigameController
     {
         base.StartMatch();
 
+        Debug.Log("[Soccer] StartMatch iniciado");
         _matchActive = true;
 
         _scoreA = 0;
@@ -120,6 +121,8 @@ public class SoccerMinigameController : MinigameController
         teamBIds.Clear();
         foreach (var sid in _teamA) teamAIds.Add(sid);
         foreach (var sid in _teamB) teamBIds.Add(sid);
+
+        Debug.Log($"[Soccer] Times replicados para clientes: TeamA={teamAIds.Count}, TeamB={teamBIds.Count}");
 
         // feedback dos times
         AnnounceTeams();
@@ -195,8 +198,13 @@ public class SoccerMinigameController : MinigameController
     [Server]
     private void ServerEnsureTeamsAssigned()
     {
-        if (_teamsAssigned && _teamA.Count > 0 && _teamB.Count > 0) return;
+        if (_teamsAssigned && _teamA.Count > 0 && _teamB.Count > 0)
+        {
+            Debug.Log($"[Soccer] Times já atribuídos: Time A ({_teamA.Count}), Time B ({_teamB.Count})");
+            return;
+        }
 
+        Debug.Log("[Soccer] Atribuindo times pela primeira vez...");
         _playerTeam.Clear();
         _playerTeamByNetId.Clear();
         _teamA.Clear();
@@ -204,6 +212,7 @@ public class SoccerMinigameController : MinigameController
         ServerAssignTeamsRandomly();
 
         _teamsAssigned = true;
+        Debug.Log($"[Soccer] Times atribuídos com sucesso: Time A ({_teamA.Count}), Time B ({_teamB.Count})");
     }
 
     [Server]
@@ -436,6 +445,8 @@ public class SoccerMinigameController : MinigameController
     private void ServerAssignTeamsRandomly()
     {
         var players = PlayerList.players.ToList();
+        Debug.Log($"[Soccer] ServerAssignTeamsRandomly: {players.Count} jogadores encontrados");
+        
         // shuffle
         for (int i = 0; i < players.Count; i++)
         {
@@ -443,6 +454,7 @@ public class SoccerMinigameController : MinigameController
             (players[i], players[j]) = (players[j], players[i]);
         }
         int half = Mathf.CeilToInt(players.Count / 2f);
+        Debug.Log($"[Soccer] Half = {half}, Time A terá {half} jogadores, Time B terá {players.Count - half} jogadores");
 
         for (int i = 0; i < players.Count; i++)
         {
@@ -450,6 +462,8 @@ public class SoccerMinigameController : MinigameController
             ulong sid = pd.playerInfo.steamId;
             uint nid = pd.GetComponent<NetworkIdentity>() != null ? pd.GetComponent<NetworkIdentity>().netId : 0u;
             int team = (i < half) ? 0 : 1; // 0 = A, 1 = B
+
+            Debug.Log($"[Soccer] Jogador {pd.alias} (idx={i}): sid={sid}, nid={nid}, team={team}");
 
             // Map por steamId quando disponível (para scoreboard etc.)
             if (sid != 0UL)
@@ -464,6 +478,8 @@ public class SoccerMinigameController : MinigameController
                 _playerTeamByNetId[nid] = team;
             }
         }
+        
+        Debug.Log($"[Soccer] Resultado: Time A ({_teamA.Count}), Time B ({_teamB.Count})");
     }
 
     [Server]
