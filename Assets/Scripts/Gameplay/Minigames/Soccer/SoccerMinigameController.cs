@@ -480,7 +480,14 @@ public class SoccerMinigameController : MinigameController
             return string.Join(", ", names);
         }
 
-        RpcToast($"Times sorteados!\nAzul: {TeamNames(_teamA)}\nVermelho: {TeamNames(_teamB)}");
+        string blueTeam = TeamNames(_teamA);
+        string redTeam = TeamNames(_teamB);
+        
+        // Mostra no HUD grande
+        RpcShowTeamAnnouncement(blueTeam, redTeam);
+        
+        // Também envia no chat como backup
+        RpcToast($"Times sorteados!\nAzul: {blueTeam}\nVermelho: {redTeam}");
     }
 
     [Server]
@@ -601,6 +608,14 @@ public class SoccerMinigameController : MinigameController
     private void RpcToast(string msg)
     {
         ChatManager.ShowToastGlobal(msg);
+    }
+
+    [ClientRpc]
+    private void RpcShowTeamAnnouncement(string blueTeamNames, string redTeamNames)
+    {
+        var hud = FindAnyObjectByType<SoccerHUD>();
+        if (hud != null) 
+            hud.ShowTeamAnnouncement(blueTeamNames, redTeamNames);
     }
 
     [ClientRpc]

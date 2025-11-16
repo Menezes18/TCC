@@ -59,6 +59,10 @@ public class SlotRoleta : NetworkBehaviour
     public float winHideTime = 0.45f;
     public LeanTweenType winEaseIn  = LeanTweenType.easeOutBack;
     public LeanTweenType winEaseOut = LeanTweenType.easeInQuad;
+    
+    [Header("Cores")]
+    public Color winTextColor = new Color(1f, 0.3f, 0.1f); // Laranja/vermelho quente
+    public Color subtextColor = new Color(1f, 0.85f, 0.2f); // Amarelo aviso
 
     [Header("Prefab do item")]
     public GameObject prefabUI;
@@ -595,7 +599,10 @@ public class SlotRoleta : NetworkBehaviour
     {
         if (winText == null) return;
 
-        winText.text = $"<size=115%><b>Você foi o escolhido!</b></size> <size=85%>{rotulo}</size>";
+        string coloredName = $"<color=#{ColorUtility.ToHtmlStringRGB(winTextColor)}>{rotulo.ToUpper()}</color>";
+        string coloredSubtext = $"<color=#{ColorUtility.ToHtmlStringRGB(subtextColor)}>Passe a batata rapidamente!</color>";
+        
+        winText.text = $"<size=115%><b>{coloredName} ESTÁ COM A BATATA QUENTE!</b></size>\n<size=75%>{coloredSubtext}</size>";
         winText.gameObject.SetActive(true);
 
         if (winGroup == null)
