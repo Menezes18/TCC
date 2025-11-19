@@ -324,8 +324,14 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         var ps = pd.GetComponent<PlayerScript>();
 
         ps.isFrozen = true;
+        
+        // Remove a batata do jogador antes de eliminá-lo
+        ps.ServerSetHotPotatoHolder(false);
+        
+        // Elimina o jogador e coloca em modo espectador
         IHitKillable ik = pd.transform.GetComponent<IHitKillable>(); 
         ik.OnHitSpectate();   
+
         
 
         Notifica();

@@ -191,7 +191,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     [SerializeField] private float sensibilidade = 1;
     [SyncVar(hook = nameof(OnCarryingChanged))] private bool _isCarrying;
-    [SyncVar] private bool _isHotPotatoHolder;
+    [SyncVar(hook = nameof(OnHotPotatoChanged))] private bool _isHotPotatoHolder;
     [SyncVar(hook = nameof(OnBoostChanged))] private float _boostSpeedMultiplier = 1f;
     [SerializeField, Range(0.3f, 1f)] private float carryingSpeedMultiplier = 0.8f; 
     [SerializeField, Range(0.3f, 1f)] private float poopSpeedMultiplier = 0.5f;
@@ -220,6 +220,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [Header("Minigame Street - Banana")]
     [SerializeField] private Transform bananaAttachPoint; // Ponto nas costas do jogador
     private GameObject bananaInstance;
+
+    [Header("Minigame Hot Potato")]
+    private GameObject potatoInstance;
 
     // Spectator System
     [Header("Spectator")]
@@ -372,6 +375,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         
         // Limpa a banana se existir
         HideBanana();
+        
+        // Limpa a batata se existir
+        HidePotato();
         
         PlayerControlsSO.OnMove -= PlayerControlsSO_OnMove;
         PlayerControlsSO.OnLook -= PlayerControlsSO_OnLook;
@@ -714,6 +720,48 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             var pd = GetComponent<PlayerData>();
             string playerName = pd?.playerInfo.username ?? "jogador";
             Debug.Log($"🍌 [PlayerScript] Banana escondida para {playerName}");
+        }
+    }
+
+    private void OnHotPotatoChanged(bool oldVal, bool newVal)
+    {
+        if (newVal)
+            ShowPotato();
+        else
+            HidePotato();
+    }
+
+    private void ShowPotato()
+    {
+        if (potatoInstance != null) return;
+        
+        if (db == null || db.hotPotatoPrefab == null)
+        {
+            Debug.LogWarning("⚠️ [PlayerScript] Potato prefab não configurado no Database!");
+            return;
+        }
+        
+        Transform attachPoint = transform.Find("SpawnPoint");
+        
+        Transform parent = attachPoint != null ? attachPoint : transform;
+        
+        potatoInstance = Instantiate(db.hotPotatoPrefab, parent);
+        potatoInstance.transform.localScale = Vector3.one * 0.1f;
+        var pd = GetComponent<PlayerData>();
+        string playerName = pd?.playerInfo.username ?? "jogador";
+        Debug.Log($"🥔 [PlayerScript] Batata mostrada para {playerName}");
+    }
+    
+    private void HidePotato()
+    {
+        if (potatoInstance != null)
+        {
+            Destroy(potatoInstance);
+            potatoInstance = null;
+            
+            var pd = GetComponent<PlayerData>();
+            string playerName = pd?.playerInfo.username ?? "jogador";
+            Debug.Log($"🥔 [PlayerScript] Batata escondida para {playerName}");
         }
     }
     

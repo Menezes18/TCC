@@ -77,6 +77,8 @@ public class Database : ScriptableObject{
     [Header("Minigame Street")]
     public GameObject streetBananaPrefab; 
 
+    [Header("Minigame Hot Potato")]
+    public GameObject hotPotatoPrefab;
 
     [Header("Server Side")] 
     public List<PlayerColor> playerColors;
