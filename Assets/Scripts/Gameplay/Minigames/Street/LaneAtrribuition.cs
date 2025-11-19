@@ -48,7 +48,7 @@ public class LaneAtrribuition : MonoBehaviour
             case "Elefante":
             case "Skatista":
             case "CarrinhoDeMao" :
-                vehicleLane.speed = 4f;
+                vehicleLane.speed = 15f;
                 break;
             case "Golirao":
             case "Bicicleta":
