@@ -277,12 +277,8 @@ public class MatchManager : NetworkBehaviour
             sortedPlayers.Add((name, total, gain, color));
         }
         
-        sortedPlayers.Sort((a, b) =>
-        {
-            int cmpGain = b.gain.CompareTo(a.gain);
-            if (cmpGain != 0) return cmpGain;
-            return b.total.CompareTo(a.total);
-        });
+        // Ordena apenas pelos pontos totais (maior para menor)
+        sortedPlayers.Sort((a, b) => b.total.CompareTo(a.total));
         
         string[] names = new string[n];
         int[] totals = new int[n];

@@ -19,7 +19,7 @@ public class LobbyController : NetworkBehaviour
     #endregion
 
     [SyncVar(hook = nameof(HookOnPrepareTimerUpdated))] float _prepareTimer;
-    [SyncVar(hook = nameof(HookOnPrepareTimerUpdated))] float _startTimer;
+    [SyncVar(hook = nameof(HookOnStartTimerUpdated))] float _startTimer;
     [SyncVar(hook = nameof(HookOnVotingTimerUpdated))] float _votingTimer;
     [SerializeField] Database db;
     [SerializeField] HUDSO HUDSO;
@@ -91,6 +91,7 @@ public class LobbyController : NetworkBehaviour
         
         if (_prepareTimer > 0)
             _prepareTimer -= Time.deltaTime;
+            
         if(_startTimer > 0)
             _startTimer -= Time.deltaTime;
         
@@ -108,30 +109,30 @@ public class LobbyController : NetworkBehaviour
         }
         
         if (_startTimer <= 0 && _startTimer != -1){
+            _startTimer = -1;
             
+            // Delay voting start to allow "GO!" animation to complete
             if (enableVoting)
             {
-                StartVotingPhase();
+                StartCoroutine(DelayedVotingStart());
             }
             else
             {
                 ChangeToRandomMinigame();
             }
-            
-            _startTimer = -1;
         }
         if (_prepareTimer <= 0 && _prepareTimer != -1){
+            _prepareTimer = -1;
             
+            // Delay voting start to allow "GO!" animation to complete
             if (enableVoting)
             {
-                StartVotingPhase();
+                StartCoroutine(DelayedVotingStart());
             }
             else
             {
                 ChangeToRandomMinigame();
             }
-            
-            _prepareTimer = -1;
         }
     }
 
@@ -204,6 +205,21 @@ public class LobbyController : NetworkBehaviour
         HUDSO.PrepareTimerUpdate(newValue);
     }
 
+    void HookOnStartTimerUpdated(float oldValue, float newValue)
+    {
+        // Only show countdown when timer is 5 seconds or less
+        if (newValue <= 5f && newValue > 0)
+        {
+            HUDSO.PrepareTimerUpdate(newValue);
+        }
+        else if (newValue == -1)
+        {
+            // Clear display
+            HUDSO.PrepareTimerUpdate(-1);
+        }
+        // For values > 5, don't update HUD (silent countdown)
+    }
+
     void HookOnVotingTimerUpdated(float oldValue, float newValue)
     {
         // Update UI with voting timer
@@ -225,6 +241,16 @@ public class LobbyController : NetworkBehaviour
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }
+    }
+
+    [Server]
+    IEnumerator DelayedVotingStart()
+    {
+        // Wait for "GO!" animation to complete (approximately 1 second)
+        yield return new WaitForSeconds(1.0f);
+        
+        Debug.Log("🗳️ [LOBBY] Starting voting after countdown complete");
+        StartVotingPhase();
     }
 
     [Server]
@@ -280,16 +306,26 @@ public class LobbyController : NetworkBehaviour
             return;
         }
 
-        // Start voting
-        if (VotingManager.Instance != null && VotingManager.Instance.StartVotingRound())
+        // Set voting duration and start voting
+        if (VotingManager.Instance != null)
         {
-            _votingInProgress = true;
-            _votingTimer = votingDuration;
-            Debug.Log($"🗳️ [LOBBY] Voting started for {votingDuration} seconds");
+            VotingManager.Instance.SetVotingDuration(votingDuration);
+            
+            if (VotingManager.Instance.StartVotingRound())
+            {
+                _votingInProgress = true;
+                _votingTimer = votingDuration;
+                Debug.Log($"🗳️ [LOBBY] Voting started for {votingDuration} seconds");
+            }
+            else
+            {
+                Debug.LogError("🗳️ [LOBBY] Failed to start voting, falling back to random selection");
+                ChangeToRandomMinigame();
+            }
         }
         else
         {
-            Debug.LogError("🗳️ [LOBBY] Failed to start voting, falling back to random selection");
+            Debug.LogError("🗳️ [LOBBY] VotingManager not found, falling back to random selection");
             ChangeToRandomMinigame();
         }
     }

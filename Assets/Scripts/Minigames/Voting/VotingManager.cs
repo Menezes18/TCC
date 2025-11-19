@@ -83,6 +83,31 @@ public class VotingManager : NetworkBehaviour
     [SerializeField, Tooltip("Maximum number of voting options to present (typically 3)")]
     private int _maxOptions = 3;
 
+    [SerializeField, Tooltip("Duration of voting in seconds")]
+    private float _votingDuration = 15f;
+
+    [SerializeField, Tooltip("Freeze players during voting")]
+    private bool _freezePlayersDuringVoting = true;
+
+    #endregion
+
+    #region Voting Timer
+
+    [SyncVar(hook = nameof(OnVotingTimeRemainingChanged))]
+    private float _votingTimeRemaining;
+
+    [SyncVar]
+    private bool _isVotingActive;
+
+    public event Action<float> OnVotingTimerUpdate;
+    public float VotingTimeRemaining => _votingTimeRemaining;
+    public bool IsVotingActive => _isVotingActive;
+
+    private void OnVotingTimeRemainingChanged(float oldTime, float newTime)
+    {
+        OnVotingTimerUpdate?.Invoke(newTime);
+    }
+
     #endregion
 
     #region Lifecycle
@@ -100,6 +125,21 @@ public class VotingManager : NetworkBehaviour
             if (_optionIds.Count > 0)
             {
                 RebuildClientOptions();
+            }
+        }
+    }
+
+    private void Update()
+    {
+        if (isServer && _isVotingActive && _votingTimeRemaining > 0)
+        {
+            _votingTimeRemaining -= Time.deltaTime;
+            
+            if (_votingTimeRemaining <= 0)
+            {
+                _votingTimeRemaining = 0;
+                _isVotingActive = false;
+                Debug.Log("⏰ [VOTING] Timer expired!");
             }
         }
     }
@@ -130,6 +170,14 @@ public class VotingManager : NetworkBehaviour
     #endregion
 
     #region Public API
+
+
+    [Server]
+    public void SetVotingDuration(float duration)
+    {
+        _votingDuration = Mathf.Max(1f, duration);
+        Debug.Log($"🗳️ [VOTING] Voting duration set to {_votingDuration} seconds");
+    }
 
     /// <summary>
     /// Starts a new voting round. Call this from the server/host.
@@ -199,6 +247,16 @@ public class VotingManager : NetworkBehaviour
         }
 
         Debug.Log($"🗳️ [VOTING] Started voting round with {optionCount} options: {string.Join(", ", selectedOptions.Select(o => o.displayName))}");
+
+        // Initialize voting timer
+        _votingTimeRemaining = _votingDuration;
+        _isVotingActive = true;
+
+        // Freeze players if enabled
+        if (_freezePlayersDuringVoting)
+        {
+            FreezeAllPlayers(true);
+        }
 
         // Prepare data to send to clients via RPC
         string[] ids = selectedOptions.Select(e => e.id).ToArray();
@@ -377,6 +435,15 @@ public class VotingManager : NetworkBehaviour
 
         var winningEntry = _currentOptionEntries[winnerIndex];
 
+        // Stop voting timer and unfreeze players
+        _isVotingActive = false;
+        _votingTimeRemaining = 0;
+        
+        if (_freezePlayersDuringVoting)
+        {
+            FreezeAllPlayers(false);
+        }
+
         // Notify listeners
         OnVotingEnded?.Invoke(MinigameOptionRuntime.FromCatalogEntry(winningEntry));
 
@@ -404,6 +471,32 @@ public class VotingManager : NetworkBehaviour
         _optionNames.Clear();
         _optionScenes.Clear();
         _voteCounts.Clear();
+        _isVotingActive = false;
+        _votingTimeRemaining = 0;
+    }
+
+    [Server]
+    private void FreezeAllPlayers(bool freeze)
+    {
+        var playerList = PlayerList.singleton;
+        if (playerList == null)
+        {
+            Debug.LogWarning("[VOTING] PlayerList not found, cannot freeze/unfreeze players");
+            return;
+        }
+
+        foreach (var playerData in playerList.players)
+        {
+            if (playerData == null) continue;
+            
+            var playerScript = playerData.GetComponent<PlayerScript>();
+            if (playerScript != null)
+            {
+                playerScript.isFrozen = freeze;
+            }
+        }
+
+        Debug.Log($"❄️ [VOTING] Players {(freeze ? "frozen" : "unfrozen")} for voting");
     }
 
     [Server]

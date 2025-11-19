@@ -93,6 +93,29 @@ public class ResultsUI : MonoBehaviour
 
     float _showStartTime;
 
+    private int[] CalculatePositions(int[] totals)
+    {
+        int count = totals.Length;
+        int[] positions = new int[count];
+        
+        if (count == 0) return positions;
+        
+
+        int currentPosition = 1;
+        
+        for (int i = 0; i < count; i++)
+        {
+            if (i > 0 && totals[i] < totals[i - 1])
+            {
+
+                currentPosition = i + 1;
+            }
+            positions[i] = currentPosition;
+        }
+        
+        return positions;
+    }
+
     public void Show(string[] names, int[] totals, int[] gains, Color32[] colors = null)
     {
         _showStartTime = Time.time;
@@ -139,6 +162,9 @@ public class ResultsUI : MonoBehaviour
             gains = fixedG;
         }
 
+        // Determina as posições baseadas nos totais (considera empates)
+        int[] positions = CalculatePositions(totals);
+        
         for (int i = 0; i < count; i++)
         {
             var row = Instantiate(rowPrefab, listRoot);
@@ -172,7 +198,7 @@ public class ResultsUI : MonoBehaviour
             }
 
             var rowComp = row.GetComponent<ResultsRow>();
-            rowComp.SetupForAnimation(names[i], gains[i], totals[i], i + 1, rowColor);
+            rowComp.SetupForAnimation(names[i], gains[i], totals[i], positions[i], rowColor);
             
             TryLoadPlayerCustomization(rowComp, names[i]);
 
@@ -205,10 +231,7 @@ public class ResultsUI : MonoBehaviour
         while (_pendingNumberAnims > 0)
             yield return null;
 
-        if (showGlobalPhase)
-        {
-            yield return RunGlobalPhase(names, totals, colors);
-        }
+        // Sequência única de resultados: não entra mais na fase global separada
 
         if (showExitTimer)
             yield return DoExitCountdown(exitTimerSeconds);
