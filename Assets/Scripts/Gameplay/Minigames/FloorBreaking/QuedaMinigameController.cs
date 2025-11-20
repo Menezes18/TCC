@@ -1,4 +1,4 @@
-0using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using Mirror;
 using UnityEngine;
@@ -31,7 +31,7 @@ public class QuedaMinigameController : MinigameController, IObserver
         Notifica();  
     }
     
-    public override bool UseAliveStatusOnScoreboard => true;
+    //public override bool UseAliveStatusOnScoreboard => true;
     public override void SetupMiniGame()
     {
         base.SetupMiniGame();
