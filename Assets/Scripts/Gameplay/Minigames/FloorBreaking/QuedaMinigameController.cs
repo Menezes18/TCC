@@ -30,6 +30,8 @@ public class QuedaMinigameController : MinigameController, IObserver
         _matchEnded = false; 
         Notifica();  
     }
+    
+    //public override bool UseAliveStatusOnScoreboard => true;
     public override void SetupMiniGame()
     {
         base.SetupMiniGame();
