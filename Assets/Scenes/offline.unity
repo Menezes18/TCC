@@ -7104,13 +7104,13 @@ MonoBehaviour:
             m_StringArgument: 
             m_BoolArgument: 0
           m_CallState: 2
-        - m_Target: {fileID: 0}
-          m_TargetAssemblyTypeName: UnityEngine.AudioSource, UnityEngine
-          m_MethodName: 
-          m_Mode: 1
+        - m_Target: {fileID: 141201286}
+          m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+          m_MethodName: SetActive
+          m_Mode: 6
           m_Arguments:
             m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: 
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
             m_IntArgument: 0
             m_FloatArgument: 0
             m_StringArgument: 
@@ -11781,6 +11781,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 708500755924647234, guid: c87d8babdf25712458ab7ce227d0f0f2,
+        type: 3}
+      propertyPath: steamLobby
+      value: 
+      objectReference: {fileID: 674903019}
+    - target: {fileID: 708500755924647234, guid: c87d8babdf25712458ab7ce227d0f0f2,
+        type: 3}
+      propertyPath: networkManager
+      value: 
+      objectReference: {fileID: 674903021}
+    - target: {fileID: 708500755924647234, guid: c87d8babdf25712458ab7ce227d0f0f2,
+        type: 3}
+      propertyPath: roomMenuController
+      value: 
+      objectReference: {fileID: 806023382}
     - target: {fileID: 7005007197738069116, guid: c87d8babdf25712458ab7ce227d0f0f2,
         type: 3}
       propertyPath: m_Name
@@ -30615,6 +30630,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 801649149}
   m_CullTransparentMesh: 1
+--- !u!114 &806023382 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4014340408270599404, guid: c87d8babdf25712458ab7ce227d0f0f2,
+    type: 3}
+  m_PrefabInstance: {fileID: 279705508}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a33afa1e1a352554e9e443efc717a984, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RoomMenuController
 --- !u!1 &806166262
 GameObject:
   m_ObjectHideFlags: 0
