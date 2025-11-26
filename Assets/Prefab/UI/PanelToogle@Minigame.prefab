@@ -259,7 +259,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -65.66859}
+  m_AnchoredPosition: {x: 0, y: -69.3}
   m_SizeDelta: {x: 156.2398, y: 54.0925}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7153255548096240393
@@ -331,7 +331,6 @@ RectTransform:
   m_Children:
   - {fileID: 5937029617663692353}
   - {fileID: 8846329044449269149}
-  - {fileID: 6111351194084603258}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -357,9 +356,9 @@ MonoBehaviour:
   stateEnabledMark: {fileID: 7172782283556665267}
   stateDisabledMark: {fileID: 1706462526778336320}
   titleEnabledColor: {r: 1, g: 1, b: 1, a: 1}
-  titleDisabledColor: {r: 0.8113208, g: 0.17986828, b: 0.17986828, a: 1}
+  titleDisabledColor: {r: 0.645283, g: 0, b: 0, a: 1}
   iconEnabledColor: {r: 1, g: 1, b: 1, a: 1}
-  iconDisabledColor: {r: 1, g: 0, b: 0, a: 1}
+  iconDisabledColor: {r: 0.4264151, g: 0.4264151, b: 0.4264151, a: 1}
 --- !u!1 &3346810450727877358
 GameObject:
   m_ObjectHideFlags: 0
@@ -383,7 +382,7 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3346810450727877358}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -391,7 +390,7 @@ RectTransform:
   - {fileID: 3634642607880829020}
   - {fileID: 7235507007502985070}
   - {fileID: 3771196285580543376}
-  m_Father: {fileID: 5449342997681829504}
+  m_Father: {fileID: 8846329044449269149}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
@@ -507,8 +506,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -65.669}
-  m_SizeDelta: {x: 33.2075, y: -63.9528}
+  m_AnchoredPosition: {x: 0, y: -68.024}
+  m_SizeDelta: {x: 21.5118, y: -63.9528}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5495724176333874630
 CanvasRenderer:
@@ -574,7 +573,7 @@ MonoBehaviour:
   m_fontSizeMax: 72
   m_fontStyle: 0
   m_HorizontalAlignment: 2
-  m_VerticalAlignment: 256
+  m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_wordSpacing: 0
@@ -622,6 +621,7 @@ GameObject:
   - component: {fileID: 2725812258366292094}
   - component: {fileID: 4684391501061429888}
   - component: {fileID: 6111258310309064730}
+  - component: {fileID: 6530014615801083119}
   m_Layer: 5
   m_Name: Button
   m_TagString: Untagged
@@ -641,9 +641,10 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1507051143097813627}
   - {fileID: 6368287861522900086}
+  - {fileID: 1507051143097813627}
   - {fileID: 5057875349614687977}
+  - {fileID: 6111351194084603258}
   m_Father: {fileID: 5449342997681829504}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -711,7 +712,7 @@ MonoBehaviour:
   m_Transition: 1
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 1, g: 0.3664446, b: 0, a: 1}
+    m_HighlightedColor: {r: 0.6301887, g: 0.6301887, b: 0.6301887, a: 1}
     m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
     m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
     m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
@@ -733,6 +734,23 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6530014615801083119
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5251546079426289204}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b57a1943f9574a84ea7d438780586291, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ButtonHoverAnimator
+  hoverScale: {x: 1.1, y: 1.1, z: 1.1}
+  clickScale: {x: 1.2, y: 1.2, z: 1.2}
+  scaleDuration: 0.1
+  wiggleAmplitude: 2
+  wiggleSpeed: 10
 --- !u!1 &8275407992849454094
 GameObject:
   m_ObjectHideFlags: 0
