@@ -323,10 +323,11 @@ public class SceneTransitionManager : MonoBehaviour
             {
                 if (_preloadAcks.Count == 0 && forceActivateAfterTimeout)
                 {
-                    Debug.LogError($"[SceneTransition] TIMEOUT with ZERO responses! Forcing scene activation anyway.");
-                    // Em vez de usar ServerChangeScene (que pode causar dessincronização),
-                    // forçamos a ativação do preload mesmo sem confirmações
-                    break;
+                    Debug.LogError($"[SceneTransition] TIMEOUT with ZERO responses! Falling back to standard Mirror scene change.");
+                    // Use standard Mirror scene change as fallback
+                    _isTransitioning = false; // Reset state
+                    NetworkManager.singleton.ServerChangeScene(_targetSceneName);
+                    yield break;
                 }
                 else
                 {
@@ -352,33 +353,16 @@ public class SceneTransitionManager : MonoBehaviour
         // Tell clients to activate their preloaded scenes
         BroadcastToAll(new SceneActivationMessage());
 
-        // Server loads the scene using the synchronized approach (not Mirror's ServerChangeScene)
+        // Server also needs to load the scene
         StartCoroutine(ServerLoadSceneCoroutine());
     }
 
     private IEnumerator ServerLoadSceneCoroutine()
     {
-        Debug.Log($"[SceneTransition] SERVER: Loading scene '{_targetSceneName}' via synchronized approach");
+        Debug.Log($"[SceneTransition] SERVER: Loading scene '{_targetSceneName}'");
         
-        // IMPORTANTE: NÃO usar NetworkManager.singleton.ServerChangeScene() aqui!
-        // Isso causaria uma segunda transição de cena que conflita com o preload dos clientes.
-        
-        // Carrega a cena no servidor de forma assíncrona
-        AsyncOperation serverLoad = SceneManager.LoadSceneAsync(_targetSceneName);
-        if (serverLoad == null)
-        {
-            Debug.LogError($"[SceneTransition] SERVER: Failed to load scene '{_targetSceneName}'");
-            _isTransitioning = false;
-            yield break;
-        }
-
-        // Aguarda o servidor carregar a cena
-        while (!serverLoad.isDone)
-        {
-            yield return null;
-        }
-
-        Debug.Log($"[SceneTransition] SERVER: Scene '{_targetSceneName}' loaded on server");
+        // Use Mirror's standard scene change mechanism for the server
+        NetworkManager.singleton.ServerChangeScene(_targetSceneName);
 
         // Wait for activation acknowledgments from clients
         float startTime = Time.time;
@@ -402,16 +386,6 @@ public class SceneTransitionManager : MonoBehaviour
         }
 
         Debug.Log($"[SceneTransition] All clients activated scene ({_activationAcks.Count}/{expectedClients})");
-        
-        // Notifica o Mirror que a cena mudou (para atualizar networkSceneName internamente)
-        if (NetworkManager.singleton != null)
-        {
-            // Atualiza a referência de cena do Mirror sem disparar outra transição
-            typeof(NetworkManager).GetField("networkSceneName", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?.SetValue(NetworkManager.singleton, _targetSceneName);
-        }
-        
         ServerFinishTransition();
     }
 
@@ -421,54 +395,8 @@ public class SceneTransitionManager : MonoBehaviour
         _isTransitioning = false;
         _transitionCoroutine = null;
 
-        // Trigger the briefing flow directly since we bypassed Mirror's OnServerSceneChanged
-        StartCoroutine(WaitForSceneAndTriggerBriefing());
-    }
-
-    private IEnumerator WaitForSceneAndTriggerBriefing()
-    {
-        // Aguarda um frame para garantir que a cena está totalmente carregada
-        yield return null;
-        yield return new WaitForEndOfFrame();
-
-        // Verifica se todos os clientes estão prontos
-        float timeout = 5f;
-        float elapsed = 0f;
-        
-        while (elapsed < timeout)
-        {
-            bool allReady = true;
-            foreach (var kvp in NetworkServer.connections)
-            {
-                var conn = kvp.Value;
-                if (conn == null) continue;
-                if (!conn.isAuthenticated || !conn.isReady)
-                {
-                    allReady = false;
-                    break;
-                }
-            }
-            
-            if (allReady)
-            {
-                Debug.Log("[SceneTransition] All connections ready after scene load");
-                break;
-            }
-            
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        // Inicia o briefing
-        if (BriefingManager.singleton != null && NetworkServer.active)
-        {
-            Debug.Log("[SceneTransition] Triggering briefing after synchronized scene load");
-            BriefingManager.singleton.TriggerBriefing();
-        }
-        else
-        {
-            Debug.LogWarning("[SceneTransition] BriefingManager not found or server not active");
-        }
+        // The standard Mirror flow will handle the rest via OnServerSceneChanged
+        // which triggers WaitAllConnectionsReadyThenStart -> BriefingManager.TriggerBriefing
     }
 
     private void LogPreloadProgress()
