@@ -65,7 +65,7 @@ public class HUDManager : MonoBehaviour
     {
         int s = Mathf.RoundToInt(obj);
         if (s == 0) { _respawnTimer.text = ""; return; }
-        _respawnTimer.text = "Respawning in " + s + " seconds";
+        _respawnTimer.text = "Renascendo em " + s + " segundos";
     }
 
     void HUDSOOnEventOnPrepareTimerUpdated(float obj)
@@ -86,7 +86,7 @@ public class HUDManager : MonoBehaviour
         int s = Mathf.RoundToInt(obj);
         if (s == 0)
         {
-            _freezeTimer.text = "GO!"; 
+            _freezeTimer.text = "VAI!"; 
             return;
         }
         if (s == -1) { _freezeTimer.text = ""; _lastFreezeShown = int.MinValue; return; }
