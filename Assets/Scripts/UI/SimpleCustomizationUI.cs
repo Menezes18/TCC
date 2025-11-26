@@ -29,33 +29,12 @@ public class SimpleCustomizationUI : MonoBehaviour
                 return;
             }
         }
-        
-
-        if (hatButton != null)
-        {
-            hatButton.onClick.AddListener(OnHatButtonClick);
-        }
-        
-        if (glassesButton != null)
-        {
-            glassesButton.onClick.AddListener(OnGlassesButtonClick);
-        }
-        
-        if (shirtButton != null)
-        {
-            shirtButton.onClick.AddListener(OnShirtButtonClick);
-        }
+    
     
         LoadCurrentCustomization();
 
     }
     
-    private void OnDestroy()
-    {
-        if (hatButton != null) hatButton.onClick.RemoveListener(OnHatButtonClick);
-        if (glassesButton != null) glassesButton.onClick.RemoveListener(OnGlassesButtonClick);
-        if (shirtButton != null) shirtButton.onClick.RemoveListener(OnShirtButtonClick);
-    }
     
     private void LoadCurrentCustomization()
     {
@@ -70,7 +49,7 @@ public class SimpleCustomizationUI : MonoBehaviour
         }
     }
     
-    private void OnHatButtonClick()
+    public void ChangeHat(int step)
     {
         if (database == null || database.hats.Count == 0)
         {
@@ -78,11 +57,12 @@ public class SimpleCustomizationUI : MonoBehaviour
             return;
         }
         
-        currentHatIndex++;
-        if (currentHatIndex >= database.hats.Count)
-        {
+         currentHatIndex += step;
+        if (currentHatIndex > database.hats.Count - 1)
             currentHatIndex = -1;
-        }
+
+        if (currentHatIndex < -1)
+            currentHatIndex = database.hats.Count - 1;
 
         CustomizationManager.Instance.SetHat(currentHatIndex);
         ApplyToPlayer();
@@ -91,20 +71,22 @@ public class SimpleCustomizationUI : MonoBehaviour
         Debug.Log($"🎩 [SimpleCustomizationUI] Chapéu: {itemName}");
     }
     
-    private void OnGlassesButtonClick()
+    public void ChangeGlasses(int step)
     {
         if (database == null || database.glasses.Count == 0)
         {
             Debug.LogWarning("⚠️ [SimpleCustomizationUI] Nenhum óculos configurado no database!");
             return;
         }
-        
-        currentGlassesIndex++;
-        if (currentGlassesIndex >= database.glasses.Count)
-        {
-            currentGlassesIndex = -1; 
-        }
-        
+
+        currentGlassesIndex += step;
+
+        if (currentGlassesIndex > database.glasses.Count - 1)
+            currentGlassesIndex = -1;
+
+        if (currentGlassesIndex < -1)
+            currentGlassesIndex = database.glasses.Count - 1;
+
         CustomizationManager.Instance.SetGlasses(currentGlassesIndex);
         ApplyToPlayer();
         
@@ -112,7 +94,7 @@ public class SimpleCustomizationUI : MonoBehaviour
         Debug.Log($"🕶️ [SimpleCustomizationUI] Óculos: {itemName}");
     }
     
-    private void OnShirtButtonClick()
+    public void ChangeShirt(int step)
     {
         if (database == null || database.shirts.Count == 0)
         {
@@ -120,11 +102,14 @@ public class SimpleCustomizationUI : MonoBehaviour
             return;
         }
         
-        currentShirtIndex++;
-        if (currentShirtIndex >= database.shirts.Count)
-        {
-            currentShirtIndex = -1; 
-        }
+        currentShirtIndex += step;
+
+
+        if (currentShirtIndex > database.shirts.Count - 1)
+            currentShirtIndex = -1;
+
+        if (currentShirtIndex < -1)
+            currentShirtIndex = database.shirts.Count - 1;
         
 
         CustomizationManager.Instance.SetShirt(currentShirtIndex);
