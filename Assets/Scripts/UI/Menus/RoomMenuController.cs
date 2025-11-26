@@ -12,9 +12,9 @@ public class RoomMenuController : MonoBehaviour
     [SerializeField] public TMP_InputField roomCodeInput;
     [SerializeField] public TMP_Text createdRoomCodeText;
     [SerializeField] public TMP_Text statusText;
-    [SerializeField] public Button createButton;
+
     [SerializeField] public Button joinButton;
-    [Header("Popup (opcional)")]
+    [Header("Popup")]
     [SerializeField]
     private bool usePopupMessages = true;
     [SerializeField] private string popupCreateMessage = "Criando Sala...";
@@ -158,8 +158,7 @@ public class RoomMenuController : MonoBehaviour
 
     private void ToggleButtons(bool enabled)
     {
-        if (createButton != null)
-            createButton.interactable = enabled;
+
         if (joinButton != null)
             joinButton.interactable = enabled;
     }

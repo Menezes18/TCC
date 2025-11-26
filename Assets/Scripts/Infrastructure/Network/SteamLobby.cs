@@ -51,6 +51,7 @@ public class SteamLobby : MonoBehaviour
     public event Action<string> JoinByCodeFailed;        // Disparado no cliente quando nenhum lobby corresponde ao código digitado.
     public event Action JoinByCodeStarted;               // Disparado quando a busca por código é iniciada.
     public event Action<List<Lobby>> LobbyListUpdated;   // Disparado quando a lista de lobbies é recarregada.
+    public event Action<string> RoomCodeUpdated;
 
     // Callbacks da Steam API
     protected Callback<LobbyCreated_t> lobbyCreated;
@@ -62,6 +63,7 @@ public class SteamLobby : MonoBehaviour
     private string _pendingJoinCode;
     private bool _searchingByCode;
     private int _pendingMaxPlayers;
+    public string CurrentRoomCode { get; private set; }
 
 
     private void Awake()
@@ -180,6 +182,8 @@ public class SteamLobby : MonoBehaviour
             LobbyID = CSteamID.Nil;
             _pendingRoomCode = null;
             _pendingJoinCode = null;
+            CurrentRoomCode = null;
+            RoomCodeUpdated?.Invoke(CurrentRoomCode);
         }
     }
 
@@ -284,7 +288,11 @@ public class SteamLobby : MonoBehaviour
         if (!string.IsNullOrEmpty(_pendingRoomCode))
         {
             SteamMatchmaking.SetLobbyData(LobbyID, ROOM_CODE_KEY, _pendingRoomCode);
+            CurrentRoomCode = _pendingRoomCode;
             RoomCodeGenerated?.Invoke(_pendingRoomCode);
+            RoomCodeUpdated?.Invoke(CurrentRoomCode);
+
+            Debug.Log($"<color=green> [SteamLobby] Lobby criado com código: {_pendingRoomCode}</color>");
         }
         _pendingRoomCode = null;
 
@@ -324,6 +332,7 @@ public class SteamLobby : MonoBehaviour
             return;
 
         var hostAddress = SteamMatchmaking.GetLobbyData(new CSteamID(LobbyID.m_SteamID), HOST_ADDRESS_KEY);
+        var lobbyCode = SteamMatchmaking.GetLobbyData(new CSteamID(LobbyID.m_SteamID), ROOM_CODE_KEY);
 
         if (string.IsNullOrWhiteSpace(hostAddress))
         {
@@ -332,6 +341,9 @@ public class SteamLobby : MonoBehaviour
             SteamMatchmaking.LeaveLobby(LobbyID);
             return;
         }
+
+        CurrentRoomCode = string.IsNullOrWhiteSpace(lobbyCode) ? null : lobbyCode;
+        RoomCodeUpdated?.Invoke(CurrentRoomCode);
 
         ((MyNetworkManager)NetworkManager.singleton).SetMultiplayer(true);
         ((MyNetworkManager)NetworkManager.singleton).networkAddress = hostAddress;
