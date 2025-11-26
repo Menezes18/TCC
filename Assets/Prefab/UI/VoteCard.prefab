@@ -333,6 +333,7 @@ GameObject:
   - component: {fileID: 5335092109576875350}
   - component: {fileID: 1716244361119826813}
   - component: {fileID: 7722507609139250264}
+  - component: {fileID: 1187808879608549962}
   m_Layer: 5
   m_Name: VoteCard
   m_TagString: Untagged
@@ -382,7 +383,7 @@ MonoBehaviour:
   voteButton: {fileID: 7722507609139250264}
   selectedIndicator: {fileID: 3616074542103478137}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
-  selectedColor: {r: 0, g: 1, b: 0, a: 1}
+  selectedColor: {r: 0.4943396, g: 0.4943396, b: 0.4943396, a: 1}
   defaultIcon: {fileID: -741759203, guid: a1e29a5a5991cc04bb8e753b052eb52d, type: 3}
 --- !u!114 &7722507609139250264
 MonoBehaviour:
@@ -411,7 +412,7 @@ MonoBehaviour:
     m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
     m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
     m_ColorMultiplier: 1
-    m_FadeDuration: 0.1
+    m_FadeDuration: 0.01
   m_SpriteState:
     m_HighlightedSprite: {fileID: 0}
     m_PressedSprite: {fileID: 0}
@@ -428,6 +429,23 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &1187808879608549962
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6474597657688247329}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b57a1943f9574a84ea7d438780586291, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ButtonHoverAnimator
+  hoverScale: {x: 1.1, y: 1.1, z: 1.1}
+  clickScale: {x: 1.2, y: 1.2, z: 1.2}
+  scaleDuration: 0.1
+  wiggleAmplitude: 2
+  wiggleSpeed: 10
 --- !u!1 &9095642826255239622
 GameObject:
   m_ObjectHideFlags: 0
