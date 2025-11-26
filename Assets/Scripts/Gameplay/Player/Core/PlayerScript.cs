@@ -972,7 +972,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (_isCarrying) return;
         if (isFrozen) return;
         if (State == PlayerState.Stagger) return;
-        if (Status != PlayerStatus.Default || Status == PlayerStatus.Blinded) return;
+        if (Status != PlayerStatus.Default) return;
 
         if (_pushCooldown > 0) return;
 
