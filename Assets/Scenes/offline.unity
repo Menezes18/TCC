@@ -11796,6 +11796,26 @@ PrefabInstance:
       propertyPath: roomMenuController
       value: 
       objectReference: {fileID: 806023382}
+    - target: {fileID: 930048557839393440, guid: c87d8babdf25712458ab7ce227d0f0f2,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.000000079877
+      objectReference: {fileID: 0}
+    - target: {fileID: 930048557839393440, guid: c87d8babdf25712458ab7ce227d0f0f2,
+        type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 782
+      objectReference: {fileID: 0}
+    - target: {fileID: 930048557839393440, guid: c87d8babdf25712458ab7ce227d0f0f2,
+        type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -240
+      objectReference: {fileID: 0}
+    - target: {fileID: 5995156697775953569, guid: c87d8babdf25712458ab7ce227d0f0f2,
+        type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 30
+      objectReference: {fileID: 0}
     - target: {fileID: 7005007197738069116, guid: c87d8babdf25712458ab7ce227d0f0f2,
         type: 3}
       propertyPath: m_Name
@@ -11804,7 +11824,7 @@ PrefabInstance:
     - target: {fileID: 8632194174901254377, guid: c87d8babdf25712458ab7ce227d0f0f2,
         type: 3}
       propertyPath: m_SizeDelta.y
-      value: 67
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -65243,7 +65263,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1752302668}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0.00003567914}
+  m_LocalPosition: {x: 0, y: 0, z: 0.000032613}
   m_LocalScale: {x: 1.0000305, y: 1.0000303, z: 1.0000304}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -65251,8 +65271,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: -1046.5029, y: 1220.5332}
-  m_SizeDelta: {x: 4601.506, y: 2203.267}
+  m_AnchoredPosition: {x: 122, y: 655.29}
+  m_SizeDelta: {x: 2272.732, y: 1088.217}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1752302670
 MonoBehaviour:
@@ -65267,8 +65287,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 2100000, guid: ecb12f0b3a629404c91bc30b9172f027, type: 2}
-  m_Color: {r: 0.97740513, g: 1, b: 0.5641509, a: 1}
-  m_RaycastTarget: 1
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -65685,7 +65705,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 2100000, guid: f66e8bbb8c7ccd64db64f64f65b574e9, type: 2}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
@@ -66530,7 +66550,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 0.9921569, g: 0.427451, b: 0.121568635, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -77704,7 +77724,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Material: {fileID: 2100000, guid: d07f3ca8ca6a813409ea47c8ef3068d6, type: 2}
   m_Color: {r: 1, g: 1, b: 1, a: 0.5019608}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -77712,7 +77732,7 @@ MonoBehaviour:
       m_Calls: []
   m_Sprite: {fileID: 21300000, guid: 2772c85a724da984ca911ace2536c449, type: 3}
   m_Type: 0
-  m_PreserveAspect: 0
+  m_PreserveAspect: 1
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -100881,7 +100901,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!222 &6195339670456252824
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -103048,8 +103068,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 6195339671394067162}
   m_HandleRect: {fileID: 0}
   m_Direction: 0
-  m_Value: 0
-  m_Size: 0.98282135
+  m_Value: 0.0000020899865
+  m_Size: 0.9828214
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
