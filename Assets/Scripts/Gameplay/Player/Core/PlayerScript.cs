@@ -972,8 +972,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (_isCarrying) return;
         if (isFrozen) return;
         if (State == PlayerState.Stagger) return;
-        if (Status != PlayerStatus.Default) return;
-
+        if (Status == PlayerStatus.Pushing) return;
+        if (Status == PlayerStatus.ThrowPrepare) return; 
+        if (Status == PlayerStatus.Throw) return;
         if (_pushCooldown > 0) return;
 
         Status = PlayerStatus.Pushing;
@@ -1005,7 +1006,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (Cursor.visible == true) return;
         if (State == PlayerState.Death) return;
         if (State == PlayerState.Stagger) return;
-        if (Status != PlayerStatus.Default) return;
+        if (Status == PlayerStatus.Pushing) return;
+        if (Status == PlayerStatus.ThrowPrepare) return;
         if (Status == PlayerStatus.Throw) return;
         if (_throwCooldown > 0) return;
         if (_isCarrying) return;
@@ -1015,7 +1017,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     private void PlayerControlsSO_OnThrowCancel()
     {
-    if (isFrozen) return;
+        if (isFrozen) return;
         if (panel) return;
         if (_chatOpen) return;
         if (Cursor.visible == true) return;
