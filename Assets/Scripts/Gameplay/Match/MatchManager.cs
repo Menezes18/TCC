@@ -149,6 +149,7 @@ public class MatchManager : NetworkBehaviour
             // efeito talvez
             // ou som
             // mas é aqui 
+            Debug.Log("❄️<color=blue> [MATCH] FreezeTime acabou</color>");
             Debug.Log("⏳ [MATCH] FreezeTime acabou, iniciando partida");
             (scoreRule as MinigameController)?.StartMatch();
             
@@ -192,12 +193,24 @@ public class MatchManager : NetworkBehaviour
     [Server]
     public void InternalStartMatch() 
     {
-        _freezeTimer = db.serverFreezeDuration;
         _matchTimer = settingsMiniGameData.miniGameDuration;
-        _matchHasStarted = true;
+        //_matchHasStarted = true;
         _resultsFinalized = false;
     }
 
+    [Server]
+    public void StartMatch()
+    {
+        _freezeTimer = db.serverFreezeDuration;
+        _matchHasStarted = true;
+    }
+
+
+    [Command(requiresAuthority = false)]
+    public void CmdStartMatchAfterCamera()
+    {
+        StartMatch();
+    }
     private void TeleportPlayer()
     {
         var mc = FindFirstObjectByType<MinigameController>();
