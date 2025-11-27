@@ -30,7 +30,7 @@ public class MemoriaMinigameController : MinigameController, IObserver
     {
         base.SetupMiniGame();
     }
-
+    public override bool UseAliveStatusOnScoreboard => true;
     public override void StartMatch()
     {
         base.StartMatch();

@@ -346,7 +346,7 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
            
         }
     }
-
+    public override bool UseAliveStatusOnScoreboard => true;
     [Server]
     public override void EndMatch()
     {
