@@ -3,10 +3,7 @@ using Mirror;
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
-/// <summary>
-/// UI-based voting input provider.
-/// Displays vote cards and handles click-based voting.
-/// </summary>
+
 public class UIVoteInputProvider : NetworkBehaviour, IVoteInputProvider
 {
     [Header("UI References")]
@@ -158,7 +155,7 @@ public class UIVoteInputProvider : NetworkBehaviour, IVoteInputProvider
         if (showTimer && _registeredVotingManager != null)
         {
             _votingDuration = _registeredVotingManager.VotingTimeRemaining;
-            _lastSecond = Mathf.CeilToInt(_votingDuration);
+            _lastSecond = -1; // deixa a primeira atualização disparar animação/popup
             _isUrgent = false;
             
             if (timerFillImage != null)
@@ -332,6 +329,16 @@ public class UIVoteInputProvider : NetworkBehaviour, IVoteInputProvider
     private void OnTimerUpdate(float timeRemaining)
     {
         if (!showTimer) return;
+        
+        // Se o cliente ainda não recebeu a duração total, inicializa aqui para as animações funcionarem
+        if (_votingDuration <= 0f || timeRemaining > _votingDuration)
+        {
+            float inferred = timeRemaining;
+            if (_registeredVotingManager != null && _registeredVotingManager.VotingTimeRemaining > 0f)
+                inferred = _registeredVotingManager.VotingTimeRemaining;
+
+            _votingDuration = Mathf.Max(inferred, 0.01f);
+        }
         
         UpdateTimerDisplay(timeRemaining);
     }
