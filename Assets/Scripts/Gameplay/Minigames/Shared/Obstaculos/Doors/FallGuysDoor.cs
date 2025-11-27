@@ -14,6 +14,10 @@ public class FallGuysDoor : NetworkBehaviour
     [SerializeField] private Rigidbody doorRb;
     [SerializeField] private Vector3 fallAxis = Vector3.forward;
     [SerializeField] private float physicsAngularImpulse = 5f;
+    [Header("Ocultação da porta real")]
+    [SerializeField, Tooltip("Tempo após abrir antes de iniciar o sumiço.")] private float hideDelaySeconds = 2f;
+    [SerializeField, Tooltip("Duração do scale down até o tamanho mínimo.")] private float hideShrinkDuration = 0.35f;
+    [SerializeField, Tooltip("Escala final usada ao esconder a porta.")] private Vector3 hiddenScale = Vector3.one * 0.01f;
 
     [Header("Fisica empurrão")]
     [SerializeField] private float physicsPushForce = 10f;
@@ -29,12 +33,17 @@ public class FallGuysDoor : NetworkBehaviour
     [SyncVar] private bool opened = false;
 
     private Quaternion _initialRot;
+    private Vector3 _initialScale;
+    private bool _hideRoutineStarted;
+    private Coroutine _localHideCoroutine;
+    private Coroutine _serverHideCoroutine;
 
     private void Awake()
     {
         doorVisual = doorVisual != null ? doorVisual : transform;
         if (doorRb == null) doorRb = GetComponent<Rigidbody>();
         _initialRot = doorVisual.localRotation;
+        _initialScale = doorVisual.localScale;
     }
 
     private void Reset()
@@ -50,7 +59,13 @@ public class FallGuysDoor : NetworkBehaviour
     public override void OnStartServer()
     {
         base.OnStartServer();
+        if (_serverHideCoroutine != null)
+        {
+            StopCoroutine(_serverHideCoroutine);
+            _serverHideCoroutine = null;
+        }
         opened = false;
+        _hideRoutineStarted = false;
         RpcResetDoor();
     }
 
@@ -92,6 +107,8 @@ public class FallGuysDoor : NetworkBehaviour
             Vector3 hitDir = ps.transform.forward; hitDir.y = 0f; if (hitDir == Vector3.zero) hitDir = (ps.transform.position - transform.position).normalized;
             Vector3 hitPoint = other.ClosestPoint(doorVisual != null ? doorVisual.position : transform.position);
             RpcOpenDoor(hitPoint, hitDir, physicsPushForce);
+            if (!_hideRoutineStarted)
+                _serverHideCoroutine = StartCoroutine(ServerHideDoorRoutine());
         }
         else
         {
@@ -108,8 +125,21 @@ public class FallGuysDoor : NetworkBehaviour
     [ClientRpc]
     private void RpcResetDoor()
     {
+        _hideRoutineStarted = false;
+        if (_localHideCoroutine != null)
+        {
+            StopCoroutine(_localHideCoroutine);
+            _localHideCoroutine = null;
+        }
+        if (doorVisual != null)
+        {
+            if (doorVisual != transform)
+                doorVisual.gameObject.SetActive(true);
+            doorVisual.localScale = _initialScale;
+        }
         if (doorVisual != null) doorVisual.localRotation = _initialRot;
         if (solidCollider != null) solidCollider.enabled = true;
+        if (hitTrigger != null) hitTrigger.enabled = true;
         if (doorRb != null)
         {
             doorRb.isKinematic = true;
@@ -153,6 +183,56 @@ public class FallGuysDoor : NetworkBehaviour
             }
         }
     
+    }
+
+    [Server]
+    private IEnumerator ServerHideDoorRoutine()
+    {
+        _hideRoutineStarted = true;
+        yield return new WaitForSeconds(hideDelaySeconds);
+        RpcShrinkAndDisable();
+        _serverHideCoroutine = null;
+    }
+
+    [ClientRpc]
+    private void RpcShrinkAndDisable()
+    {
+        if (_localHideCoroutine != null)
+            StopCoroutine(_localHideCoroutine);
+        _localHideCoroutine = StartCoroutine(ShrinkAndDisableLocal());
+    }
+
+    private IEnumerator ShrinkAndDisableLocal()
+    {
+        if (doorVisual == null)
+            yield break;
+
+        Vector3 startScale = doorVisual.localScale;
+        Vector3 targetScale = hiddenScale;
+        float duration = Mathf.Max(0.01f, hideShrinkDuration);
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            doorVisual.localScale = Vector3.Lerp(startScale, targetScale, t);
+            yield return null;
+        }
+
+        doorVisual.localScale = targetScale;
+
+        if (solidCollider != null) solidCollider.enabled = false;
+        if (hitTrigger != null) hitTrigger.enabled = false;
+        if (doorRb != null)
+        {
+            doorRb.linearVelocity = Vector3.zero;
+            doorRb.angularVelocity = Vector3.zero;
+            doorRb.isKinematic = true;
+        }
+
+        if (doorVisual != transform)
+            doorVisual.gameObject.SetActive(false);
     }
 
 }
