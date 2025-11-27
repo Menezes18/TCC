@@ -1310,7 +1310,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     // Spectator System
 
     [TargetRpc]
-    private void RpcSpectate()
+    private void RpcSpectate(float hideDelay, bool shouldHideModel)
     {
         Debug.Log("👁️ [SPECTATOR] Entering spectator mode");
         _isSpectating = true;
@@ -1324,8 +1324,14 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (_playerInput != null)
             _playerInput.enabled = false;
 
-        // Hide player model
-        HidePlayerModel();
+        // Hide player model (respeita delay configurado)
+        if (shouldHideModel)
+        {
+            if (hideDelay > 0f)
+                StartCoroutine(HideModelAfterDelay(hideDelay));
+            else
+                HidePlayerModel();
+        }
 
         // Disable player controller to prevent collision/physics
         if (_controller != null)
@@ -1486,13 +1492,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         InternalResetProperties();
     }
 
-    public void InternalDeath(bool permaDeath)
+    public void InternalDeath(bool permaDeath, float hideDelay = 0f, bool shouldHideModel = true)
     {
         State = PlayerState.Death;
         
         if (permaDeath)
         {
-            CmdRequestSpectate();
+            CmdRequestSpectate(hideDelay, shouldHideModel);
         }
         else
         {
@@ -1503,9 +1509,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     }
 
     [Command]
-    private void CmdRequestSpectate()
+    private void CmdRequestSpectate(float hideDelay, bool shouldHideModel)
     {
-        RpcSpectate();
+        RpcSpectate(hideDelay, shouldHideModel);
     }
 
     public void OnContextualHit(DeathCause cause, bool perma)
@@ -1513,12 +1519,16 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (!base.isOwned) return;
 
         var entry = deathEffects != null ? deathEffects.Get(cause) : null;
+        float hideDelay = deathEffects != null ? deathEffects.GetHideDelay(cause) : 0f;
+        bool shouldHideModel = entry == null || entry.hideModelAfterDelay;
+        if (entry != null && entry.hideModelAfterDelay)
+            hideDelay = Mathf.Max(hideDelay, entry.hideModelDelay);
         _suppressHideOnDeath = (entry != null && entry.hideModelAfterDelay);
 
         Debug.Log($"💀 [DEATH] Cause: {cause}, Perma: {perma}, SuppressHide: {_suppressHideOnDeath}");
         _animator?.SetInteger(_DEATHCAUSE, (int)cause);
 
-        InternalDeath(perma);
+        InternalDeath(perma, hideDelay, shouldHideModel);
 
         CmdDeathWithCause(cause, perma, transform.position, transform.rotation);
 
@@ -1559,10 +1569,15 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
                     AudioSource.PlayClipAtPoint(entry.sfx, transform.position, entry.sfxVolume);
                 }
 
-                float delay = deathEffects.GetHideDelay(DeathCause.Lava);
+                float delay = deathEffects.GetHideDelay(cause);
                 if (entry.hideModelAfterDelay)
+                {
                     delay = Mathf.Max(delay, entry.hideModelDelay);
-                StartCoroutine(HideModelAfterDelay(delay));
+                    // No owner: aplica normalmente; owner perma usa RpcSpectate (para respeitar delay)
+                    bool handledBySpectatorFlow = perma && base.isOwned;
+                    if (!handledBySpectatorFlow)
+                        StartCoroutine(HideModelAfterDelay(delay));
+                }
                 return;
             }
         }
