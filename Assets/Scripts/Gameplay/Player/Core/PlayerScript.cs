@@ -478,10 +478,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
                 BriefingManager.singleton?.CheckAllReady();
             }
         }
-        if (!UILocked && Keyboard.current.oKey.wasPressedThisFrame )
-        {
-            HUDSO.ShowColorChangePanel(); 
-        }
+        // if (!UILocked && Keyboard.current.oKey.wasPressedThisFrame )
+        // {
+        //     HUDSO.ShowColorChangePanel(); 
+        // }
         float blindWeight = CustomMath.ConvertRange(_blindTimer, db.playerBlindDuration, 0);
         float blindRange = db.playerBlindCurve.Evaluate(blindWeight);
         HUDSO.SetBlindAlpha(blindRange);
