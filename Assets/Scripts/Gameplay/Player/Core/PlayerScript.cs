@@ -309,6 +309,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             
             var minigamePanel = celularInstance.GetComponentInChildren<MinigameSelectionPanel>(true);
             if (minigamePanel != null) minigamePanel.SetHUD(HUDSO);
+            
+            if (mainMenu != null) mainMenu.SetHUD(HUDSO);
         }
         if (cooldownUIPrefab != null)
         {
@@ -319,6 +321,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         }
         
         StartCoroutine(ApplyPlayerCustomizationDelayed());
+        
+        HUDSO.EventOnShowMenuPanel += OnShowMenuPanel;
+        HUDSO.EventOnHideMenuPanel += OnHideMenuPanel;
     }
     
     private IEnumerator ApplyPlayerCustomizationDelayed()
@@ -339,6 +344,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             Destroy(cooldownUIInstance);
 
 
+        if (cooldownUIInstance != null)
+            Destroy(cooldownUIInstance);
+
+        HUDSO.EventOnShowMenuPanel -= OnShowMenuPanel;
+        HUDSO.EventOnHideMenuPanel -= OnHideMenuPanel;
     }
 
     private void ConfigureControlScheme(bool initial)
@@ -1303,8 +1313,29 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         }
         
         // Se nenhum painel está aberto, alterna o estado do menu celular
-        _menuOpen = !_menuOpen;
-        celularInstance.SetActive(_menuOpen);
+        // _menuOpen = !_menuOpen;
+        // celularInstance.SetActive(_menuOpen);
+        
+        if (_menuOpen)
+        {
+            HUDSO.HideMenuPanel();
+        }
+        else
+        {
+            HUDSO.ShowMenuPanel();
+        }
+    }
+
+    private void OnShowMenuPanel()
+    {
+        _menuOpen = true;
+        celularInstance.SetActive(true);
+    }
+
+    private void OnHideMenuPanel()
+    {
+        _menuOpen = false;
+        celularInstance.SetActive(false);
     }
 
     

@@ -103,5 +103,19 @@ public class HUDSO : ScriptableObject{
     {
         this.EventOnHideInteractHint?.Invoke();
     }
+
+    // Menu Panel (Celular)
+    public event Action EventOnShowMenuPanel;
+    public event Action EventOnHideMenuPanel;
+
+    public void ShowMenuPanel()
+    {
+        this.EventOnShowMenuPanel?.Invoke();
+    }
+
+    public void HideMenuPanel()
+    {
+        this.EventOnHideMenuPanel?.Invoke();
+    }
 }
 
