@@ -669,9 +669,22 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     private IEnumerator WaitAllConnectionsReadyThenStart()
     {
         float lastLog = 0f;
+        float startTime = Time.realtimeSinceStartup;
+        float maxWaitTime = 60f; // Timeout máximo de 60 segundos
+        
         // Wait until all authenticated connections became ready after the load
         while (!AreAllConnectionsReady())
         {
+            float elapsed = Time.realtimeSinceStartup - startTime;
+            
+            // Check for timeout
+            if (elapsed >= maxWaitTime)
+            {
+                Debug.LogWarning($"[MyNetworkManager] Timeout waiting for all connections to be ready after {maxWaitTime}s. Proceeding anyway.");
+                LogProgressSnapshot(final: true);
+                break;
+            }
+            
             // every ~1s, log a telemetry snapshot
             if (Time.realtimeSinceStartup - lastLog > 1f)
             {
