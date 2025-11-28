@@ -152,6 +152,7 @@ public class MatchManager : NetworkBehaviour
             // mas é aqui 
             Debug.Log("❄️<color=blue> [MATCH] FreezeTime acabou</color>");
             Debug.Log("⏳ [MATCH] FreezeTime acabou, iniciando partida");
+            InternalStartMatch();
             (scoreRule as MinigameController)?.StartMatch();
             
             _freezeTimer = -1;
@@ -202,6 +203,7 @@ public class MatchManager : NetworkBehaviour
     [Server]
     public void StartMatch()
     {
+        PlayerList.singleton.SetAllPlayersFrozen(false);
         _freezeTimer = db.serverFreezeDuration;
         _matchHasStarted = true;
     }

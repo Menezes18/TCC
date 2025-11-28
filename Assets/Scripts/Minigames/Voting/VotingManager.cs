@@ -87,7 +87,7 @@ public class VotingManager : NetworkBehaviour
     private float _votingDuration = 15f;
 
     [SerializeField, Tooltip("Freeze players during voting")]
-    private bool _freezePlayersDuringVoting = true;
+    private bool _SetAllPlayersFrozenDuringVoting = true;
 
     #endregion
 
@@ -253,7 +253,7 @@ public class VotingManager : NetworkBehaviour
         _isVotingActive = true;
 
         // Freeze players if enabled
-        if (_freezePlayersDuringVoting)
+        if (_SetAllPlayersFrozenDuringVoting)
         {
             FreezeAllPlayers(true);
         }
@@ -439,7 +439,7 @@ public class VotingManager : NetworkBehaviour
         _isVotingActive = false;
         _votingTimeRemaining = 0;
         
-        if (_freezePlayersDuringVoting)
+        if (_SetAllPlayersFrozenDuringVoting)
         {
             FreezeAllPlayers(false);
         }

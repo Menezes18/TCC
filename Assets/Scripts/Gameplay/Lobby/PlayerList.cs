@@ -155,7 +155,7 @@ public class PlayerList : NetworkBehaviour{
     }
     
     [Server]
-    public void AtivarPlayer(bool ativar)
+    public void SetAllPlayersFrozen(bool ativar)
     {
     var allPlayerData = FindObjectsByType<PlayerData>(FindObjectsSortMode.None);
 

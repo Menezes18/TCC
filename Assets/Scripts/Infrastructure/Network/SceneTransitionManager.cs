@@ -272,7 +272,7 @@ public class SceneTransitionManager : MonoBehaviour
         // Freeze all players during transition
         if (PlayerList.singleton != null)
         {
-            PlayerList.singleton.AtivarPlayer(true);
+            PlayerList.singleton.SetAllPlayersFrozen(true);
             Debug.Log("[SceneTransition] Players frozen during transition");
         }
 
