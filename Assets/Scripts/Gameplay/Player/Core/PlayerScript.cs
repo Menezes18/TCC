@@ -852,6 +852,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
 
         State = PlayerState.Default;
+        if (isLocalPlayer && isOwned)
+        {
+            CmdSetStaggered(false);
+        }
 
 
     }
@@ -1110,6 +1114,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public void ReceiveDamage(DamageType dmgType, Vector3 dir)
     {
         NetworkConnection coon = transform.GetComponent<NetworkIdentity>().connectionToClient;
+        isStaggered = true;
         TargetRpcReceiveDamage(coon, dmgType, dir);
     }
 
@@ -1154,6 +1159,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public void ServerApplyImpulse(Vector3 horizontalDir, float horizontalStrength, float verticalStrength, float stunDuration = 0f, bool setStagger = true)
     {
         NetworkConnection coon = transform.GetComponent<NetworkIdentity>().connectionToClient;
+        if (setStagger) isStaggered = true;
         TargetRpcApplyImpulse(coon, horizontalDir, horizontalStrength, verticalStrength, stunDuration, setStagger);
     }
 
@@ -1244,7 +1250,19 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     public void OnStaggerChanged(bool oldValue, bool newValue)
     {
-        _staggerIndicator.gameObject.SetActive(newValue);
+        if (_staggerIndicator != null)
+        {
+            _staggerIndicator.gameObject.SetActive(newValue);
+            
+            var rotateTool = _staggerIndicator.GetComponent<RotateAroundTool>();
+            if (rotateTool != null) rotateTool.enabled = newValue;
+        }
+    }
+
+    [Command]
+    private void CmdSetStaggered(bool active)
+    {
+        isStaggered = active;
     }
 
     public void OnHitKill()
