@@ -1419,6 +1419,7 @@ Transform:
   - {fileID: 824392932}
   - {fileID: 1463693572}
   - {fileID: 2057837718}
+  - {fileID: 562031167}
   m_Father: {fileID: 2040278878}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &133501235
@@ -5161,16 +5162,6 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 2660483620581618411, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideDelaySeconds
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 2660483620581618411, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideShrinkDuration
-      value: 0.5
-      objectReference: {fileID: 0}
     - target: {fileID: 5381738027465303960, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
         type: 3}
       propertyPath: m_Name
@@ -5180,26 +5171,6 @@ PrefabInstance:
         type: 3}
       propertyPath: sceneId
       value: 2456449720
-      objectReference: {fileID: 0}
-    - target: {fileID: 7407192426231852694, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideDelaySeconds
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 7407192426231852694, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideShrinkDuration
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 8461069926982981660, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideDelaySeconds
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 8461069926982981660, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideShrinkDuration
-      value: 0.5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -5850,6 +5821,12 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!4 &562031167 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2565329700943913177, guid: 169d00d7c2e48224d885c0ca57ceea51,
+    type: 3}
+  m_PrefabInstance: {fileID: 1102073634}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &573814364
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6696,16 +6673,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 2660483620581618411, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideDelaySeconds
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 2660483620581618411, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideShrinkDuration
-      value: 0.5
-      objectReference: {fileID: 0}
     - target: {fileID: 5381738027465303960, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
         type: 3}
       propertyPath: m_Name
@@ -6715,26 +6682,6 @@ PrefabInstance:
         type: 3}
       propertyPath: sceneId
       value: 1579336101
-      objectReference: {fileID: 0}
-    - target: {fileID: 7407192426231852694, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideDelaySeconds
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 7407192426231852694, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideShrinkDuration
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 8461069926982981660, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideDelaySeconds
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 8461069926982981660, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideShrinkDuration
-      value: 0.5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -11762,6 +11709,84 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 5518136813425862859, guid: 5f0b5dcc3793b654fadbfbc5e4d019e8, type: 3}
+--- !u!1001 &1102073634
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 130360649}
+    m_Modifications:
+    - target: {fileID: 333557028084479674, guid: 169d00d7c2e48224d885c0ca57ceea51,
+        type: 3}
+      propertyPath: angularSpeed
+      value: 250
+      objectReference: {fileID: 0}
+    - target: {fileID: 2390264722077789809, guid: 169d00d7c2e48224d885c0ca57ceea51,
+        type: 3}
+      propertyPath: m_Name
+      value: HammerFresnel 2 (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 2565329700943913177, guid: 169d00d7c2e48224d885c0ca57ceea51,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 86.36999
+      objectReference: {fileID: 0}
+    - target: {fileID: 2565329700943913177, guid: 169d00d7c2e48224d885c0ca57ceea51,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -8.180994
+      objectReference: {fileID: 0}
+    - target: {fileID: 2565329700943913177, guid: 169d00d7c2e48224d885c0ca57ceea51,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 122.98995
+      objectReference: {fileID: 0}
+    - target: {fileID: 2565329700943913177, guid: 169d00d7c2e48224d885c0ca57ceea51,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.50000143
+      objectReference: {fileID: 0}
+    - target: {fileID: 2565329700943913177, guid: 169d00d7c2e48224d885c0ca57ceea51,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.49999857
+      objectReference: {fileID: 0}
+    - target: {fileID: 2565329700943913177, guid: 169d00d7c2e48224d885c0ca57ceea51,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.499997
+      objectReference: {fileID: 0}
+    - target: {fileID: 2565329700943913177, guid: 169d00d7c2e48224d885c0ca57ceea51,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.50000304
+      objectReference: {fileID: 0}
+    - target: {fileID: 2565329700943913177, guid: 169d00d7c2e48224d885c0ca57ceea51,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2565329700943913177, guid: 169d00d7c2e48224d885c0ca57ceea51,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 449.999
+      objectReference: {fileID: 0}
+    - target: {fileID: 2565329700943913177, guid: 169d00d7c2e48224d885c0ca57ceea51,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: -90
+      objectReference: {fileID: 0}
+    - target: {fileID: 2672329523857662987, guid: 169d00d7c2e48224d885c0ca57ceea51,
+        type: 3}
+      propertyPath: sceneId
+      value: 3954862942
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 169d00d7c2e48224d885c0ca57ceea51, type: 3}
 --- !u!1001 &1107005175
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13703,16 +13728,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 2660483620581618411, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideDelaySeconds
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 2660483620581618411, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideShrinkDuration
-      value: 0.5
-      objectReference: {fileID: 0}
     - target: {fileID: 5381738027465303960, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
         type: 3}
       propertyPath: m_Name
@@ -13722,26 +13737,6 @@ PrefabInstance:
         type: 3}
       propertyPath: sceneId
       value: 3786982194
-      objectReference: {fileID: 0}
-    - target: {fileID: 7407192426231852694, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideDelaySeconds
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 7407192426231852694, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideShrinkDuration
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 8461069926982981660, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideDelaySeconds
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 8461069926982981660, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideShrinkDuration
-      value: 0.5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -15719,6 +15714,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 130360649}
     m_Modifications:
+    - target: {fileID: 545558076649335300, guid: 41c5f8033249c934b8bc91fe73f5c8fd,
+        type: 3}
+      propertyPath: angularSpeed
+      value: 330
+      objectReference: {fileID: 0}
     - target: {fileID: 2089591372516459663, guid: 41c5f8033249c934b8bc91fe73f5c8fd,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -19965,6 +19965,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 130360649}
     m_Modifications:
+    - target: {fileID: 545558076649335300, guid: 41c5f8033249c934b8bc91fe73f5c8fd,
+        type: 3}
+      propertyPath: angularSpeed
+      value: 330
+      objectReference: {fileID: 0}
     - target: {fileID: 2089591372516459663, guid: 41c5f8033249c934b8bc91fe73f5c8fd,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -20991,16 +20996,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 2660483620581618411, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideDelaySeconds
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 2660483620581618411, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideShrinkDuration
-      value: 0.5
-      objectReference: {fileID: 0}
     - target: {fileID: 5381738027465303960, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
         type: 3}
       propertyPath: m_Name
@@ -21010,26 +21005,6 @@ PrefabInstance:
         type: 3}
       propertyPath: sceneId
       value: 3228286688
-      objectReference: {fileID: 0}
-    - target: {fileID: 7407192426231852694, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideDelaySeconds
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 7407192426231852694, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideShrinkDuration
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 8461069926982981660, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideDelaySeconds
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 8461069926982981660, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideShrinkDuration
-      value: 0.5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -22547,6 +22522,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 130360649}
     m_Modifications:
+    - target: {fileID: 333557028084479674, guid: 169d00d7c2e48224d885c0ca57ceea51,
+        type: 3}
+      propertyPath: angularSpeed
+      value: 250
+      objectReference: {fileID: 0}
     - target: {fileID: 2390264722077789809, guid: 169d00d7c2e48224d885c0ca57ceea51,
         type: 3}
       propertyPath: m_Name
@@ -22555,7 +22535,7 @@ PrefabInstance:
     - target: {fileID: 2565329700943913177, guid: 169d00d7c2e48224d885c0ca57ceea51,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: 92.87
+      value: 98.87
       objectReference: {fileID: 0}
     - target: {fileID: 2565329700943913177, guid: 169d00d7c2e48224d885c0ca57ceea51,
         type: 3}
@@ -22565,7 +22545,7 @@ PrefabInstance:
     - target: {fileID: 2565329700943913177, guid: 169d00d7c2e48224d885c0ca57ceea51,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 121.49
+      value: 121.49006
       objectReference: {fileID: 0}
     - target: {fileID: 2565329700943913177, guid: 169d00d7c2e48224d885c0ca57ceea51,
         type: 3}
@@ -23611,6 +23591,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 130360649}
     m_Modifications:
+    - target: {fileID: 545558076649335300, guid: 41c5f8033249c934b8bc91fe73f5c8fd,
+        type: 3}
+      propertyPath: angularSpeed
+      value: 330
+      objectReference: {fileID: 0}
     - target: {fileID: 2089591372516459663, guid: 41c5f8033249c934b8bc91fe73f5c8fd,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -24654,16 +24639,6 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 2660483620581618411, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideDelaySeconds
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 2660483620581618411, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideShrinkDuration
-      value: 0.5
-      objectReference: {fileID: 0}
     - target: {fileID: 5381738027465303960, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
         type: 3}
       propertyPath: m_Name
@@ -24673,26 +24648,6 @@ PrefabInstance:
         type: 3}
       propertyPath: sceneId
       value: 3389921690
-      objectReference: {fileID: 0}
-    - target: {fileID: 7407192426231852694, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideDelaySeconds
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 7407192426231852694, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideShrinkDuration
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 8461069926982981660, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideDelaySeconds
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 8461069926982981660, guid: 6d38a00e581fb594cbc5d65ba9fe5283,
-        type: 3}
-      propertyPath: hideShrinkDuration
-      value: 0.5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
