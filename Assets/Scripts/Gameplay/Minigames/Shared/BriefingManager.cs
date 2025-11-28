@@ -79,16 +79,16 @@ public class BriefingManager : NetworkBehaviour
         Debug.Log($"[Briefing] Ready {ready}/{total} | allReady={allReady}");
         if (!allReady) return;
         // Reativa movimento antes de fechar briefing (descongela)
-        PlayerList.singleton.AtivarPlayer(false);
+        PlayerList.singleton.SetAllPlayersFrozen(true);
         CmdFinishBriefing();
         RpcCloseBriefing();
         Debug.Log("[Briefing] RpcCloseBriefing dispatched");
 
         // Inicia a partida somente após todos estarem prontos
-        if (MatchManager.singleton != null)
-        {
-            MatchManager.singleton.InternalStartMatch();
-        }
+        // if (MatchManager.singleton != null)
+        // {
+        //     MatchManager.singleton.InternalStartMatch();
+        // }
     }
 
     private void ShowLocalBriefing()
@@ -141,9 +141,9 @@ public class BriefingManager : NetworkBehaviour
 
     #region Server && Command
     [Command(requiresAuthority = false)]
-    public void CmdAtivarPlayersNoServer(bool ativar)
+    public void CmdSetAllPlayersFrozensNoServer(bool ativar)
     {
-        PlayerList.singleton.AtivarPlayer(ativar);
+        PlayerList.singleton.SetAllPlayersFrozen(ativar);
     }
 
     [Server]
@@ -177,7 +177,7 @@ public class BriefingManager : NetworkBehaviour
         briefingToggle = !briefingToggle;
 
         // Congela movimento enquanto briefing estiver ativo (congela)
-        PlayerList.singleton.AtivarPlayer(true);
+        PlayerList.singleton.SetAllPlayersFrozen(true);
 
         // Reseta acks e define quantos clientes esperamos
         _briefingAcks.Clear();

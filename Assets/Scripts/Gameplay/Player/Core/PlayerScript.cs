@@ -1560,6 +1560,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [Command]
     private void CmdRequestSpectate(float hideDelay, bool shouldHideModel)
     {
+        isStaggered = false;
         RpcSpectate(hideDelay, shouldHideModel);
     }
 
@@ -1587,6 +1588,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [Command]
     private void CmdDeathWithCause(DeathCause cause, bool perma, Vector3 pos, Quaternion rot)
     {
+        isStaggered = false;
         RpcOnDeathWithCause(cause, perma, pos, rot);
     }
 
@@ -1663,6 +1665,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [Command]
     void CmdEventOnDeath()
     {
+        isStaggered = false;
         RpcOnDeath();
     }
 
