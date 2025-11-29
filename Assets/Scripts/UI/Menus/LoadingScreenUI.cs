@@ -252,7 +252,7 @@ public class LoadingScreenUI : MonoBehaviour
         var panelGO = new GameObject("Panel");
         panelGO.transform.SetParent(canvasGO.transform, false);
         var img = panelGO.AddComponent<Image>();
-        img.color = new Color(0f, 0f, 0f, 0.85f);
+        img.color = new Color(0f, 0f, 0f, 1f);
         var rt = panelGO.GetComponent<RectTransform>();
         rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
 
@@ -264,11 +264,12 @@ public class LoadingScreenUI : MonoBehaviour
         srt.offsetMin = Vector2.zero; srt.offsetMax = Vector2.zero;
         var slider = sliderGO.AddComponent<Slider>();
         slider.minValue = 0f; slider.maxValue = 1f; slider.value = 0f;
+        slider.interactable = false;
         // background
         var bgGO = new GameObject("BG");
         bgGO.transform.SetParent(sliderGO.transform, false);
         var bg = bgGO.AddComponent<Image>();
-        bg.color = new Color(1f,1f,1f,0.2f);
+        bg.color = new Color(1f,1f,1f, 1f);
         var bgRT = bgGO.GetComponent<RectTransform>();
         bgRT.anchorMin = new Vector2(0f, 0f); bgRT.anchorMax = new Vector2(1f, 1f);
         bgRT.offsetMin = new Vector2(0f, 0f); bgRT.offsetMax = new Vector2(0f, 0f);

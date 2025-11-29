@@ -953,8 +953,7 @@ public class SceneTransitionManager : MonoBehaviour
         
         SendActivationAck();
 
-        // Hide loading screen (will be shown again by briefing if needed)
-        LoadingScreenUI.Instance?.Hide();
+        Debug.Log("[SceneTransition] CLIENT: Scene ready, waiting for briefing to hide loading screen");
     }
 
     #endregion
