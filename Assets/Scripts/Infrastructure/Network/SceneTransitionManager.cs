@@ -677,7 +677,7 @@ public class SceneTransitionManager : MonoBehaviour
             // Unfreeze players
             if (PlayerList.singleton != null)
             {
-                PlayerList.singleton.AtivarPlayer(false);
+                PlayerList.singleton.SetAllPlayersFrozen(false);
             }
             
             // Notify clients to hide loading screen
