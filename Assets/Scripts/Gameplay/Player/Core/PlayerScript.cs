@@ -1124,7 +1124,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public void ReceiveDamage(DamageType dmgType, Vector3 dir)
     {
         NetworkConnection coon = transform.GetComponent<NetworkIdentity>().connectionToClient;
-        isStaggered = true;
+        // Only flag stagger when the incoming damage will actually stagger the player
+        if (dmgType == DamageType.Push)
+            isStaggered = true;
         TargetRpcReceiveDamage(coon, dmgType, dir);
     }
 
