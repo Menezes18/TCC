@@ -77,6 +77,19 @@ public class HUDSO : ScriptableObject{
         this.EventOnHideCustomizationPanel?.Invoke();
     }
 
+    public event Action EventOnShowFriendListPanel;
+    public event Action EventOnHideFriendListPanel;
+
+    public void ShowFriendListPanel()
+    {
+        this.EventOnShowFriendListPanel?.Invoke();
+    }
+
+    public void HideFriendListPanel()
+    {
+        this.EventOnHideFriendListPanel?.Invoke();
+    }
+
     // Interaction hint (local-only)
     public event Action<string> EventOnShowInteractHint;
     public event Action EventOnHideInteractHint;
@@ -89,6 +102,20 @@ public class HUDSO : ScriptableObject{
     public void HideInteractHint()
     {
         this.EventOnHideInteractHint?.Invoke();
+    }
+
+    // Menu Panel (Celular)
+    public event Action EventOnShowMenuPanel;
+    public event Action EventOnHideMenuPanel;
+
+    public void ShowMenuPanel()
+    {
+        this.EventOnShowMenuPanel?.Invoke();
+    }
+
+    public void HideMenuPanel()
+    {
+        this.EventOnHideMenuPanel?.Invoke();
     }
 }
 

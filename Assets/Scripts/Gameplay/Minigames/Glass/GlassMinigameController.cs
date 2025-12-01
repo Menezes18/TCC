@@ -35,7 +35,7 @@ public class GlassMinigameController : MinigameController
             ServerApplySafeFlagsToTiles();
         }
     }
-
+    public override bool UseAliveStatusOnScoreboard => true;
     [Server]
     private void ServerAutoBindTiles()
     {

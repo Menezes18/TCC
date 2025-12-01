@@ -71,6 +71,7 @@ public class MatchManager : NetworkBehaviour
     [SerializeField] Database db;
     [SerializeField] SettingsMiniGameData settingsMiniGameData; 
     [SerializeField] HUDSO HUDSO;
+    [SerializeField, Min(0f)] private float resultsOverlayDelaySeconds = 5f;
     private List<PlayerScoreEntry> _temporaryRanking = new List<PlayerScoreEntry>();
     private HashSet<NetworkConnectionToClient> _readyConnections = new();
     
@@ -149,7 +150,9 @@ public class MatchManager : NetworkBehaviour
             // efeito talvez
             // ou som
             // mas é aqui 
+            Debug.Log("❄️<color=blue> [MATCH] FreezeTime acabou</color>");
             Debug.Log("⏳ [MATCH] FreezeTime acabou, iniciando partida");
+            InternalStartMatch();
             (scoreRule as MinigameController)?.StartMatch();
             
             _freezeTimer = -1;
@@ -192,12 +195,25 @@ public class MatchManager : NetworkBehaviour
     [Server]
     public void InternalStartMatch() 
     {
-        _freezeTimer = db.serverFreezeDuration;
         _matchTimer = settingsMiniGameData.miniGameDuration;
-        _matchHasStarted = true;
+        //_matchHasStarted = true;
         _resultsFinalized = false;
     }
 
+    [Server]
+    public void StartMatch()
+    {
+        PlayerList.singleton.SetAllPlayersFrozen(false);
+        _freezeTimer = db.serverFreezeDuration;
+        _matchHasStarted = true;
+    }
+
+
+    [Command(requiresAuthority = false)]
+    public void CmdStartMatchAfterCamera()
+    {
+        StartMatch();
+    }
     private void TeleportPlayer()
     {
         var mc = FindFirstObjectByType<MinigameController>();
@@ -293,14 +309,12 @@ public class MatchManager : NetworkBehaviour
             colors[i] = sortedPlayers[i].color;
         }
         
-        RpcShowSimpleResults(names, totals, gains, colors);
+        StartCoroutine(ServerSendResultsAfterDelay(names, totals, gains, colors));
 
         _gameOver = "Acabou!";
 
         // Marca como finalizado para evitar reentrada
         _resultsFinalized = true;
-
-        StartCoroutine(WaitAndReturnToLobby(ResultsUI.singleton.exitTimerSeconds));
     }
 
     [Server]
@@ -373,6 +387,19 @@ public class MatchManager : NetworkBehaviour
     void HookOnGameOver(string oldValue, string newValue)
     {
         HUDSO.GameOver(newValue);
+    }
+    
+    [Server]
+    private IEnumerator ServerSendResultsAfterDelay(string[] names, int[] totals, int[] gains, Color32[] colors)
+    {
+        float delay = Mathf.Max(0f, resultsOverlayDelaySeconds);
+        if (delay > 0f)
+            yield return new WaitForSeconds(delay);
+
+        RpcShowSimpleResults(names, totals, gains, colors);
+
+        float exitTimer = ResultsUI.singleton != null ? ResultsUI.singleton.exitTimerSeconds : 10f;
+        StartCoroutine(WaitAndReturnToLobby(exitTimer));
     }
     
 }

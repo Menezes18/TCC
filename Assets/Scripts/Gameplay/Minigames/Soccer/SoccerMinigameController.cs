@@ -9,6 +9,7 @@ using UnityEngine.Events;
 public class SoccerMinigameController : MinigameController
 {
     public override bool HandlesInitialSpawns => true;
+    public override bool UseTeamColorsOnScoreboard => true;
     [Header("Settings")]
     [SerializeField] private SettingsMiniGameData settingsData;
 

@@ -29,6 +29,7 @@ public class MainMenu : MonoBehaviour
     private bool celularAberto = false;
     private bool animando = false;
     public bool menuCelular = true;
+    public HUDSO HUDSO;
     private void Awake()
     {
         instance = this;
@@ -151,5 +152,21 @@ public class MainMenu : MonoBehaviour
         //     ShowCelularUI();
     }
 
-    
+    public void SetHUD(HUDSO hud)
+    {
+        this.HUDSO = hud;
+    }
+
+    public void CloseMenu()
+    {
+        if (HUDSO != null)
+        {
+            HUDSO.HideMenuPanel();
+        }
+        else
+        {
+            // Fallback caso HUDSO não esteja injetado (não deve acontecer em runtime normal)
+            ToggleCelular(false);
+        }
+    }
 }

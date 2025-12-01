@@ -309,6 +309,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             
             var minigamePanel = celularInstance.GetComponentInChildren<MinigameSelectionPanel>(true);
             if (minigamePanel != null) minigamePanel.SetHUD(HUDSO);
+            
+            if (mainMenu != null) mainMenu.SetHUD(HUDSO);
         }
         if (cooldownUIPrefab != null)
         {
@@ -319,6 +321,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         }
         
         StartCoroutine(ApplyPlayerCustomizationDelayed());
+        
+        HUDSO.EventOnShowMenuPanel += OnShowMenuPanel;
+        HUDSO.EventOnHideMenuPanel += OnHideMenuPanel;
     }
     
     private IEnumerator ApplyPlayerCustomizationDelayed()
@@ -339,6 +344,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             Destroy(cooldownUIInstance);
 
 
+        if (cooldownUIInstance != null)
+            Destroy(cooldownUIInstance);
+
+        HUDSO.EventOnShowMenuPanel -= OnShowMenuPanel;
+        HUDSO.EventOnHideMenuPanel -= OnHideMenuPanel;
     }
 
     private void ConfigureControlScheme(bool initial)
@@ -478,10 +488,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
                 BriefingManager.singleton?.CheckAllReady();
             }
         }
-        if (!UILocked && Keyboard.current.oKey.wasPressedThisFrame )
-        {
-            HUDSO.ShowColorChangePanel(); 
-        }
+        // if (!UILocked && Keyboard.current.oKey.wasPressedThisFrame )
+        // {
+        //     HUDSO.ShowColorChangePanel(); 
+        // }
         float blindWeight = CustomMath.ConvertRange(_blindTimer, db.playerBlindDuration, 0);
         float blindRange = db.playerBlindCurve.Evaluate(blindWeight);
         HUDSO.SetBlindAlpha(blindRange);
@@ -852,6 +862,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
 
         State = PlayerState.Default;
+        if (isLocalPlayer && isOwned)
+        {
+            CmdSetStaggered(false);
+        }
 
 
     }
@@ -972,8 +986,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (_isCarrying) return;
         if (isFrozen) return;
         if (State == PlayerState.Stagger) return;
-        if (Status != PlayerStatus.Default || Status == PlayerStatus.Blinded) return;
-
+        if (Status == PlayerStatus.Pushing) return;
+        if (Status == PlayerStatus.ThrowPrepare) return; 
+        if (Status == PlayerStatus.Throw) return;
         if (_pushCooldown > 0) return;
 
         Status = PlayerStatus.Pushing;
@@ -1005,7 +1020,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (Cursor.visible == true) return;
         if (State == PlayerState.Death) return;
         if (State == PlayerState.Stagger) return;
-        if (Status != PlayerStatus.Default) return;
+        if (Status == PlayerStatus.Pushing) return;
+        if (Status == PlayerStatus.ThrowPrepare) return;
         if (Status == PlayerStatus.Throw) return;
         if (_throwCooldown > 0) return;
         if (_isCarrying) return;
@@ -1015,7 +1031,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     private void PlayerControlsSO_OnThrowCancel()
     {
-    if (isFrozen) return;
+        if (isFrozen) return;
         if (panel) return;
         if (_chatOpen) return;
         if (Cursor.visible == true) return;
@@ -1108,6 +1124,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public void ReceiveDamage(DamageType dmgType, Vector3 dir)
     {
         NetworkConnection coon = transform.GetComponent<NetworkIdentity>().connectionToClient;
+        // Only flag stagger when the incoming damage will actually stagger the player
+        if (dmgType == DamageType.Push)
+            isStaggered = true;
         TargetRpcReceiveDamage(coon, dmgType, dir);
     }
 
@@ -1152,6 +1171,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public void ServerApplyImpulse(Vector3 horizontalDir, float horizontalStrength, float verticalStrength, float stunDuration = 0f, bool setStagger = true)
     {
         NetworkConnection coon = transform.GetComponent<NetworkIdentity>().connectionToClient;
+        if (setStagger) isStaggered = true;
         TargetRpcApplyImpulse(coon, horizontalDir, horizontalStrength, verticalStrength, stunDuration, setStagger);
     }
 
@@ -1242,7 +1262,19 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     public void OnStaggerChanged(bool oldValue, bool newValue)
     {
-        _staggerIndicator.gameObject.SetActive(newValue);
+        if (_staggerIndicator != null)
+        {
+            _staggerIndicator.gameObject.SetActive(newValue);
+            
+            var rotateTool = _staggerIndicator.GetComponent<RotateAroundTool>();
+            if (rotateTool != null) rotateTool.enabled = newValue;
+        }
+    }
+
+    [Command]
+    private void CmdSetStaggered(bool active)
+    {
+        isStaggered = active;
     }
 
     public void OnHitKill()
@@ -1283,8 +1315,29 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         }
         
         // Se nenhum painel está aberto, alterna o estado do menu celular
-        _menuOpen = !_menuOpen;
-        celularInstance.SetActive(_menuOpen);
+        // _menuOpen = !_menuOpen;
+        // celularInstance.SetActive(_menuOpen);
+        
+        if (_menuOpen)
+        {
+            HUDSO.HideMenuPanel();
+        }
+        else
+        {
+            HUDSO.ShowMenuPanel();
+        }
+    }
+
+    private void OnShowMenuPanel()
+    {
+        _menuOpen = true;
+        celularInstance.SetActive(true);
+    }
+
+    private void OnHideMenuPanel()
+    {
+        _menuOpen = false;
+        celularInstance.SetActive(false);
     }
 
     
@@ -1308,7 +1361,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     // Spectator System
 
     [TargetRpc]
-    private void RpcSpectate()
+    private void RpcSpectate(float hideDelay, bool shouldHideModel)
     {
         Debug.Log("👁️ [SPECTATOR] Entering spectator mode");
         _isSpectating = true;
@@ -1322,8 +1375,14 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (_playerInput != null)
             _playerInput.enabled = false;
 
-        // Hide player model
-        HidePlayerModel();
+        // Hide player model (respeita delay configurado)
+        if (shouldHideModel)
+        {
+            if (hideDelay > 0f)
+                StartCoroutine(HideModelAfterDelay(hideDelay));
+            else
+                HidePlayerModel();
+        }
 
         // Disable player controller to prevent collision/physics
         if (_controller != null)
@@ -1484,13 +1543,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         InternalResetProperties();
     }
 
-    public void InternalDeath(bool permaDeath)
+    public void InternalDeath(bool permaDeath, float hideDelay = 0f, bool shouldHideModel = true)
     {
         State = PlayerState.Death;
         
         if (permaDeath)
         {
-            CmdRequestSpectate();
+            CmdRequestSpectate(hideDelay, shouldHideModel);
         }
         else
         {
@@ -1501,9 +1560,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     }
 
     [Command]
-    private void CmdRequestSpectate()
+    private void CmdRequestSpectate(float hideDelay, bool shouldHideModel)
     {
-        RpcSpectate();
+        isStaggered = false;
+        RpcSpectate(hideDelay, shouldHideModel);
     }
 
     public void OnContextualHit(DeathCause cause, bool perma)
@@ -1511,12 +1571,16 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (!base.isOwned) return;
 
         var entry = deathEffects != null ? deathEffects.Get(cause) : null;
+        float hideDelay = deathEffects != null ? deathEffects.GetHideDelay(cause) : 0f;
+        bool shouldHideModel = entry == null || entry.hideModelAfterDelay;
+        if (entry != null && entry.hideModelAfterDelay)
+            hideDelay = Mathf.Max(hideDelay, entry.hideModelDelay);
         _suppressHideOnDeath = (entry != null && entry.hideModelAfterDelay);
 
         Debug.Log($"💀 [DEATH] Cause: {cause}, Perma: {perma}, SuppressHide: {_suppressHideOnDeath}");
         _animator?.SetInteger(_DEATHCAUSE, (int)cause);
 
-        InternalDeath(perma);
+        InternalDeath(perma, hideDelay, shouldHideModel);
 
         CmdDeathWithCause(cause, perma, transform.position, transform.rotation);
 
@@ -1526,6 +1590,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [Command]
     private void CmdDeathWithCause(DeathCause cause, bool perma, Vector3 pos, Quaternion rot)
     {
+        isStaggered = false;
         RpcOnDeathWithCause(cause, perma, pos, rot);
     }
 
@@ -1557,10 +1622,15 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
                     AudioSource.PlayClipAtPoint(entry.sfx, transform.position, entry.sfxVolume);
                 }
 
-                float delay = deathEffects.GetHideDelay(DeathCause.Lava);
+                float delay = deathEffects.GetHideDelay(cause);
                 if (entry.hideModelAfterDelay)
+                {
                     delay = Mathf.Max(delay, entry.hideModelDelay);
-                StartCoroutine(HideModelAfterDelay(delay));
+                    // No owner: aplica normalmente; owner perma usa RpcSpectate (para respeitar delay)
+                    bool handledBySpectatorFlow = perma && base.isOwned;
+                    if (!handledBySpectatorFlow)
+                        StartCoroutine(HideModelAfterDelay(delay));
+                }
                 return;
             }
         }
@@ -1597,6 +1667,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [Command]
     void CmdEventOnDeath()
     {
+        isStaggered = false;
         RpcOnDeath();
     }
 

@@ -5,6 +5,7 @@ public enum InteractPanelType
 {
     MinigameSelection,
     ColorChange,
+    FriendCall,
 }
 
 public class RangeInteractor : MonoBehaviour
@@ -15,12 +16,15 @@ public class RangeInteractor : MonoBehaviour
     private bool _inZone;
     private bool _inColorZone;
     private bool _inMinigameZone;
+    private bool _inFriendCallZone;
     private bool _wasInZone;
     private int _colorZoneCount;
     private int _minigameZoneCount;
+    private int _friendCallZoneCount;
     [SerializeField] private HUDSO HUDSO;
     private bool _colorChangeOpen;
     private bool _minigameSelectionOpen;
+    private bool _friendCallOpen;
     [SerializeField] private bool togglePanel = true;
     [SerializeField] private bool closeOnExit = true;
     private InteractPanelType _currentMode = InteractPanelType.MinigameSelection;
@@ -126,6 +130,7 @@ public class RangeInteractor : MonoBehaviour
                 var effectiveMode = _currentMode;
                 if (_inColorZone) effectiveMode = InteractPanelType.ColorChange;
                 else if (_inMinigameZone) effectiveMode = InteractPanelType.MinigameSelection;
+                else if (_inFriendCallZone) effectiveMode = InteractPanelType.FriendCall;
 
                 switch (effectiveMode)
                 {
@@ -175,6 +180,30 @@ public class RangeInteractor : MonoBehaviour
                         }
                         break;
                     }
+                    case InteractPanelType.FriendCall:
+                    {
+                        bool opening = !_friendCallOpen;
+                        if (opening)
+                        {
+                            if (_minigameSelectionOpen) HUDSO.HideMinigameSelectionPanel();
+                            if (_colorChangeOpen) HUDSO.HideColorChangePanel();
+                            
+                            HUDSO.ShowFriendListPanel();
+                            Debug.Log("[RangeInteractor] Abrindo painel de amigos");
+                            if (_player != null) _player.UILocked = true;
+                            if (!playerScript.panel) Painel();
+                            HUDSO?.HideInteractHint();
+                        }
+                        else
+                        {
+                            HUDSO.HideFriendListPanel();
+                            Debug.Log("[RangeInteractor] Fechando painel de amigos");
+                            if (_player != null) _player.UILocked = _colorChangeOpen || _minigameSelectionOpen;
+                            if (!_colorChangeOpen && !_minigameSelectionOpen && playerScript.panel) Painel();
+                            if (_inZone) HUDSO?.ShowInteractHint(GetHintText());
+                        }
+                        break;
+                    }
                 }
             }
             else
@@ -203,21 +232,28 @@ public class RangeInteractor : MonoBehaviour
             _minigameZoneCount += inside ? 1 : -1;
             if (_minigameZoneCount < 0) _minigameZoneCount = 0;
         }
+        else if (mode == InteractPanelType.FriendCall)
+        {
+            _friendCallZoneCount += inside ? 1 : -1;
+            if (_friendCallZoneCount < 0) _friendCallZoneCount = 0;
+        }
 
         _inColorZone = _colorZoneCount > 0;
         _inMinigameZone = _minigameZoneCount > 0;
-        _inZone = _inColorZone || _inMinigameZone;
+        _inFriendCallZone = _friendCallZoneCount > 0;
+        _inZone = _inColorZone || _inMinigameZone || _inFriendCallZone;
         bool entering = _inZone && !_wasInZone;
         bool exitingAll = !_inZone && _wasInZone;
 
         if (_inColorZone) _currentMode = InteractPanelType.ColorChange;
         else if (_inMinigameZone) _currentMode = InteractPanelType.MinigameSelection;
+        else if (_inFriendCallZone) _currentMode = InteractPanelType.FriendCall;
 
         if (inside)
         {
             if (_player != null && HUDSO != null)
             {
-                bool targetOpen = (_inColorZone && _colorChangeOpen) || (_inMinigameZone && _minigameSelectionOpen);
+                bool targetOpen = (_inColorZone && _colorChangeOpen) || (_inMinigameZone && _minigameSelectionOpen) || (_inFriendCallZone && _friendCallOpen);
                 if (targetOpen)
                 {
                     _player.UILocked = true;
@@ -237,10 +273,12 @@ public class RangeInteractor : MonoBehaviour
                     HUDSO.HideMinigameSelectionPanel();
                 if (mode == InteractPanelType.ColorChange && _colorZoneCount == 0 && _colorChangeOpen)
                     HUDSO.HideColorChangePanel();
+                if (mode == InteractPanelType.FriendCall && _friendCallZoneCount == 0 && _friendCallOpen)
+                    HUDSO.HideFriendListPanel();
             }
             if (_player != null)
             {
-                bool anyOpen = _minigameSelectionOpen || _colorChangeOpen;
+                bool anyOpen = _minigameSelectionOpen || _colorChangeOpen || _friendCallOpen;
                 _player.UILocked = anyOpen;
                 if (!anyOpen && playerScript.panel) Painel();
             }
@@ -261,6 +299,8 @@ public class RangeInteractor : MonoBehaviour
             HUDSO.EventOnHideColorChangePanel -= OnHideColorChangePanel;
             HUDSO.EventOnShowMinigameSelectionPanel -= OnShowMinigameSelectionPanel;
             HUDSO.EventOnShowColorChangePanel -= OnShowColorChangePanel;
+            HUDSO.EventOnShowFriendListPanel -= OnShowFriendListPanel;
+            HUDSO.EventOnHideFriendListPanel -= OnHideFriendListPanel;
         }
         HUDSO = hud;
         if (HUDSO != null)
@@ -269,6 +309,8 @@ public class RangeInteractor : MonoBehaviour
             HUDSO.EventOnHideColorChangePanel += OnHideColorChangePanel;
             HUDSO.EventOnShowMinigameSelectionPanel += OnShowMinigameSelectionPanel;
             HUDSO.EventOnShowColorChangePanel += OnShowColorChangePanel;
+            HUDSO.EventOnShowFriendListPanel += OnShowFriendListPanel;
+            HUDSO.EventOnHideFriendListPanel += OnHideFriendListPanel;
         }
     }
 
@@ -280,6 +322,8 @@ public class RangeInteractor : MonoBehaviour
             HUDSO.EventOnHideColorChangePanel -= OnHideColorChangePanel;
             HUDSO.EventOnShowMinigameSelectionPanel -= OnShowMinigameSelectionPanel;
             HUDSO.EventOnShowColorChangePanel -= OnShowColorChangePanel;
+            HUDSO.EventOnShowFriendListPanel -= OnShowFriendListPanel;
+            HUDSO.EventOnHideFriendListPanel -= OnHideFriendListPanel;
         }
     }
 
@@ -287,7 +331,7 @@ public class RangeInteractor : MonoBehaviour
     {
         _minigameSelectionOpen = false;
         if (_player == null) return;
-        bool anyOpen = _minigameSelectionOpen || _colorChangeOpen;
+        bool anyOpen = _minigameSelectionOpen || _colorChangeOpen || _friendCallOpen;
         _player.UILocked = anyOpen;
         if (!anyOpen) SetCursorForPanel(false);
         if (!anyOpen && playerScript.panel) Painel();
@@ -298,7 +342,7 @@ public class RangeInteractor : MonoBehaviour
     {
         _colorChangeOpen = false;
         if (_player == null) return;
-        bool anyOpen = _minigameSelectionOpen || _colorChangeOpen;
+        bool anyOpen = _minigameSelectionOpen || _colorChangeOpen || _friendCallOpen;
         _player.UILocked = anyOpen;
         if (!anyOpen) SetCursorForPanel(false);
         if (!anyOpen && playerScript.panel) Painel();
@@ -325,6 +369,28 @@ public class RangeInteractor : MonoBehaviour
         SetCursorForPanel(true);
         if (!playerScript.panel) Painel(); else _aligning = true;
         HUDSO?.HideInteractHint();
+    }
+
+    private void OnShowFriendListPanel()
+    {
+        _friendCallOpen = true;
+        if (_player == null) return;
+        if (!_inZone) return;
+        _player.UILocked = true;
+        SetCursorForPanel(true);
+        if (!playerScript.panel) Painel(); else _aligning = true;
+        HUDSO?.HideInteractHint();
+    }
+
+    private void OnHideFriendListPanel()
+    {
+        _friendCallOpen = false;
+        if (_player == null) return;
+        bool anyOpen = _minigameSelectionOpen || _colorChangeOpen || _friendCallOpen;
+        _player.UILocked = anyOpen;
+        if (!anyOpen) SetCursorForPanel(false);
+        if (!anyOpen && playerScript.panel) Painel();
+        if (_inZone) HUDSO?.ShowInteractHint(GetHintText());
     }
 
     public void ConfigurePanelCamera(bool use, Transform anchor, float alignSpeed)

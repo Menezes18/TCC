@@ -12,6 +12,7 @@ public abstract class MinigameController : NetworkBehaviour, IScoreRule, ISubjec
     private readonly List<IObserver> _observers = new();
     
     public virtual bool UseAliveStatusOnScoreboard => false;
+    public virtual bool UseTeamColorsOnScoreboard => false;
     // Quando true, o MatchManager não fará teleporte inicial; o minigame cuidará do spawn
     public virtual bool HandlesInitialSpawns => false;
     
@@ -48,12 +49,12 @@ public abstract class MinigameController : NetworkBehaviour, IScoreRule, ISubjec
     }
 
     [ClientRpc]
-    public void RpcUpdateScoreboard(string[] names, int[] points, int[] colors)
+    public void RpcUpdateScoreboard(string[] names, int[] points, int[] colors, bool[] aliveStates, ulong[] steamIds, int[] teamIds)
     {
         // relay to UI on clients via runtime lookup
         var ui = FindAnyObjectByType<ScoreboardUI>();
         if (ui != null)
-            ui.UpdateUI(names, points, colors);
+            ui.UpdateUI(names, points, colors, aliveStates, steamIds, teamIds);
     }
     
     

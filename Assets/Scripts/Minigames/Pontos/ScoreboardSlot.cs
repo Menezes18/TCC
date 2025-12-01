@@ -8,12 +8,37 @@ public class ScoreboardSlot : MonoBehaviour
     [SerializeField] TMP_Text nameText;
     [SerializeField] TMP_Text pointsText;
     [SerializeField] Image colorImage;
+    [SerializeField] private Color aliveLabelColor = Color.white;
+    [SerializeField] private Color deadLabelColor = Color.red;
 
-    public void Refresh(int rank, string playerName, string pointsLabel, Color color)
+    private Color _initialLabelColor = Color.white;
+
+    private void Awake()
+    {
+        if (pointsText != null)
+        {
+            _initialLabelColor = pointsText.color;
+            if (aliveLabelColor == Color.white)
+                aliveLabelColor = _initialLabelColor;
+        }
+    }
+
+    public void Refresh(int rank, string playerName, string pointsLabel, Color color, bool isAlive, bool tintNameColor, Color nameColor)
     {
         if (rankText != null) rankText.text = rank.ToString();
-        if (nameText != null) nameText.text = playerName;
-        if (pointsText != null) pointsText.text = pointsLabel;
+        if (nameText != null)
+        {
+            nameText.text = playerName;
+            if (tintNameColor)
+                nameText.color = nameColor;
+            else
+                nameText.color = _initialLabelColor;
+        }
+        if (pointsText != null)
+        {
+            pointsText.text = pointsLabel;
+            pointsText.color = isAlive ? aliveLabelColor : deadLabelColor;
+        }
         if (colorImage != null) colorImage.color = color;
     }
 }
