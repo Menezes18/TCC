@@ -232,7 +232,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         Transport.active = kcp;
 
         StartHost();
-        MainMenu.instance.gameObject.SetActive(false);
+        if (MainMenu.instance != null) MainMenu.instance.gameObject.SetActive(false);
     }
 
     public void StartDevClient(string address = "localhost")
@@ -247,15 +247,18 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
         networkAddress = address;
         StartClient();
-        MainMenu.instance.gameObject.SetActive(false);
+        if (MainMenu.instance != null) MainMenu.instance.gameObject.SetActive(false);
     }
 
     public override void OnStartClient()
     {
         if (isMulitplayer)
         {
-            MainMenu.instance.SetMenuState(MenuState.InParty);
-            PopupManager.instance.Popup_Close();
+            if (MainMenu.instance != null)
+                MainMenu.instance.SetMenuState(MenuState.InParty);
+            
+            if (PopupManager.instance != null)
+                PopupManager.instance.Popup_Close();
         }
 
         base.OnStartClient();
@@ -286,7 +289,8 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     {
         if (isMulitplayer)
         {
-            MainMenu.instance.SetMenuState(MenuState.Home);
+            if (MainMenu.instance != null)
+                MainMenu.instance.SetMenuState(MenuState.Home);
         }
 
         base.OnStopClient();
