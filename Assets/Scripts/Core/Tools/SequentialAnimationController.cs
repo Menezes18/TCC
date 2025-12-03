@@ -10,34 +10,22 @@ public class SequentialAnimationController : MonoBehaviour
     public string animatorParameterName = "State";
        
     private Coroutine _sequence;
-    public Animator[] animators;
+    public Animator animator1player;
+    public Animator animator2player;
 
     public void Start()
     {
-        StartSequence();
+        StartCoroutine(DelayedAnimationStart());
     }
-    
-    public void StartSequence()
-    {
-        StartSequence(delayBetweenAnimations);
-    }
-    
-    public void StartSequence(float customDelay)
-    {
-        _sequence = StartCoroutine(RunSequence(customDelay));
-    }
-    private IEnumerator RunSequence(float delay)
-    {
-          
 
-        yield return new WaitForSeconds(delay);
-        Debug.Log("Starting sequence");
-        animators[0].SetInteger("State", 1);
-        animators[1].SetInteger("State", 2);
-        animators[2].SetInteger("State", 3);
-        animators[3].SetInteger("State", 4);
-        
+    private IEnumerator DelayedAnimationStart()
+    {
+        yield return new WaitForSeconds(1.5f);
 
+        animator1player.SetBool("Start1", true);
+        animator2player.SetBool("Start2", true);
     }
+
+   
 }
 
