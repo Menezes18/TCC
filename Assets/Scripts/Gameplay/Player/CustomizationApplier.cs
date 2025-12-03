@@ -19,6 +19,7 @@ public class CustomizationApplier : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private bool autoApplyOnStart = true;
     [SerializeField] private bool isVictoryPodium = false; // Flag para indicar se está no contexto do pódio
+    [SerializeField] private bool isResultsScreen = false; // Flag para indicar se está na tela de resultados
 
     private void Start()
     {
@@ -31,21 +32,22 @@ public class CustomizationApplier : MonoBehaviour
             }
         }
 
-        // IMPORTANTE: No contexto do pódio, não aplicar customização local automaticamente
-        // O VictoryPodiumManager controla a customização manualmente
-        if (autoApplyOnStart && !isVictoryPodium)
+        // Não aplica customização local se estiver em contexto de pódio ou tela de resultados
+        if (autoApplyOnStart && !isVictoryPodium && !isResultsScreen)
         {
             ApplyCurrentCustomization();
         }
     }
     
-    /// <summary>
-    /// Define se este CustomizationApplier está no contexto do pódio de vitória
-    /// Quando true, não aplica customização local automaticamente
-    /// </summary>
+   
     public void SetVictoryPodiumMode(bool isPodium)
     {
         isVictoryPodium = isPodium;
+    }
+    
+    public void SetResultsScreenMode(bool isResults)
+    {
+        isResultsScreen = isResults;
     }
 
 
