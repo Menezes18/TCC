@@ -167,5 +167,13 @@ public class HUDSO : ScriptableObject{
     {
         this.EventOnScoreUpdated?.Invoke(scoreValue);
     }
+
+    // Spectator Mode (local-only)
+    public event Action<bool> EventOnSpectatorModeChanged;
+
+    public void SetSpectatorMode(bool isSpectating)
+    {
+        this.EventOnSpectatorModeChanged?.Invoke(isSpectating);
+    }
 }
 

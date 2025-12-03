@@ -1355,6 +1355,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         Debug.Log("👁️ [SPECTATOR] Entering spectator mode");
         _isSpectating = true;
+        
+        // Notifica o HUD que entrou em modo espectador
+        HUDSO?.SetSpectatorMode(true);
+        
         // Notifica o manager para carregar overlay e atualizar estado
         SpectatorManager.Instance?.OnLocalSpectatorEnter(this);
         // Replica estado de espectador para os demais clientes (apenas booleano)
@@ -1547,7 +1551,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         
         if (permaDeath)
         {
-            CmdRequestSpectate(hideDelay, shouldHideModel);
+            // Garante delay mínimo de 2 segundos para visualizar animação de morte
+            float spectatorDelay = Mathf.Max(2f, hideDelay);
+            Debug.Log($"💀 [DEATH] Morte permanente - aguardando {spectatorDelay}s antes de entrar em modo espectador");
+            
+            // Delay para entrar em modo espectador (permite ver animação)
+            StartCoroutine(DelayedSpectatorMode(spectatorDelay, shouldHideModel));
         }
         else
         {
@@ -1555,6 +1564,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             InternalResetProperties();
             CmdDeath();
         }
+    }
+    
+    private IEnumerator DelayedSpectatorMode(float delay, bool shouldHideModel)
+    {
+        yield return new WaitForSeconds(delay);
+        CmdRequestSpectate(0f, shouldHideModel); // Já esperamos o delay, passa 0 para o RPC
     }
 
     [Command]
@@ -1716,6 +1731,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         _alivePlayersCache.Clear();
         _currentSpectatorIndex = 0;
         CurrentSpectatedTarget = null;
+        
+        // Notifica o HUD que saiu do modo espectador
+        HUDSO?.SetSpectatorMode(false);
+        
         // Notifica o manager para descarregar overlay
         SpectatorManager.Instance?.OnLocalSpectatorExit(this);
         // Replica saída do espectador

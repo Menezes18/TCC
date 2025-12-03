@@ -49,6 +49,9 @@ public class HUDManager : MonoBehaviour
         HUDSO.EventOnGameOver += HUDSOOnEventOnGameOver;
         HUDSO.EventOnPotatoHolderUpdated += OnPotatoHolderUpdated;
         
+        // Spectator mode
+        HUDSO.EventOnSpectatorModeChanged += OnSpectatorModeChanged;
+        
         // Panel visibility events
         HUDSO.EventOnShowColorChangePanel += OnPanelOpened;
         HUDSO.EventOnHideColorChangePanel += OnPanelClosed;
@@ -83,6 +86,9 @@ public class HUDManager : MonoBehaviour
         HUDSO.EventOnFreezeTimerUpdated -= HUDSOOnEventOnFreezeTimerUpdated;
         HUDSO.EventOnRespawnTimerUpdated -= HUDSOOnEventOnRespawnTimerUpdated;
         HUDSO.EventOnGameOver -= HUDSOOnEventOnGameOver;
+        
+        // Spectator mode
+        HUDSO.EventOnSpectatorModeChanged -= OnSpectatorModeChanged;
         
         // Panel visibility events
         HUDSO.EventOnShowColorChangePanel -= OnPanelOpened;
@@ -292,6 +298,24 @@ public class HUDManager : MonoBehaviour
             Debug.Log($"[HUDManager] PlayerHUD escondido ({_panelsOpenCount} painéis abertos)");
         else
             Debug.Log("[HUDManager] PlayerHUD mostrado (nenhum painel aberto)");
+    }
+    
+    private void OnSpectatorModeChanged(bool isSpectating)
+    {
+        if (_playerHUDCanvasGroup == null) return;
+        
+        if (isSpectating)
+        {
+            // Esconde o PlayerHUD quando entrar em modo espectador
+            _playerHUDCanvasGroup.alpha = 0f;
+            Debug.Log("👁️ [HUDManager] PlayerHUD escondido (modo espectador ativado)");
+        }
+        else
+        {
+            // Mostra o PlayerHUD quando sair do modo espectador
+            _playerHUDCanvasGroup.alpha = 1f;
+            Debug.Log("✅ [HUDManager] PlayerHUD mostrado (modo espectador desativado)");
+        }
     }
     
     #endregion
