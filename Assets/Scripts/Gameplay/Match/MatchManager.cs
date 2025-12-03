@@ -113,6 +113,9 @@ public class MatchManager : NetworkBehaviour
         _freezeTimer = -1;
         _gameOver = string.Empty;
         
+        // Esconde PlayerHUD durante briefing/câmera inicial (com delay para garantir que HUDManager inicializou)
+        LeanTween.delayedCall(0.5f, () => RpcHidePlayerHUD());
+        
         LeanTween.delayedCall(2.0f, () =>
         { 
             TeleportPlayer();
@@ -206,6 +209,9 @@ public class MatchManager : NetworkBehaviour
         PlayerList.singleton.SetAllPlayersFrozen(false);
         _freezeTimer = db.serverFreezeDuration;
         _matchHasStarted = true;
+        
+        // Mostra PlayerHUD quando o match começar
+        RpcShowPlayerHUD();
     }
 
 
@@ -387,6 +393,18 @@ public class MatchManager : NetworkBehaviour
     void HookOnGameOver(string oldValue, string newValue)
     {
         HUDSO.GameOver(newValue);
+    }
+    
+    [ClientRpc]
+    private void RpcHidePlayerHUD()
+    {
+        HUDSO.ShowBriefing();
+    }
+    
+    [ClientRpc]
+    private void RpcShowPlayerHUD()
+    {
+        HUDSO.HideBriefing();
     }
     
     [Server]
