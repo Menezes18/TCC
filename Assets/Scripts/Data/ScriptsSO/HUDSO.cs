@@ -117,5 +117,27 @@ public class HUDSO : ScriptableObject{
     {
         this.EventOnHideMenuPanel?.Invoke();
     }
+
+    // Cooldown UI (local-only)
+    public event Action<float> EventOnPushCooldownUpdated;
+    public event Action<float> EventOnThrowCooldownUpdated;
+
+    public void UpdatePushCooldown(float normalizedValue)
+    {
+        this.EventOnPushCooldownUpdated?.Invoke(normalizedValue);
+    }
+
+    public void UpdateThrowCooldown(float normalizedValue)
+    {
+        this.EventOnThrowCooldownUpdated?.Invoke(normalizedValue);
+    }
+
+    // Score UI (local-only)
+    public event Action<int> EventOnScoreUpdated;
+
+    public void UpdateScore(int scoreValue)
+    {
+        this.EventOnScoreUpdated?.Invoke(scoreValue);
+    }
 }
 

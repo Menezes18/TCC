@@ -214,8 +214,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SerializeField] private GameObject canvasCelularPrefab;
     private GameObject celularInstance;
     public MainMenu mainMenu;
-    [SerializeField] private GameObject cooldownUIPrefab;
-    GameObject cooldownUIInstance;
+
+
     
     [Header("Minigame Street - Banana")]
     [SerializeField] private Transform bananaAttachPoint; // Ponto nas costas do jogador
@@ -312,13 +312,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             
             if (mainMenu != null) mainMenu.SetHUD(HUDSO);
         }
-        if (cooldownUIPrefab != null)
-        {
-            cooldownUIInstance = Instantiate(cooldownUIPrefab);
-            var ui = cooldownUIInstance.GetComponent<CooldownUI>();
-            if (ui != null)
-                ui.Init(this);
-        }
+
         
         StartCoroutine(ApplyPlayerCustomizationDelayed());
         
@@ -340,13 +334,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         base.OnStopLocalPlayer();
 
         PlayerControlsSO.OnMenu -= EventOnCelularMenu;
-        if (cooldownUIInstance != null)
-            Destroy(cooldownUIInstance);
-
-
-        if (cooldownUIInstance != null)
-            Destroy(cooldownUIInstance);
-
+       
         HUDSO.EventOnShowMenuPanel -= OnShowMenuPanel;
         HUDSO.EventOnHideMenuPanel -= OnHideMenuPanel;
     }
@@ -402,9 +390,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
         //UI
         PlayerControlsSO.OnMenu -= EventOnCelularMenu;
-        // PlayerControlsSO.OnCursor -= PlayerControlsSO_OnCursor;
-        if (cooldownUIInstance != null)
-            Destroy(cooldownUIInstance);
+
     }
 
     private void Update()
@@ -421,6 +407,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (_rollCooldown > 0) _rollCooldown -= Time.deltaTime;
 
         if (_throwCooldown > 0) _throwCooldown -= Time.deltaTime;
+
+        // Atualiza cooldown UI via HUDSO
+        HUDSO.UpdatePushCooldown(PushCooldownNormalized);
+        HUDSO.UpdateThrowCooldown(ThrowCooldownNormalized);
 
         if (_blindTimer > 0) _blindTimer -= Time.deltaTime;
         if (_poopSlowTimer > 0f)
