@@ -340,6 +340,13 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         limparPontos();
         limparLista();
         startGame = false;
+        
+        // Limpar dados antigos de vitória
+        if (VictoryDataManager.Instance != null)
+        {
+            VictoryDataManager.Instance.ClearVictoryData();
+            Debug.Log("🧹 [MyNetworkManager] Dados de vitória limpos ao reiniciar jogo");
+        }
     }
     [Server]
     public void ResetAllPlayersReady()
@@ -565,6 +572,61 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         Debug.Log("🔄 [VICTORY] Resetting game state - players must ready up again");
         startGame = false;
         ResetAllPlayersReady();
+        
+        // IMPORTANTE: Garantir que VictoryDataManager está spawnado e detectar vencedor
+        StartCoroutine(EnsureVictoryDataManagerAndDetectWinner());
+    }
+    
+    /// <summary>
+    /// Detecta o vencedor quando a cena de vitória carrega
+    /// SIMPLIFICADO: VictoryDataManager é um Scene Object, Mirror sincroniza automaticamente!
+    /// </summary>
+    private System.Collections.IEnumerator EnsureVictoryDataManagerAndDetectWinner()
+    {
+        Debug.Log("═══════════════════════════════════════════════════════");
+        Debug.Log("🏆 [MyNetworkManager] Detectando vencedor na cena de vitória");
+        Debug.Log("═══════════════════════════════════════════════════════");
+        
+        // Aguardar um pouco para garantir que a cena está carregada
+        yield return new WaitForSeconds(0.5f);
+        
+        // Verificar se VictoryDataManager existe (deve estar na cena de vitória)
+        if (VictoryDataManager.Instance == null)
+        {
+            Debug.LogError("❌ [MyNetworkManager] VictoryDataManager.Instance é NULL!");
+            Debug.LogError("   → Adicione o GameObject VictoryDataManager na CENA DE VITÓRIA");
+            Debug.LogError("   → Com componentes: VictoryDataManager.cs + NetworkIdentity");
+            yield break;
+        }
+        
+        Debug.Log("✅ [MyNetworkManager] VictoryDataManager encontrado (Scene Object)");
+        
+        // Verificar NetworkIdentity (deve estar configurado na cena)
+        var netIdentity = VictoryDataManager.Instance.GetComponent<NetworkIdentity>();
+        if (netIdentity == null)
+        {
+            Debug.LogError("❌ [MyNetworkManager] VictoryDataManager não tem NetworkIdentity!");
+            Debug.LogError("   → Adicione NetworkIdentity ao GameObject no Inspector");
+            yield break;
+        }
+        
+        Debug.Log($"✅ [MyNetworkManager] NetworkIdentity configurado");
+        Debug.Log($"   → netId: {netIdentity.netId}");
+        Debug.Log($"   → sceneId: {netIdentity.sceneId}");
+        Debug.Log($"   → isServer: {netIdentity.isServer}");
+        Debug.Log($"   → observers: {netIdentity.observers?.Count ?? 0}");
+        
+        // Scene Objects são automaticamente sincronizados pelo Mirror!
+        // Não precisa spawnar manualmente
+        
+        // Detectar e sincronizar vencedor
+        Debug.Log("🏆 [MyNetworkManager] Chamando DetectAndSyncWinner...");
+        VictoryDataManager.Instance.DetectAndSyncWinner();
+        
+        Debug.Log("═══════════════════════════════════════════════════════");
+        Debug.Log("✅ [MyNetworkManager] Detecção concluída");
+        Debug.Log("   → Mirror vai sincronizar automaticamente (Scene Object)");
+        Debug.Log("═══════════════════════════════════════════════════════");
     }
 
     private bool EnsureCatalogAssigned()

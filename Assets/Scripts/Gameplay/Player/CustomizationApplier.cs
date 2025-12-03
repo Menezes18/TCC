@@ -15,10 +15,13 @@ public class CustomizationApplier : MonoBehaviour
     private GameObject currentHat;
     private GameObject currentGlasses;
     private GameObject currentShirt;
+    
+    [Header("Settings")]
+    [SerializeField] private bool autoApplyOnStart = true;
+    [SerializeField] private bool isVictoryPodium = false; // Flag para indicar se está no contexto do pódio
 
     private void Start()
     {
-
         if (database == null)
         {
             database = Resources.Load<CustomizationDatabase>("CustomizationDatabase");
@@ -28,8 +31,21 @@ public class CustomizationApplier : MonoBehaviour
             }
         }
 
-
-        ApplyCurrentCustomization();
+        // IMPORTANTE: No contexto do pódio, não aplicar customização local automaticamente
+        // O VictoryPodiumManager controla a customização manualmente
+        if (autoApplyOnStart && !isVictoryPodium)
+        {
+            ApplyCurrentCustomization();
+        }
+    }
+    
+    /// <summary>
+    /// Define se este CustomizationApplier está no contexto do pódio de vitória
+    /// Quando true, não aplica customização local automaticamente
+    /// </summary>
+    public void SetVictoryPodiumMode(bool isPodium)
+    {
+        isVictoryPodium = isPodium;
     }
 
 
@@ -56,12 +72,21 @@ public class CustomizationApplier : MonoBehaviour
             Debug.LogWarning("⚠️ [CustomizationApplier] Database não configurado");
             return;
         }
+        
+        if (customization == null)
+        {
+            Debug.LogWarning("⚠️ [CustomizationApplier] Tentativa de aplicar customização nula");
+            return;
+        }
+
+        // Limpar customização anterior antes de aplicar nova
+        ClearCustomization();
 
         ApplyHat(customization.hatIndex);
         ApplyGlasses(customization.glassesIndex);
         ApplyShirt(customization.shirtIndex);
 
-        Debug.Log($"✅ [CustomizationApplier] Customização aplicada: {customization}");
+        Debug.Log($"✅ [CustomizationApplier] Customização aplicada: Hat={customization.hatIndex}, Glasses={customization.glassesIndex}, Shirt={customization.shirtIndex}");
     }
 
 

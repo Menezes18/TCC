@@ -1536,7 +1536,15 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         _controller.enabled = false;
         transform.position = pos;
-        transform.rotation = rot;
+        //transform.rotation = rot;
+        _smoothSyncMirror.setRotation(rot, true);
+        
+        if (isOwned)
+        {
+            _yaw = rot.eulerAngles.y;
+            _pitch = Mathf.Clamp(_pitch, db.minMouseY, db.maxMouseX);
+        }
+        
         _smoothSyncMirror.teleportOwnedObjectFromOwner();
         _controller.enabled = true;
 

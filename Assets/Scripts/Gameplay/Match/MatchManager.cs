@@ -233,7 +233,7 @@ public class MatchManager : NetworkBehaviour
 
             Debug.DrawRay(randomSpawn.position,Vector3.up * 100, Color.green, 10);
             
-            ps.TargetRpcTeleport(conn, randomSpawn.position, this.transform.rotation);
+            ps.TargetRpcTeleport(conn, randomSpawn.position, randomSpawn.rotation);
 
             _activePlayers.Add(pd);
 
