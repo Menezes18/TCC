@@ -152,7 +152,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public bool _extraFreeze;
     public bool isFrozen
     {
-        get => MatchManager.singleton.Freeze || _extraFreeze;
+        get => (MatchManager.singleton != null && MatchManager.singleton.Freeze) || _extraFreeze;
         [Server]
         set => _extraFreeze = value;
     }

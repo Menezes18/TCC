@@ -79,7 +79,7 @@ using UnityEngine.InputSystem;
         }
         private void PlayerInputSO_OnMove(CallbackContext obj)
         {
-            if (playerScript.panel || MatchManager.singleton.Freeze || playerScript.UILocked)
+            if (playerScript.panel || playerScript.isFrozen || playerScript.UILocked)
             {
                 if (playerScript.panel)
                 {
