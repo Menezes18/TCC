@@ -803,9 +803,6 @@ GameObject:
   - component: {fileID: 43092033}
   - component: {fileID: 43092032}
   - component: {fileID: 43092034}
-  - component: {fileID: 43092037}
-  - component: {fileID: 43092036}
-  - component: {fileID: 43092035}
   m_Layer: 0
   m_Name: StartCamera
   m_TagString: Untagged
@@ -869,44 +866,8 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 43092034}
-        m_TargetAssemblyTypeName: DelayedEventTool, Assembly-CSharp
-        m_MethodName: TriggerDelayedEvent
-        m_Mode: 4
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 2
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 43092037}
-        m_TargetAssemblyTypeName: DelayedEventTool, Assembly-CSharp
-        m_MethodName: TriggerDelayedEvent
-        m_Mode: 4
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 2
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 43092036}
-        m_TargetAssemblyTypeName: DelayedEventTool, Assembly-CSharp
-        m_MethodName: TriggerDelayedEvent
-        m_Mode: 4
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 2
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 43092035}
-        m_TargetAssemblyTypeName: DelayedEventTool, Assembly-CSharp
-        m_MethodName: TriggerDelayedEvent
+        m_TargetAssemblyTypeName: SequentialAnimationController, Assembly-CSharp
+        m_MethodName: StartSequence
         m_Mode: 4
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -930,109 +891,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 43092030}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 79984220af858fe49afc84862825a6ef, type: 3}
+  m_Script: {fileID: 11500000, guid: 9d5e0717afc31fa489de7d0008157383, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DelayedEventTool
-  HUDSO: {fileID: 0}
-  DelayedEvent:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1467921790}
-        m_TargetAssemblyTypeName: UnityEngine.Animator, UnityEngine
-        m_MethodName: Play
-        m_Mode: 5
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 1
-          m_FloatArgument: 0
-          m_StringArgument: 1Lugar
-          m_BoolArgument: 0
-        m_CallState: 2
---- !u!114 &43092035
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 43092030}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 79984220af858fe49afc84862825a6ef, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DelayedEventTool
-  HUDSO: {fileID: 0}
-  DelayedEvent:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1266013730}
-        m_TargetAssemblyTypeName: UnityEngine.Animator, UnityEngine
-        m_MethodName: Play
-        m_Mode: 5
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 4Lugar
-          m_BoolArgument: 0
-        m_CallState: 2
---- !u!114 &43092036
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 43092030}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 79984220af858fe49afc84862825a6ef, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DelayedEventTool
-  HUDSO: {fileID: 0}
-  DelayedEvent:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1439568750}
-        m_TargetAssemblyTypeName: UnityEngine.Animator, UnityEngine
-        m_MethodName: Play
-        m_Mode: 5
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 3Lugar
-          m_BoolArgument: 0
-        m_CallState: 2
---- !u!114 &43092037
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 43092030}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 79984220af858fe49afc84862825a6ef, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DelayedEventTool
-  HUDSO: {fileID: 0}
-  DelayedEvent:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1040854727}
-        m_TargetAssemblyTypeName: UnityEngine.Animator, UnityEngine
-        m_MethodName: Play
-        m_Mode: 5
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 2Lugar
-          m_BoolArgument: 0
-        m_CallState: 2
+  m_EditorClassIdentifier: Assembly-CSharp::SequentialAnimationController
+  animationTargets:
+  - targetObject: {fileID: 251526221}
+    stateValue: 0
+  - targetObject: {fileID: 1346731374}
+    stateValue: 1
+  - targetObject: {fileID: 1124129256}
+    stateValue: 2
+  - targetObject: {fileID: 606709817}
+    stateValue: 3
+  delayBetweenAnimations: 1
+  animatorParameterName: State
 --- !u!1001 &45866357
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2763,6 +2635,12 @@ LineRenderer:
   m_UseWorldSpace: 1
   m_Loop: 0
   m_ApplyActiveColorSpace: 1
+--- !u!1 &251526221 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 2d710c6ce33f27140a5807f22fd8d2bc,
+    type: 3}
+  m_PrefabInstance: {fileID: 4752134400346047267}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &269160127
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4217,7 +4095,7 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: 4e6c071aa6b2a6f479afdb1d561e74b2, type: 2}
+      objectReference: {fileID: 9100000, guid: 031e2756353a0914cba97ec84c73b59d, type: 2}
     - target: {fileID: 5866666021909216657, guid: 2d710c6ce33f27140a5807f22fd8d2bc,
         type: 3}
       propertyPath: m_ApplyRootMotion
@@ -8281,6 +8159,12 @@ SkinnedMeshRenderer:
 --- !u!137 &597506820 stripped
 SkinnedMeshRenderer:
   m_CorrespondingSourceObject: {fileID: -7839674007207516336, guid: 2d710c6ce33f27140a5807f22fd8d2bc,
+    type: 3}
+  m_PrefabInstance: {fileID: 269160127}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &606709817 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 2d710c6ce33f27140a5807f22fd8d2bc,
     type: 3}
   m_PrefabInstance: {fileID: 269160127}
   m_PrefabAsset: {fileID: 0}
@@ -12402,7 +12286,7 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: 4e6c071aa6b2a6f479afdb1d561e74b2, type: 2}
+      objectReference: {fileID: 9100000, guid: 645f4c940404dac488b6dfe5cd377bfe, type: 2}
     - target: {fileID: 5866666021909216657, guid: 2d710c6ce33f27140a5807f22fd8d2bc,
         type: 3}
       propertyPath: m_ApplyRootMotion
@@ -13091,12 +12975,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1013812797}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!95 &1040854727 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 2d710c6ce33f27140a5807f22fd8d2bc,
-    type: 3}
-  m_PrefabInstance: {fileID: 1998247175}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1049467940
 GameObject:
   m_ObjectHideFlags: 0
@@ -13778,6 +13656,12 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -137.18, z: 0}
+--- !u!1 &1124129256 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 2d710c6ce33f27140a5807f22fd8d2bc,
+    type: 3}
+  m_PrefabInstance: {fileID: 922131382}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1132100450
 GameObject:
   m_ObjectHideFlags: 0
@@ -15509,12 +15393,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 269160130}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!95 &1266013730 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 2d710c6ce33f27140a5807f22fd8d2bc,
-    type: 3}
-  m_PrefabInstance: {fileID: 269160127}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1283559940
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -15706,6 +15584,12 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1346731374 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 2d710c6ce33f27140a5807f22fd8d2bc,
+    type: 3}
+  m_PrefabInstance: {fileID: 1998247175}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1353808495
 GameObject:
   m_ObjectHideFlags: 0
@@ -16053,12 +15937,6 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 275540898}
   m_PrefabAsset: {fileID: 0}
---- !u!95 &1439568750 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 2d710c6ce33f27140a5807f22fd8d2bc,
-    type: 3}
-  m_PrefabInstance: {fileID: 922131382}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1441265787
 GameObject:
   m_ObjectHideFlags: 0
@@ -16241,12 +16119,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1fc4d86570f42cf44a801d356d600ac9, type: 3}
---- !u!95 &1467921790 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 2d710c6ce33f27140a5807f22fd8d2bc,
-    type: 3}
-  m_PrefabInstance: {fileID: 4752134400346047267}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1468247742
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -23108,7 +22980,7 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: 4e6c071aa6b2a6f479afdb1d561e74b2, type: 2}
+      objectReference: {fileID: 9100000, guid: 394b7d5552363c64fa97ed9ad271b9c9, type: 2}
     - target: {fileID: 5866666021909216657, guid: 2d710c6ce33f27140a5807f22fd8d2bc,
         type: 3}
       propertyPath: m_ApplyRootMotion
