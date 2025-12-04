@@ -230,6 +230,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5249170614363751031}
   - component: {fileID: 4342649978296738941}
+  - component: {fileID: 3778662387106911692}
   m_Layer: 0
   m_Name: Glove
   m_TagString: Untagged
@@ -314,6 +315,28 @@ SkinnedMeshRenderer:
     m_Center: {x: -0.0010509132, y: 0.023365352, z: 0.0010570618}
     m_Extent: {x: 0.004277821, y: 0.0068504103, z: 0.005192132}
   m_DirtyAABB: 0
+--- !u!64 &3778662387106911692
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5797498907647543946}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -5873653914744133658, guid: a4cbd516520f18f4bbd00d2f91993415, type: 3}
 --- !u!1 &6162966773364000929
 GameObject:
   m_ObjectHideFlags: 0
@@ -324,6 +347,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6896783726444923038}
   - component: {fileID: 4905552565274427058}
+  - component: {fileID: 1450252741024479274}
   m_Layer: 0
   m_Name: Punch
   m_TagString: Untagged
@@ -408,6 +432,28 @@ SkinnedMeshRenderer:
     m_Center: {x: 0, y: 0.011709174, z: -0.00028581778}
     m_Extent: {x: 0.0039103734, y: 0.0049782447, z: 0.0039103725}
   m_DirtyAABB: 0
+--- !u!64 &1450252741024479274
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6162966773364000929}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 1903309280574426187, guid: a4cbd516520f18f4bbd00d2f91993415, type: 3}
 --- !u!1 &7184863401220927633
 GameObject:
   m_ObjectHideFlags: 0
@@ -418,6 +464,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5791831823077294487}
   - component: {fileID: 14275354975445299}
+  - component: {fileID: 1195843080729729996}
   m_Layer: 0
   m_Name: PunchBox
   m_TagString: Untagged
@@ -502,6 +549,28 @@ SkinnedMeshRenderer:
     m_Center: {x: 0.00021493109, y: 0.006118888, z: -0.000068470836}
     m_Extent: {x: 0.0048831212, y: 0.0075209644, z: 0.004668189}
   m_DirtyAABB: 0
+--- !u!64 &1195843080729729996
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7184863401220927633}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 2749804510052655710, guid: a4cbd516520f18f4bbd00d2f91993415, type: 3}
 --- !u!1 &7354474940427327123
 GameObject:
   m_ObjectHideFlags: 0
@@ -854,7 +923,7 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  knockbackStrength: 50
+  knockbackStrength: 30
   liftStrength: 5
   stunDuration: 0.2
   hitCooldown: 0
