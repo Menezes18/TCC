@@ -232,7 +232,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         Transport.active = kcp;
 
         StartHost();
-        MainMenu.instance.gameObject.SetActive(false);
+        if (MainMenu.instance != null) MainMenu.instance.gameObject.SetActive(false);
     }
 
     public void StartDevClient(string address = "localhost")
@@ -247,25 +247,50 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
         networkAddress = address;
         StartClient();
-        MainMenu.instance.gameObject.SetActive(false);
+        if (MainMenu.instance != null) MainMenu.instance.gameObject.SetActive(false);
     }
 
     public override void OnStartClient()
     {
         if (isMulitplayer)
         {
-            MainMenu.instance.SetMenuState(MenuState.InParty);
-            PopupManager.instance.Popup_Close();
+            if (MainMenu.instance != null)
+                MainMenu.instance.SetMenuState(MenuState.InParty);
+            
+            if (PopupManager.instance != null)
+                PopupManager.instance.Popup_Close();
         }
 
         base.OnStartClient();
+        
+        StartCoroutine(HideLoadingScreenAfterClientStart());
+    }
+    
+    private IEnumerator HideLoadingScreenAfterClientStart()
+    {
+
+        yield return null;
+        yield return null;
+        yield return new WaitForSeconds(0.5f);
+        
+
+        if (LoadingScreenUI.Instance != null && LoadingScreenUI.Instance.gameObject.activeSelf)
+        {
+
+            if (BriefingManager.singleton == null)
+            {
+                Debug.Log("[MyNetworkManager] OnStartClient - Hiding loading screen (no scene change detected)");
+                LoadingScreenUI.Instance.Hide();
+            }
+        }
     }
 
     public override void OnStopClient()
     {
         if (isMulitplayer)
         {
-            MainMenu.instance.SetMenuState(MenuState.Home);
+            if (MainMenu.instance != null)
+                MainMenu.instance.SetMenuState(MenuState.Home);
         }
 
         base.OnStopClient();
@@ -340,6 +365,13 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         limparPontos();
         limparLista();
         startGame = false;
+        
+        // Limpar dados antigos de vitória
+        if (VictoryDataManager.Instance != null)
+        {
+            VictoryDataManager.Instance.ClearVictoryData();
+            Debug.Log("🧹 [MyNetworkManager] Dados de vitória limpos ao reiniciar jogo");
+        }
     }
     [Server]
     public void ResetAllPlayersReady()
@@ -565,6 +597,61 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         Debug.Log("🔄 [VICTORY] Resetting game state - players must ready up again");
         startGame = false;
         ResetAllPlayersReady();
+        
+        // IMPORTANTE: Garantir que VictoryDataManager está spawnado e detectar vencedor
+        StartCoroutine(EnsureVictoryDataManagerAndDetectWinner());
+    }
+    
+    /// <summary>
+    /// Detecta o vencedor quando a cena de vitória carrega
+    /// SIMPLIFICADO: VictoryDataManager é um Scene Object, Mirror sincroniza automaticamente!
+    /// </summary>
+    private System.Collections.IEnumerator EnsureVictoryDataManagerAndDetectWinner()
+    {
+        Debug.Log("═══════════════════════════════════════════════════════");
+        Debug.Log("🏆 [MyNetworkManager] Detectando vencedor na cena de vitória");
+        Debug.Log("═══════════════════════════════════════════════════════");
+        
+        // Aguardar um pouco para garantir que a cena está carregada
+        yield return new WaitForSeconds(0.5f);
+        
+        // Verificar se VictoryDataManager existe (deve estar na cena de vitória)
+        if (VictoryDataManager.Instance == null)
+        {
+            Debug.LogError("❌ [MyNetworkManager] VictoryDataManager.Instance é NULL!");
+            Debug.LogError("   → Adicione o GameObject VictoryDataManager na CENA DE VITÓRIA");
+            Debug.LogError("   → Com componentes: VictoryDataManager.cs + NetworkIdentity");
+            yield break;
+        }
+        
+        Debug.Log("✅ [MyNetworkManager] VictoryDataManager encontrado (Scene Object)");
+        
+        // Verificar NetworkIdentity (deve estar configurado na cena)
+        var netIdentity = VictoryDataManager.Instance.GetComponent<NetworkIdentity>();
+        if (netIdentity == null)
+        {
+            Debug.LogError("❌ [MyNetworkManager] VictoryDataManager não tem NetworkIdentity!");
+            Debug.LogError("   → Adicione NetworkIdentity ao GameObject no Inspector");
+            yield break;
+        }
+        
+        Debug.Log($"✅ [MyNetworkManager] NetworkIdentity configurado");
+        Debug.Log($"   → netId: {netIdentity.netId}");
+        Debug.Log($"   → sceneId: {netIdentity.sceneId}");
+        Debug.Log($"   → isServer: {netIdentity.isServer}");
+        Debug.Log($"   → observers: {netIdentity.observers?.Count ?? 0}");
+        
+        // Scene Objects são automaticamente sincronizados pelo Mirror!
+        // Não precisa spawnar manualmente
+        
+        // Detectar e sincronizar vencedor
+        Debug.Log("🏆 [MyNetworkManager] Chamando DetectAndSyncWinner...");
+        VictoryDataManager.Instance.DetectAndSyncWinner();
+        
+        Debug.Log("═══════════════════════════════════════════════════════");
+        Debug.Log("✅ [MyNetworkManager] Detecção concluída");
+        Debug.Log("   → Mirror vai sincronizar automaticamente (Scene Object)");
+        Debug.Log("═══════════════════════════════════════════════════════");
     }
 
     private bool EnsureCatalogAssigned()
@@ -638,19 +725,31 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         LoadingScreenUI.Instance?.SetMirrorTargetScene(newSceneName);
         LoadingScreenUI.Instance?.ShowForMirror();
 
-        // Safety: if Mirror skips async or finishes instantly (e.g., host already on scene), hide after short grace
-        LeanTween.delayedCall(2.0f, () =>
-        {
-            if (NetworkManager.loadingSceneAsync == null || NetworkManager.loadingSceneAsync.isDone)
-                LoadingScreenUI.Instance?.Hide();
-        });
+        
         base.OnClientChangeScene(newSceneName, sceneOperation, customHandling);
     }
 
     public override void OnClientSceneChanged()
     {
-        LoadingScreenUI.Instance?.Hide();
         base.OnClientSceneChanged();
+        
+        StartCoroutine(CheckAndHideLoadingScreenIfNoBriefing());
+    }
+    
+    private IEnumerator CheckAndHideLoadingScreenIfNoBriefing()
+    {
+        yield return null;
+        yield return null;
+        
+        if (BriefingManager.singleton == null)
+        {
+            Debug.Log("[MyNetworkManager] No BriefingManager in scene - hiding loading screen on client");
+            LoadingScreenUI.Instance?.Hide();
+        }
+        else
+        {
+            Debug.Log("[MyNetworkManager] BriefingManager found - waiting for RpcShowBriefing to hide loading");
+        }
     }
 
     public override void OnServerSceneChanged(string sceneName)
@@ -669,9 +768,22 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     private IEnumerator WaitAllConnectionsReadyThenStart()
     {
         float lastLog = 0f;
+        float startTime = Time.realtimeSinceStartup;
+        float maxWaitTime = 60f; // Timeout máximo de 60 segundos
+        
         // Wait until all authenticated connections became ready after the load
         while (!AreAllConnectionsReady())
         {
+            float elapsed = Time.realtimeSinceStartup - startTime;
+            
+            // Check for timeout
+            if (elapsed >= maxWaitTime)
+            {
+                Debug.LogWarning($"[MyNetworkManager] Timeout waiting for all connections to be ready after {maxWaitTime}s. Proceeding anyway.");
+                LogProgressSnapshot(final: true);
+                break;
+            }
+            
             // every ~1s, log a telemetry snapshot
             if (Time.realtimeSinceStartup - lastLog > 1f)
             {
@@ -683,9 +795,30 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
         Debug.Log("[MyNetworkManager] All clients loaded and are ready.");
         LogProgressSnapshot(final: true);
+        
         // Start the briefing flow so clients can confirm readiness
         if (BriefingManager.singleton != null && NetworkServer.active)
+        {
+            // Cena com BriefingManager (minigame): congelar jogadores e mostrar briefing
+            if (PlayerList.singleton != null)
+            {
+                PlayerList.singleton.SetAllPlayersFrozen(true);
+                Debug.Log("[MyNetworkManager] All players frozen before briefing");
+            }
             BriefingManager.singleton.TriggerBriefing();
+        }
+        else
+        {
+            // Cena SEM BriefingManager (lobby, RASCUNHO, etc): descongelar jogadores
+            // A loading screen será escondida pelo cliente em CheckAndHideLoadingScreenIfNoBriefing
+            Debug.Log("[MyNetworkManager] No BriefingManager in scene - clients will hide loading screen");
+            
+            if (PlayerList.singleton != null)
+            {
+                PlayerList.singleton.SetAllPlayersFrozen(false);
+                Debug.Log("[MyNetworkManager] Players unfrozen in lobby scene");
+            }
+        }
     }
 
     private void LogProgressSnapshot(bool final = false)

@@ -59,9 +59,15 @@ public class BriefingManager : NetworkBehaviour
     {
         base.OnStartClient();
         slots.Callback += OnSlotsChanged;
-        // Não chamar funções [Server] e não forçar a UI ficar visível aqui
-        canvasGroup.alpha = 0; // começa escondido; será mostrado via RPC
-        canvasGroup.interactable = false;
+        
+        if (canvasGroup != null)
+        {
+            canvasGroup.gameObject.SetActive(true);
+            canvasGroup.alpha = 0;
+            canvasGroup.interactable = false;
+        }
+        
+        Debug.Log("[Briefing] OnStartClient - Canvas preparado, aguardando RpcShowBriefing");
     }
 
     private void Start()
@@ -194,9 +200,15 @@ public class BriefingManager : NetworkBehaviour
     [ClientRpc]
     private void RpcShowBriefing(string syncedTitle, string syncedTip)
     {
-        Debug.Log("[Briefing] RpcShowBriefing");
+        Debug.Log("[Briefing] RpcShowBriefing - Showing briefing UI and hiding loading screen");
+        
         LoadingScreenUI.Instance?.Hide();
 
+        if (canvasGroup != null)
+        {
+            canvasGroup.gameObject.SetActive(true);
+        }
+        
         titleText.text = syncedTitle;
         tipText.text = syncedTip;
         canvasGroup.alpha = 1;

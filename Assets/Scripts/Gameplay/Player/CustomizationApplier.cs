@@ -15,10 +15,14 @@ public class CustomizationApplier : MonoBehaviour
     private GameObject currentHat;
     private GameObject currentGlasses;
     private GameObject currentShirt;
+    
+    [Header("Settings")]
+    [SerializeField] private bool autoApplyOnStart = true;
+    [SerializeField] private bool isVictoryPodium = false; // Flag para indicar se está no contexto do pódio
+    [SerializeField] private bool isResultsScreen = false; // Flag para indicar se está na tela de resultados
 
     private void Start()
     {
-
         if (database == null)
         {
             database = Resources.Load<CustomizationDatabase>("CustomizationDatabase");
@@ -28,8 +32,22 @@ public class CustomizationApplier : MonoBehaviour
             }
         }
 
-
-        ApplyCurrentCustomization();
+        // Não aplica customização local se estiver em contexto de pódio ou tela de resultados
+        if (autoApplyOnStart && !isVictoryPodium && !isResultsScreen)
+        {
+            ApplyCurrentCustomization();
+        }
+    }
+    
+   
+    public void SetVictoryPodiumMode(bool isPodium)
+    {
+        isVictoryPodium = isPodium;
+    }
+    
+    public void SetResultsScreenMode(bool isResults)
+    {
+        isResultsScreen = isResults;
     }
 
 
@@ -56,12 +74,21 @@ public class CustomizationApplier : MonoBehaviour
             Debug.LogWarning("⚠️ [CustomizationApplier] Database não configurado");
             return;
         }
+        
+        if (customization == null)
+        {
+            Debug.LogWarning("⚠️ [CustomizationApplier] Tentativa de aplicar customização nula");
+            return;
+        }
+
+        // Limpar customização anterior antes de aplicar nova
+        ClearCustomization();
 
         ApplyHat(customization.hatIndex);
         ApplyGlasses(customization.glassesIndex);
         ApplyShirt(customization.shirtIndex);
 
-        Debug.Log($"✅ [CustomizationApplier] Customização aplicada: {customization}");
+        Debug.Log($"✅ [CustomizationApplier] Customização aplicada: Hat={customization.hatIndex}, Glasses={customization.glassesIndex}, Shirt={customization.shirtIndex}");
     }
 
 

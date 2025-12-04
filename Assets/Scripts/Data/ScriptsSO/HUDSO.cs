@@ -117,5 +117,63 @@ public class HUDSO : ScriptableObject{
     {
         this.EventOnHideMenuPanel?.Invoke();
     }
+
+    // Briefing Manager
+    public event Action EventOnShowBriefing;
+    public event Action EventOnHideBriefing;
+
+    public void ShowBriefing()
+    {
+        this.EventOnShowBriefing?.Invoke();
+    }
+
+    public void HideBriefing()
+    {
+        this.EventOnHideBriefing?.Invoke();
+    }
+
+    // Voting Panel
+    public event Action EventOnShowVotingPanel;
+    public event Action EventOnHideVotingPanel;
+
+    public void ShowVotingPanel()
+    {
+        this.EventOnShowVotingPanel?.Invoke();
+    }
+
+    public void HideVotingPanel()
+    {
+        this.EventOnHideVotingPanel?.Invoke();
+    }
+
+    // Cooldown UI (local-only)
+    public event Action<float> EventOnPushCooldownUpdated;
+    public event Action<float> EventOnThrowCooldownUpdated;
+
+    public void UpdatePushCooldown(float normalizedValue)
+    {
+        this.EventOnPushCooldownUpdated?.Invoke(normalizedValue);
+    }
+
+    public void UpdateThrowCooldown(float normalizedValue)
+    {
+        this.EventOnThrowCooldownUpdated?.Invoke(normalizedValue);
+    }
+
+    // Score UI (local-only)
+    public event Action<int> EventOnScoreUpdated;
+
+    public void UpdateScore(int scoreValue)
+    {
+        this.EventOnScoreUpdated?.Invoke(scoreValue);
+    }
+
+    // Spectator Mode (local-only)
+    public event Action<bool> EventOnSpectatorModeChanged;
+
+    public void SetSpectatorMode(bool isSpectating)
+    {
+        this.EventOnSpectatorModeChanged?.Invoke(isSpectating);
+    }
 }
 

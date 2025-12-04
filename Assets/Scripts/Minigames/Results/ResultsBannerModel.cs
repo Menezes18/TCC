@@ -25,12 +25,6 @@ public class ResultsBannerModel : MonoBehaviour
     [SerializeField] private float cameraFOV = 30f;
     [SerializeField] private Color backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f);
     
-    [Header("Customização (Teste)")]
-    [SerializeField] private bool useTestCustomization = false;
-    [SerializeField] private int testHatIndex = 0;
-    [SerializeField] private int testGlassesIndex = 0;
-    [SerializeField] private int testShirtIndex = 0;
-    
     [Header("Animação")]
     [SerializeField] private string animationName = "Idle";
     
@@ -40,6 +34,18 @@ public class ResultsBannerModel : MonoBehaviour
 
     public void LoadModel(PlayerCustomizationData customization)
     {
+        Debug.Log($"[ResultsBannerModel] ========== LoadModel INICIADO ==========");
+        Debug.Log($"[ResultsBannerModel] 📥 Customização RECEBIDA:");
+        if (customization != null)
+        {
+            Debug.Log($"[ResultsBannerModel]    → playerId: {customization.playerId}");
+            Debug.Log($"[ResultsBannerModel]    → Hat={customization.hatIndex}, Glasses={customization.glassesIndex}, Shirt={customization.shirtIndex}");
+        }
+        else
+        {
+            Debug.LogError("[ResultsBannerModel] ❌ Customização recebida é NULL!");
+        }
+        
         if (targetImage == null)
         {
             Debug.LogError("[ResultsBannerModel] Target Image está NULL!");
@@ -98,14 +104,14 @@ public class ResultsBannerModel : MonoBehaviour
         if (modelInstance != null)
             Destroy(modelInstance);
 
-        // Cria o modelo
+        // Cria o modelo DESATIVADO para evitar que o Start() aplique customização local
         modelInstance = Instantiate(modelPrefab, transform);
         modelInstance.transform.localPosition = modelPosition;
         modelInstance.transform.localEulerAngles = modelRotation;
         modelInstance.transform.localScale = Vector3.one * modelScale;
-        modelInstance.SetActive(true);
+        modelInstance.SetActive(false); // IMPORTANTE: Desativado até aplicar customização
         
-        Debug.Log($"[ResultsBannerModel] Modelo criado: {modelInstance.name} em {modelInstance.transform.position}");
+        Debug.Log($"[ResultsBannerModel] Modelo criado (desativado): {modelInstance.name} em {modelInstance.transform.position}");
 
         // Prefab já deve vir limpo, mas garante segurança (remove física se houver)
         foreach (var col in modelInstance.GetComponentsInChildren<Collider>(true))
@@ -113,28 +119,42 @@ public class ResultsBannerModel : MonoBehaviour
         foreach (var rb in modelInstance.GetComponentsInChildren<Rigidbody>(true))
             Destroy(rb);
 
-        // Aplica customização
-        PlayerCustomizationData dataToApply = customization;
+        // Aplica customização ANTES de ativar o objeto
+        Debug.Log($"[ResultsBannerModel] 🔄 Preparando para aplicar customização...");
         
-        // Se customização de teste estiver ativa, usa ela
-        if (useTestCustomization)
+        if (customization == null)
         {
-            dataToApply = new PlayerCustomizationData
-            {
-                hatIndex = testHatIndex,
-                glassesIndex = testGlassesIndex,
-                shirtIndex = testShirtIndex
-            };
+            Debug.LogError($"[ResultsBannerModel] ❌ Customização recebida é NULL! Não será possível aplicar.");
+            return;
         }
         
-        if (dataToApply != null)
+        Debug.Log($"[ResultsBannerModel] 📋 Customização a aplicar:");
+        Debug.Log($"[ResultsBannerModel]    → Hat={customization.hatIndex}, Glasses={customization.glassesIndex}, Shirt={customization.shirtIndex}");
+        
+        // Configura o CustomizationApplier para não aplicar customização local automaticamente
+        var applier = modelInstance.GetComponent<CustomizationApplier>();
+        if (applier == null)
         {
-            var applier = modelInstance.GetComponent<CustomizationApplier>();
-            if (applier == null)
-                applier = modelInstance.AddComponent<CustomizationApplier>();
-            applier.ApplyCustomization(dataToApply);
-            Debug.Log($"[ResultsBannerModel] Customização aplicada: Hat={dataToApply.hatIndex}, Glasses={dataToApply.glassesIndex}, Shirt={dataToApply.shirtIndex}");
+            Debug.Log($"[ResultsBannerModel] ➕ Adicionando CustomizationApplier ao modelo...");
+            applier = modelInstance.AddComponent<CustomizationApplier>();
         }
+        else
+        {
+            Debug.Log($"[ResultsBannerModel] ✅ CustomizationApplier já existe no modelo");
+        }
+        
+        // Define modo "tela de resultados" para prevenir aplicação automática de customização local
+        Debug.Log($"[ResultsBannerModel] 🔒 Definindo SetResultsScreenMode(true)...");
+        applier.SetResultsScreenMode(true);
+        
+        Debug.Log($"[ResultsBannerModel] 🎨 Aplicando customização: Hat={customization.hatIndex}, Glasses={customization.glassesIndex}, Shirt={customization.shirtIndex}");
+        applier.ApplyCustomization(customization);
+        Debug.Log($"[ResultsBannerModel] ✅ Customização aplicada com sucesso!");
+        
+        // Agora SIM ativa o objeto - customização já está aplicada
+        Debug.Log($"[ResultsBannerModel] 🟢 Ativando modelo...");
+        modelInstance.SetActive(true);
+        Debug.Log($"[ResultsBannerModel] ========== LoadModel FINALIZADO ==========");
 
         // Reproduz animação
         var animator = modelInstance.GetComponentInChildren<Animator>();

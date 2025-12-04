@@ -116,14 +116,14 @@ public class ResultsUI : MonoBehaviour
         return positions;
     }
 
-    public void Show(string[] names, int[] totals, int[] gains, Color32[] colors = null)
+    public void Show(string[] names, int[] totals, int[] gains, Color32[] colors = null, int[] hatIndices = null, int[] glassesIndices = null, int[] shirtIndices = null)
     {
         _showStartTime = Time.time;
         StopAllCoroutines();
-        StartCoroutine(DoSequence(names, totals, gains, colors));
+        StartCoroutine(DoSequence(names, totals, gains, colors, hatIndices, glassesIndices, shirtIndices));
     }
 
-    private IEnumerator DoSequence(string[] names, int[] totals, int[] gains, Color32[] colors = null)
+    private IEnumerator DoSequence(string[] names, int[] totals, int[] gains, Color32[] colors = null, int[] hatIndices = null, int[] glassesIndices = null, int[] shirtIndices = null)
     {
         if (listRoot == null || rowPrefab == null)
         {
@@ -200,7 +200,12 @@ public class ResultsUI : MonoBehaviour
             var rowComp = row.GetComponent<ResultsRow>();
             rowComp.SetupForAnimation(names[i], gains[i], totals[i], positions[i], rowColor);
             
-            TryLoadPlayerCustomization(rowComp, names[i]);
+            // Coleta customização sincronizada do servidor
+            int hatIdx = (hatIndices != null && i < hatIndices.Length) ? hatIndices[i] : -1;
+            int glassesIdx = (glassesIndices != null && i < glassesIndices.Length) ? glassesIndices[i] : -1;
+            int shirtIdx = (shirtIndices != null && i < shirtIndices.Length) ? shirtIndices[i] : -1;
+            
+            ApplyPlayerCustomization(rowComp, names[i], hatIdx, glassesIdx, shirtIdx);
 
             var animRT = EnsureAnimRoot(row);
             var cg = animRT.GetComponent<CanvasGroup>();
@@ -351,7 +356,11 @@ public class ResultsUI : MonoBehaviour
         }
     }
     
-    private void TryLoadPlayerCustomization(ResultsRow row, string playerName)
+    /// <summary>
+    /// Aplica a customização ao modelo do jogador na tela de resultados
+    /// Prioriza buscar do PlayerData na cena (SyncVars corretas) ao invés de usar os índices do RPC
+    /// </summary>
+    private void ApplyPlayerCustomization(ResultsRow row, string playerName, int hatIndexRPC, int glassesIndexRPC, int shirtIndexRPC)
     {
         if (row == null) return;
         
@@ -367,93 +376,93 @@ public class ResultsUI : MonoBehaviour
             return;
         }
         
-        PlayerCustomizationData customization = FindPlayerCustomization(playerName);
+        // 🎯 PRIORIDADE 1: Buscar customização diretamente do PlayerData na cena (fonte mais confiável)
+        PlayerData playerData = FindPlayerDataByName(playerName);
         
-        if (customization != null)
+        int hatIndex, glassesIndex, shirtIndex;
+        
+        if (playerData != null)
         {
-            bannerModel.LoadModel(customization);
-            Debug.Log($"[ResultsUI] Customização carregada para {playerName}: {customization}");
+            // Usa os SyncVars do PlayerData (garantidamente corretos)
+            hatIndex = playerData.hatIndex;
+            glassesIndex = playerData.glassesIndex;
+            shirtIndex = playerData.shirtIndex;
+            Debug.Log($"[ResultsUI] 🎯 Customização obtida do PlayerData na cena para {playerName}: Hat={hatIndex}, Glasses={glassesIndex}, Shirt={shirtIndex}");
         }
         else
         {
-            bannerModel.LoadModel(null);
-            Debug.LogWarning($"[ResultsUI] Customização não encontrada para {playerName}, usando padrão");
+            // Fallback: usa os dados do RPC
+            hatIndex = hatIndexRPC;
+            glassesIndex = glassesIndexRPC;
+            shirtIndex = shirtIndexRPC;
+            Debug.LogWarning($"[ResultsUI] ⚠️ PlayerData não encontrado para {playerName}, usando dados do RPC: Hat={hatIndex}, Glasses={glassesIndex}, Shirt={shirtIndex}");
         }
+        
+        // Cria customização com os dados corretos
+        PlayerCustomizationData customization = new PlayerCustomizationData
+        {
+            playerId = playerName,
+            hatIndex = hatIndex,
+            glassesIndex = glassesIndex,
+            shirtIndex = shirtIndex
+        };
+        
+        Debug.Log($"[ResultsUI] 📦 PlayerCustomizationData CRIADO para {playerName}:");
+        Debug.Log($"[ResultsUI]    → Hat={customization.hatIndex}, Glasses={customization.glassesIndex}, Shirt={customization.shirtIndex}");
+        Debug.Log($"[ResultsUI]    → Valores originais: Hat={hatIndex}, Glasses={glassesIndex}, Shirt={shirtIndex}");
+        
+        if (customization.hatIndex != hatIndex || customization.glassesIndex != glassesIndex || customization.shirtIndex != shirtIndex)
+        {
+            Debug.LogError($"[ResultsUI] ❌ VALORES MUDARAM NA CRIAÇÃO DO OBJETO!");
+        }
+        
+        Debug.Log($"[ResultsUI] 🚀 Chamando bannerModel.LoadModel() para {playerName}...");
+        
+        bannerModel.LoadModel(customization);
+        
+        Debug.Log($"[ResultsUI] ✅ bannerModel.LoadModel() FINALIZADO para {playerName}");
     }
     
-    private PlayerCustomizationData FindPlayerCustomization(string playerName)
+    /// <summary>
+    /// Busca o PlayerData na cena pelo nome do jogador
+    /// </summary>
+    private PlayerData FindPlayerDataByName(string playerName)
     {
-        var allPlayers = FindObjectsByType<PlayerCustomizationSync>(FindObjectsSortMode.None);
+        if (string.IsNullOrEmpty(playerName)) return null;
         
-        Debug.Log($"[ResultsUI] Procurando customização para '{playerName}'. Total de players na cena: {allPlayers.Length}");
-        
-        foreach (var playerSync in allPlayers)
+        // Busca no PlayerList (mais confiável)
+        if (PlayerList.singleton != null && PlayerList.singleton.players != null)
         {
-            var playerData = playerSync.GetComponent<PlayerData>();
-            if (playerData != null)
+            foreach (var pd in PlayerList.singleton.players)
             {
-                string syncName = !string.IsNullOrEmpty(playerData.alias) ? playerData.alias : playerData.playerInfo.username;
+                if (pd == null) continue;
                 
-                Debug.Log($"[ResultsUI] Comparando: Procurando='{playerName}' | PlayerSync='{syncName}' | alias='{playerData.alias}' | username='{playerData.playerInfo.username}' | isLocal={playerData.isLocalPlayer}");
+                string name = !string.IsNullOrEmpty(pd.alias) ? pd.alias : pd.playerInfo.username;
                 
-                bool match = string.Equals(syncName, playerName, System.StringComparison.OrdinalIgnoreCase) ||
-                            string.Equals(playerData.alias, playerName, System.StringComparison.OrdinalIgnoreCase) ||
-                            string.Equals(playerData.playerInfo.username, playerName, System.StringComparison.OrdinalIgnoreCase);
-                
-                if (match)
+                if (string.Equals(name, playerName, System.StringComparison.OrdinalIgnoreCase))
                 {
-                    var customization = playerSync.GetCustomization();
-                    Debug.Log($"[ResultsUI] ✓ MATCH! Player '{syncName}' | Hat={customization.hatIndex}, Glasses={customization.glassesIndex}, Shirt={customization.shirtIndex}");
-                    return customization;
-                }
-            }
-            else
-            {
-                Debug.LogWarning($"[ResultsUI] PlayerCustomizationSync sem PlayerData: {playerSync.gameObject.name}");
-            }
-        }
-        
-        Debug.LogWarning($"[ResultsUI] Nenhum PlayerCustomizationSync encontrado para '{playerName}'. Tentando fallback local...");
-        
-        if (CustomizationManager.Instance != null)
-        {
-            var localCustomization = CustomizationManager.Instance.GetCurrentCustomization();
-            if (localCustomization != null)
-            {
-                var localPlayerName = GetLocalPlayerName();
-                Debug.Log($"[ResultsUI] Fallback: Nome local='{localPlayerName}' vs Procurando='{playerName}'");
-                
-                if (string.Equals(localPlayerName, playerName, System.StringComparison.OrdinalIgnoreCase))
-                {
-                    Debug.Log($"[ResultsUI] Usando customização local: Hat={localCustomization.hatIndex}");
-                    return localCustomization;
+                    Debug.Log($"[ResultsUI] 🔍 PlayerData encontrado via PlayerList para '{playerName}'");
+                    return pd;
                 }
             }
         }
         
-        Debug.LogError($"[ResultsUI] FALHA TOTAL: Nenhuma customização encontrada para '{playerName}'");
-        return null;
-    }
-    
-    private string GetLocalPlayerName()
-    {
-        var playerDatas = FindObjectsByType<PlayerData>(FindObjectsSortMode.None);
-        
-        Debug.Log($"[ResultsUI] Procurando player local. Total PlayerData encontrados: {playerDatas.Length}");
-        
-        foreach (var data in playerDatas)
+        // Fallback: busca via FindObjectsByType
+        var allPlayerData = FindObjectsByType<PlayerData>(FindObjectsSortMode.None);
+        foreach (var pd in allPlayerData)
         {
-            Debug.Log($"[ResultsUI] PlayerData: name='{data.gameObject.name}' | alias='{data.alias}' | username='{data.playerInfo.username}' | isLocal={data.isLocalPlayer}");
+            if (pd == null) continue;
             
-            if (data.isLocalPlayer)
+            string name = !string.IsNullOrEmpty(pd.alias) ? pd.alias : pd.playerInfo.username;
+            
+            if (string.Equals(name, playerName, System.StringComparison.OrdinalIgnoreCase))
             {
-                string name = !string.IsNullOrEmpty(data.alias) ? data.alias : data.playerInfo.username;
-                Debug.Log($"[ResultsUI] Player local encontrado: '{name}'");
-                return name;
+                Debug.Log($"[ResultsUI] 🔍 PlayerData encontrado via FindObjectsByType para '{playerName}'");
+                return pd;
             }
         }
         
-        Debug.LogWarning("[ResultsUI] NENHUM player local encontrado!");
-        return string.Empty;
+        Debug.LogWarning($"[ResultsUI] ❌ PlayerData não encontrado na cena para '{playerName}'");
+        return null;
     }
 }
