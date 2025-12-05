@@ -377,8 +377,8 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         if (attacker.playerInfo.steamId != potatoHolderId) return;
         if (!alivePlayers.Contains(target)) return;
 
-        float distSqr = (attacker.transform.position - target.transform.position).sqrMagnitude;
-        if (distSqr > passDistance * passDistance) return;
+        // float distSqr = (attacker.transform.position - target.transform.position).sqrMagnitude;
+        // if (distSqr > passDistance * passDistance) return;
 
         potatoHolderId = target.playerInfo.steamId;
         // roundTimer = timeLimit;
