@@ -1276,8 +1276,51 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if (base.isOwned == false) return;
         OnContextualHit(DeathCause.Default, true);
-
     }
+    
+    /// <summary>
+    /// Método chamado pelo servidor para forçar a morte/espectador de um jogador.
+    /// Diferente de OnHitSpectate que só funciona no cliente local.
+    /// </summary>
+    [Server]
+    public void ServerForceSpectate(DeathCause cause = DeathCause.Default)
+    {
+        Debug.Log($"💀 [SERVER] Forçando espectador para {gameObject.name}");
+        
+        // Atualiza o estado no servidor
+        isStaggered = false;
+        
+        // Envia RPC para o cliente dono do PlayerScript
+        var conn = connectionToClient;
+        if (conn != null)
+        {
+            TargetForceSpectate(conn, cause);
+        }
+        
+        // Também envia RPC para todos verem os efeitos de morte
+        RpcOnDeathWithCause(cause, true, transform.position, transform.rotation);
+    }
+    
+    /// <summary>
+    /// TargetRpc enviado apenas para o dono do PlayerScript para iniciar o modo espectador.
+    /// </summary>
+    [TargetRpc]
+    private void TargetForceSpectate(NetworkConnection conn, DeathCause cause)
+    {
+        Debug.Log($"💀 [CLIENT] Recebido TargetForceSpectate - cause: {cause}");
+        
+        var entry = deathEffects != null ? deathEffects.Get(cause) : null;
+        float hideDelay = deathEffects != null ? deathEffects.GetHideDelay(cause) : 0f;
+        bool shouldHideModel = entry == null || entry.hideModelAfterDelay;
+        if (entry != null && entry.hideModelAfterDelay)
+            hideDelay = Mathf.Max(hideDelay, entry.hideModelDelay);
+        
+        _animator?.SetInteger(_DEATHCAUSE, (int)cause);
+        
+        // Inicia o processo de morte permanente (espectador)
+        InternalDeath(true, hideDelay, shouldHideModel);
+    }
+    
     private void OnExtraFreezeChanged(bool oldVal, bool newVal)
     {
         
