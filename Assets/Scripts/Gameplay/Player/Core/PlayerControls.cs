@@ -28,23 +28,11 @@ using UnityEngine.InputSystem;
         }
         
         /// <summary>
-        /// Inscreve nos eventos de input. Limpa eventos anteriores para evitar duplicação.
+        /// Inscreve nos eventos de input.
         /// </summary>
         private void SubscribeToInputEvents()
         {
             if (_hasSubscribed) return;
-            
-            // Limpa eventos antigos que podem ter ficado de sessões anteriores
-            // Isso é importante quando o host sai e cria uma nova sala
-            if (PlayerInputSO != null)
-            {
-                PlayerInputSO.ClearAllEvents();
-            }
-            
-            if (PlayerControlsSO != null)
-            {
-                PlayerControlsSO.ClearAllEvents();
-            }
             
             // Agora inscreve nos eventos
             PlayerInputSO.OnMove += PlayerInputSO_OnMove;

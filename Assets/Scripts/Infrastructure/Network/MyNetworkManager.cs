@@ -357,12 +357,67 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         // Reseta flags
         startGame = false;
         
+        // Limpa eventos dos ScriptableObjects para evitar referências a objetos destruídos
+        ClearAllScriptableObjectEvents();
+        
         // Limpa o estado do PlayerList se existir
         if (PlayerList.singleton != null)
         {
             // Não chama ClearAllPlayers aqui pois isso é uma operação de servidor
             // Apenas reseta o singleton se necessário
         }
+    }
+    
+    /// <summary>
+    /// Limpa todos os eventos dos ScriptableObjects de input/controle.
+    /// Isso é necessário porque os SOs persistem entre sessões e podem manter
+    /// referências a objetos destruídos quando o jogador desconecta e reconecta.
+    /// </summary>
+    private void ClearAllScriptableObjectEvents()
+    {
+        Debug.Log("[MyNetworkManager] Clearing all ScriptableObject events");
+        
+        // Encontra e limpa PlayerInputSO
+        var playerInputSOs = Resources.FindObjectsOfTypeAll<PlayerInputSO>();
+        foreach (var so in playerInputSOs)
+        {
+            if (so != null)
+            {
+                so.ClearAllEvents();
+            }
+        }
+        
+        // Encontra e limpa PlayerControlsSO
+        var playerControlsSOs = Resources.FindObjectsOfTypeAll<PlayerControlsSO>();
+        foreach (var so in playerControlsSOs)
+        {
+            if (so != null)
+            {
+                so.ClearAllEvents();
+            }
+        }
+        
+        // Encontra e limpa HUDSO
+        var hudSOs = Resources.FindObjectsOfTypeAll<HUDSO>();
+        foreach (var so in hudSOs)
+        {
+            if (so != null)
+            {
+                so.ClearAllEvents();
+            }
+        }
+        
+        // Encontra e limpa PlayerDataSO
+        var playerDataSOs = Resources.FindObjectsOfTypeAll<PlayerDataSO>();
+        foreach (var so in playerDataSOs)
+        {
+            if (so != null)
+            {
+                so.ClearAllEvents();
+            }
+        }
+        
+        Debug.Log("[MyNetworkManager] All ScriptableObject events cleared");
     }
     
     public override void OnStopHost()
