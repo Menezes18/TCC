@@ -908,6 +908,14 @@ public class SceneTransitionManager : MonoBehaviour
         // Wait for preload to reach 90% (Unity stops at 0.9 when allowSceneActivation is false)
         while (_preloadOperation.progress < 0.9f)
         {
+            // Verifica se ainda estamos conectados
+            if (!NetworkClient.active || !NetworkClient.isConnected)
+            {
+                Debug.LogWarning("[SceneTransition] CLIENT: Lost connection during preload, aborting");
+                HandleClientDisconnectedDuringLoad();
+                yield break;
+            }
+            
             // Update loading UI
             if (LoadingScreenUI.Instance != null)
             {
@@ -931,14 +939,42 @@ public class SceneTransitionManager : MonoBehaviour
             LoadingScreenUI.Instance.SetProgress(1f);
         }
         
+        // Timeout de segurança para evitar loop infinito caso o host desconecte
+        float waitStartTime = Time.realtimeSinceStartup;
+        float maxWaitForActivation = 60f; // 60 segundos de timeout
+        
         while (!_preloadOperation.allowSceneActivation)
         {
+            // Verifica se ainda estamos conectados
+            if (!NetworkClient.active || !NetworkClient.isConnected)
+            {
+                Debug.LogWarning("[SceneTransition] CLIENT: Lost connection while waiting for activation signal");
+                HandleClientDisconnectedDuringLoad();
+                yield break;
+            }
+            
+            // Verifica timeout
+            if (Time.realtimeSinceStartup - waitStartTime > maxWaitForActivation)
+            {
+                Debug.LogWarning("[SceneTransition] CLIENT: Timeout waiting for activation signal");
+                HandleClientDisconnectedDuringLoad();
+                yield break;
+            }
+            
             yield return null;
         }
 
         // Wait for actual scene activation
         while (!_preloadOperation.isDone)
         {
+            // Verifica se ainda estamos conectados
+            if (!NetworkClient.active || !NetworkClient.isConnected)
+            {
+                Debug.LogWarning("[SceneTransition] CLIENT: Lost connection during scene activation");
+                HandleClientDisconnectedDuringLoad();
+                yield break;
+            }
+            
             yield return null;
         }
 
@@ -954,6 +990,34 @@ public class SceneTransitionManager : MonoBehaviour
         SendActivationAck();
 
         Debug.Log("[SceneTransition] CLIENT: Scene ready, waiting for briefing to hide loading screen");
+    }
+    
+    /// <summary>
+    /// Trata a situação em que o cliente é desconectado durante o carregamento.
+    /// Limpa o estado e esconde a tela de loading.
+    /// </summary>
+    private void HandleClientDisconnectedDuringLoad()
+    {
+        Debug.Log("[SceneTransition] HandleClientDisconnectedDuringLoad - cleaning up");
+        
+        // Limpa o estado do cliente
+        _isPreloading = false;
+        _waitingForActivation = false;
+        _preloadAckSent = false;
+        _activationAckSent = false;
+        
+        // Se ainda temos uma operação de preload, permite que ela termine
+        if (_preloadOperation != null && !_preloadOperation.isDone)
+        {
+            _preloadOperation.allowSceneActivation = true;
+        }
+        _preloadOperation = null;
+        
+        // Esconde a tela de loading
+        if (LoadingScreenUI.Instance != null)
+        {
+            LoadingScreenUI.Instance.Hide();
+        }
     }
 
     #endregion
@@ -1066,6 +1130,67 @@ public class SceneTransitionManager : MonoBehaviour
             Debug.Log(entry.ToString());
         }
         Debug.Log("=== END TELEMETRY LOG ===");
+    }
+    
+    /// <summary>
+    /// Limpa o estado do cliente quando desconecta.
+    /// Chamado pelo MyNetworkManager.OnStopClient para evitar que o cliente fique preso na tela de loading.
+    /// </summary>
+    public void CleanupClientState()
+    {
+        Debug.Log("[SceneTransition] CleanupClientState called - resetting client transition state");
+        
+        // Cancela qualquer coroutine de preload em andamento
+        if (_preloadOperation != null)
+        {
+            // Se a operação de preload ainda está em andamento, tenta cancelar
+            try
+            {
+                if (!_preloadOperation.isDone)
+                {
+                    _preloadOperation.allowSceneActivation = true; // Permite que termine para evitar estado inconsistente
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[SceneTransition] Error cleaning up preload operation: {e.Message}");
+            }
+            _preloadOperation = null;
+        }
+        
+        // Para todas as coroutines deste componente
+        StopAllCoroutines();
+        
+        // Reseta estados de cliente
+        _isPreloading = false;
+        _waitingForActivation = false;
+        _preloadAckSent = false;
+        _activationAckSent = false;
+        _clientLoadedPlayers = 0;
+        _clientTotalPlayers = 0;
+        _clientStatusMessage = "";
+        
+        // Se estamos no servidor (host), também limpa o estado do servidor
+        if (NetworkServer.active)
+        {
+            _isTransitioning = false;
+            _transitionCoroutine = null;
+            _preloadAcks.Clear();
+            _activationAcks.Clear();
+            _playerLoadStates.Clear();
+            _targetSceneName = null;
+            expectedClients = 0;
+            preloadedClients = 0;
+            activatedClients = 0;
+            
+            // Descongela os jogadores se ainda estiverem congelados
+            if (PlayerList.singleton != null)
+            {
+                PlayerList.singleton.SetAllPlayersFrozen(false);
+            }
+        }
+        
+        Debug.Log("[SceneTransition] Client state cleaned up successfully");
     }
 
     #endregion

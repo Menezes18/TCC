@@ -154,6 +154,30 @@ public class PlayerList : NetworkBehaviour{
         return randomColor;
     }
     
+    /// <summary>
+    /// Limpa todos os jogadores e reseta o pool de cores.
+    /// Chamado pelo MyNetworkManager ao parar o host/servidor.
+    /// </summary>
+    public void ClearAllPlayers()
+    {
+        Debug.Log("[PlayerList] ClearAllPlayers called - resetting player list");
+        
+        // Limpa a lista de jogadores
+        players.Clear();
+        
+        // Reseta o pool de cores
+        ColorsAvailable.Clear();
+        if (db != null)
+        {
+            for (int i = 0; i < db.playerColors.Count; i++)
+            {
+                ColorsAvailable.Add(i);
+            }
+        }
+        
+        Debug.Log("[PlayerList] Player list cleared and colors reset");
+    }
+    
     [Server]
     public void SetAllPlayersFrozen(bool ativar)
     {

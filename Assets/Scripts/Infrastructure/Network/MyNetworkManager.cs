@@ -287,6 +287,21 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
     public override void OnStopClient()
     {
+        Debug.Log("[MyNetworkManager] OnStopClient called - cleaning up client state");
+        
+        // Limpa o estado do SceneTransitionManager para evitar que o cliente fique preso
+        if (SceneTransitionManager.singleton != null)
+        {
+            SceneTransitionManager.singleton.CleanupClientState();
+        }
+        
+        // Esconde a tela de loading se estiver visível
+        if (LoadingScreenUI.Instance != null)
+        {
+            LoadingScreenUI.Instance.Hide();
+            Debug.Log("[MyNetworkManager] Hiding loading screen on client disconnect");
+        }
+        
         if (isMulitplayer)
         {
             if (MainMenu.instance != null)
@@ -294,6 +309,72 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         }
 
         base.OnStopClient();
+    }
+    
+    public override void OnStopHost()
+    {
+        Debug.Log("[MyNetworkManager] OnStopHost called - cleaning up host state");
+        CleanupNetworkState();
+        base.OnStopHost();
+    }
+    
+    public override void OnStopServer()
+    {
+        Debug.Log("[MyNetworkManager] OnStopServer called - cleaning up server state");
+        CleanupNetworkState();
+        base.OnStopServer();
+    }
+    
+    /// <summary>
+    /// Limpa todo o estado de rede para permitir uma nova conexão limpa.
+    /// Chamado quando o host/servidor para.
+    /// </summary>
+    private void CleanupNetworkState()
+    {
+        Debug.Log("[MyNetworkManager] CleanupNetworkState - resetting all network state");
+        
+        // Limpa a lista de clientes
+        allClients.Clear();
+        
+        // Limpa o scoreboard e pointsBoard
+        scoreboard.players.Clear();
+        pointsBoard.Clear();
+        lastGameResults.Clear();
+        
+        // Limpa os observers
+        _observers.Clear();
+        
+        // Limpa telemetry
+        _clientLoadProgress.Clear();
+        _clientLoadStartTs.Clear();
+        
+        // Reseta o índice de cena
+        indexScene = 0;
+        startGame = false;
+        
+        // Limpa a rotação de cenas
+        _sceneRotation.Clear();
+        _activeMinigameIds.Clear();
+        
+        // Limpa o estado do SceneTransitionManager
+        if (SceneTransitionManager.singleton != null)
+        {
+            SceneTransitionManager.singleton.CleanupClientState();
+        }
+        
+        // Limpa o PlayerList
+        if (PlayerList.singleton != null)
+        {
+            PlayerList.singleton.ClearAllPlayers();
+        }
+        
+        // Esconde tela de loading
+        if (LoadingScreenUI.Instance != null)
+        {
+            LoadingScreenUI.Instance.Hide();
+        }
+        
+        Debug.Log("[MyNetworkManager] Network state cleaned up successfully");
     }
 
     public void SetMultiplayer(bool value)

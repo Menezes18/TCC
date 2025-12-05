@@ -351,17 +351,82 @@ public class SteamLobby : MonoBehaviour
     }
     #endregion
 
+    /// <summary>
+    /// Sai da partida atual de forma limpa, retornando ao menu offline.
+    /// Não fecha o jogo, apenas desconecta e limpa o estado.
+    /// </summary>
     public void Leave()
     {
-        PopupManager.instance.Popup_Show("Saindo da Partida", false, true);
-        StartCoroutine(DelayAction(_delaySeconds, () => {
+        Debug.Log("[SteamLobby] Leave called - disconnecting from lobby");
+        
+        if (PopupManager.instance != null)
+            PopupManager.instance.Popup_Show("Saindo da Partida", false, true);
+        
+        StartCoroutine(LeaveCoroutine());
+    }
+    
+    private IEnumerator LeaveCoroutine()
+    {
+        yield return new WaitForSeconds(_delaySeconds);
+        
+        // Sai do lobby Steam
+        if (LobbyID.IsValid())
+        {
             SteamMatchmaking.LeaveLobby(LobbyID);
-            // Usa a tela de loading centralizada ao voltar para o menu
-            if (NetworkServer.active)
-                NetworkManager.singleton.ServerChangeScene(SceneManager.GetActiveScene().name);
-            else
-                LoadingScreenUI.Instance?.Show(SceneManager.GetActiveScene().name);
-        }));
+            LobbyID = CSteamID.Nil;
+        }
+        
+        // Limpa os códigos de sala
+        _pendingRoomCode = null;
+        _pendingJoinCode = null;
+        CurrentRoomCode = null;
+        RoomCodeUpdated?.Invoke(CurrentRoomCode);
+        
+        // Para a conexão de rede
+        if (NetworkServer.active && NetworkClient.active)
+        {
+            // Host
+            NetworkManager.singleton.StopHost();
+        }
+        else if (NetworkClient.active)
+        {
+            // Client
+            NetworkManager.singleton.StopClient();
+        }
+        else if (NetworkServer.active)
+        {
+            // Dedicated server (improvável neste caso)
+            NetworkManager.singleton.StopServer();
+        }
+        
+        // Fecha popup
+        if (PopupManager.instance != null)
+            PopupManager.instance.Popup_Close();
+        
+        Debug.Log("[SteamLobby] Left lobby successfully");
+    }
+    
+    /// <summary>
+    /// Método antigo mantido para compatibilidade, mas agora apenas chama Leave().
+    /// Use Leave() para sair sem fechar o jogo.
+    /// </summary>
+    public void LeaveAndQuit()
+    {
+        if (!NetworkClient.active) 
+        {
+            Application.Quit();
+            return;
+        }
+
+        if (NetworkClient.localPlayer != null && NetworkClient.localPlayer.isServer)
+            NetworkManager.singleton.StopHost();
+        else
+            NetworkManager.singleton.StopClient();
+
+        NetworkClient.Shutdown();
+        NetworkManager.ResetStatics();
+        Leave();
+        Application.Quit();
     }
 
 
