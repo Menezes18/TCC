@@ -311,6 +311,60 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         base.OnStopClient();
     }
     
+    /// <summary>
+    /// Chamado quando o cliente é desconectado do servidor (voluntária ou involuntariamente).
+    /// Este é o ponto onde fazemos cleanup quando o host fecha a conexão.
+    /// </summary>
+    public override void OnClientDisconnect()
+    {
+        Debug.Log("[MyNetworkManager] OnClientDisconnect called - client was disconnected from server");
+        
+        // Limpa o estado do SceneTransitionManager
+        if (SceneTransitionManager.singleton != null)
+        {
+            SceneTransitionManager.singleton.CleanupClientState();
+        }
+        
+        // Esconde a tela de loading imediatamente
+        if (LoadingScreenUI.Instance != null)
+        {
+            LoadingScreenUI.Instance.Hide();
+            Debug.Log("[MyNetworkManager] Hiding loading screen on client disconnect");
+        }
+        
+        // Limpa o SteamLobby
+        if (SteamLobby.instance != null)
+        {
+            SteamLobby.instance.CloseCurrentLobby();
+        }
+        
+        // Limpa estados locais do cliente
+        CleanupClientLocalState();
+        
+        base.OnClientDisconnect();
+    }
+    
+    /// <summary>
+    /// Limpa estados locais do cliente que podem causar problemas ao reconectar.
+    /// </summary>
+    private void CleanupClientLocalState()
+    {
+        Debug.Log("[MyNetworkManager] CleanupClientLocalState - cleaning up local client state");
+        
+        // Limpa a lista de clientes local
+        allClients.Clear();
+        
+        // Reseta flags
+        startGame = false;
+        
+        // Limpa o estado do PlayerList se existir
+        if (PlayerList.singleton != null)
+        {
+            // Não chama ClearAllPlayers aqui pois isso é uma operação de servidor
+            // Apenas reseta o singleton se necessário
+        }
+    }
+    
     public override void OnStopHost()
     {
         Debug.Log("[MyNetworkManager] OnStopHost called - cleaning up host state");

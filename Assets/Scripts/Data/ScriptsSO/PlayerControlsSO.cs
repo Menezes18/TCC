@@ -52,5 +52,38 @@ public class PlayerControlsSO : ScriptableObject {
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
     }
-
+    
+    /// <summary>
+    /// Limpa todos os eventos registrados.
+    /// Deve ser chamado quando o jogador desconecta para evitar referências a objetos destruídos.
+    /// </summary>
+    public void ClearAllEvents()
+    {
+        OnMove = null;
+        OnLook = null;
+        OnRotatePanel = null;
+        OnZoomPanel = null;
+        OnPush = null;
+        OnJump = null;
+        OnThrow = null;
+        OnThrowCancel = null;
+        OnRoll = null;
+        OnMenu = null;
+        OnCursor = null;
+        OnDebug = null;
+        OnClosePanel = null;
+        
+        UnityEngine.Debug.Log("[PlayerControlsSO] All events cleared");
+    }
+    
+    /// <summary>
+    /// Chamado quando o ScriptableObject é habilitado (início do jogo ou após recompilação).
+    /// </summary>
+    private void OnEnable()
+    {
+        // Limpa eventos ao iniciar para garantir estado limpo
+        #if UNITY_EDITOR
+        ClearAllEvents();
+        #endif
+    }
 }
