@@ -498,7 +498,7 @@ public class MatchManager : NetworkBehaviour
         RpcShowSimpleResults(names, totals, gains, colors, hatIndices, glassesIndices, shirtIndices);
 
         float exitTimer = ResultsUI.singleton != null ? ResultsUI.singleton.exitTimerSeconds : 10f;
-        StartCoroutine(WaitAndReturnToLobby(exitTimer));
+        // StartCoroutine(WaitAndReturnToLobby(exitTimer));
     }
     
     [Server]
