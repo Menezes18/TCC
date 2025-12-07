@@ -52,28 +52,18 @@ public class PlayerList : NetworkBehaviour{
         base.OnStartServer();
         RebuildColorPool(); 
         SceneManager.sceneLoaded += OnSceneLoadedServer;
-        // if (ColorsAvailable.Count == 0)
-        // {
-        //     for (int i = 0; i < db.playerColors.Count; i++)
-        //         ColorsAvailable.Add(i);
-        // }
-        //
-        // foreach (var pd in FindObjectsOfType<PlayerData>())
-        // {
-        //     AddToList(pd);
-        // }
-        //
-        //
-        // SceneManager.sceneLoaded += (_, __) =>
-        // {
-        //     foreach (var pd in FindObjectsOfType<PlayerData>())
-        //         AddToList(pd);
-        // };
+    }
+    
+    public override void OnStopServer()
+    {
+        base.OnStopServer();
+        SceneManager.sceneLoaded -= OnSceneLoadedServer;
     }
     
     private void OnDestroy()
     {
         ColorsAvailable.Callback -= ColorsAvailable_Callback;
+        SceneManager.sceneLoaded -= OnSceneLoadedServer;
     }
 
     [Server]
@@ -129,6 +119,7 @@ public class PlayerList : NetworkBehaviour{
     [Server]
     private void OnSceneLoadedServer(Scene _, LoadSceneMode __)
     {
+        if (!NetworkServer.active) return;
         RebuildColorPool();
     }
     [Server]

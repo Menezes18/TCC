@@ -22,12 +22,21 @@ public class SceneTransitionManager : MonoBehaviour
         {
             singleton = this;
             DontDestroyOnLoad(gameObject);
-            RegisterHandlers();
         }
         else
         {
             Destroy(gameObject);
         }
+    }
+
+    private void Start()
+    {
+        // Handlers will be registered by MyNetworkManager
+    }
+    
+    private void OnEnable()
+    {
+        // Handlers will be registered by MyNetworkManager
     }
     #endregion
 
