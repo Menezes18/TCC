@@ -108,7 +108,7 @@ public class RoomListUI : MonoBehaviour
     }
     public void StepupCutsceneJoinListRoom()
     {
-        ManagerCutscene.Instance.setCutsceneID(CutsceneID.JoinListRoom);
+        ManagerCutscene.Instance.setCutsceneIDByInt(3);
         ManagerCutscene.Instance.callCutsceneJoinListRoomEvent();
     }
 

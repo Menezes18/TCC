@@ -91,17 +91,20 @@ public class ManagerCutscene : MonoBehaviour
     public void callCutscene()
     {
         LowerVolumeForCutscene();
-        
+
         if (id == CutsceneID.CreateRoom)
         {
             callCreateRoomEvent?.Invoke();
+            Debug.LogError("callCutsceneCreateRoomEvent");
         }
         else if (id == CutsceneID.JoinRoom)
         {
             callJoinRoomEvent?.Invoke();
+            Debug.LogError("callCutsceneJoinRoomEvent");
         }
         else if (id == CutsceneID.JoinListRoom)
         {
+            Debug.LogError("callCutsceneJoinListRoomEvent");
             callJoinListRoomEvent?.Invoke();
         }
     }
