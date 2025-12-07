@@ -303,6 +303,23 @@ public class MatchManager : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Registra todos os jogadores ativos na lista _activePlayers.
+    /// Usado quando o minigame gerencia seus próprios spawns ou precisa garantir que todos os jogadores estão registrados.
+    /// </summary>
+    [Server]
+    public void RegisterAllActivePlayers()
+    {
+        foreach (PlayerData pd in PlayerList.singleton.players)
+        {
+            if (!_activePlayers.Contains(pd))
+            {
+                _activePlayers.Add(pd);
+            }
+        }
+        Debug.Log($"[MatchManager] {_activePlayers.Count} jogadores registrados como ativos para verificação de término antecipado");
+    }
+
     [Server]
     public void InternalEndMatch()
     {
