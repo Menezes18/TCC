@@ -1576,8 +1576,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 20, y: 0}
-  m_SizeDelta: {x: 300, y: 0}
+  m_AnchoredPosition: {x: 20.001, y: 0}
+  m_SizeDelta: {x: 315.58, y: 0}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!114 &16550396
 MonoBehaviour:
@@ -1599,7 +1599,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Depth of Field
+  m_text: Profundidade de Campo
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 70c02e3b1eb3ee74dbd7894ab32e167e, type: 2}
   m_sharedMaterial: {fileID: 1807027573382352039, guid: 70c02e3b1eb3ee74dbd7894ab32e167e,
@@ -2085,10 +2085,9 @@ MonoBehaviour:
   defaultValueIndex: 0
   data:
   - ULTRA
-  - VERY HIGH
-  - MEDIUM
-  - LOWEST
-  - LOW
+  - ALTO
+  - "M\xC9DIO"
+  - BAIXO
   text: {fileID: 0}
 --- !u!114 &19490760
 MonoBehaviour:
@@ -5806,8 +5805,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   defaultValueIndex: 0
   data:
-  - OFF
-  - ON
+  - DESLIGADO
+  - LIGADO
   text: {fileID: 0}
 --- !u!114 &81730508
 MonoBehaviour:
@@ -12184,7 +12183,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 539952670}
   m_HandleRect: {fileID: 539952669}
   m_Direction: 2
-  m_Value: 0
+  m_Value: 1
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -17366,7 +17365,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &255124065
 RectTransform:
   m_ObjectHideFlags: 0
@@ -21032,7 +21031,7 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u200B"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 70c02e3b1eb3ee74dbd7894ab32e167e, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -21098,7 +21097,7 @@ MonoBehaviour:
   m_margin: {x: 0, y: 0, z: 0, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 0
+  m_hasFontAssetChanged: 1
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &288624861
@@ -31703,7 +31702,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Level of Detail
+  m_text: "N\xEDvel de Detalhe"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 70c02e3b1eb3ee74dbd7894ab32e167e, type: 2}
   m_sharedMaterial: {fileID: 1807027573382352039, guid: 70c02e3b1eb3ee74dbd7894ab32e167e,
@@ -33100,9 +33099,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   defaultValueIndex: 2
   data:
-  - LOW
-  - MEDIUM
-  - HIGH
+  - BAIXO
+  - "M\xC9DIO"
+  - ALTO
   text: {fileID: 0}
 --- !u!114 &485865753
 MonoBehaviour:
@@ -33719,9 +33718,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   defaultValueIndex: 2
   data:
-  - OFF
+  - DESLIGADO
   - NORMAL
-  - HIGH
+  - ALTO
   text: {fileID: 0}
 --- !u!114 &505598639
 MonoBehaviour:
@@ -39965,7 +39964,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &633403663
 RectTransform:
   m_ObjectHideFlags: 0
@@ -39984,7 +39983,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 420, y: -510}
+  m_AnchoredPosition: {x: 420, y: -450}
   m_SizeDelta: {x: 800, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &633403664
@@ -49832,11 +49831,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   defaultValueIndex: 5
   data:
-  - OFF
-  - LOW
-  - MEDIUM
-  - HIGH
-  - VERY HIGH
+  - DESLIGADO
+  - BAIXO
+  - "M\xC9DIO"
+  - ALTO
+  - MUITO ALTO
   - ULTRA
   text: {fileID: 0}
 --- !u!114 &819453938
@@ -50635,7 +50634,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   types: 0
   Inspector: {fileID: 6195339671105370887}
-  Title: Ambient Occlusion
+  Title: "Oclus\xE3o do Ambiente"
   Description: Add description here.
   image: {fileID: 0}
   _Title: {fileID: 894109293}
@@ -60198,7 +60197,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &969417813
 RectTransform:
   m_ObjectHideFlags: 0
@@ -62681,6 +62680,7 @@ GameObject:
   - component: {fileID: 1014579920}
   - component: {fileID: 1014579919}
   - component: {fileID: 1014579918}
+  - component: {fileID: 1014579921}
   m_Layer: 0
   m_Name: PularButton
   m_TagString: Untagged
@@ -62730,12 +62730,12 @@ MonoBehaviour:
   m_Transition: 1
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 0.6603774, g: 0.6603774, b: 0.6603774, a: 1}
-    m_PressedColor: {r: 0.6627451, g: 0.6627451, b: 0.6627451, a: 1}
+    m_HighlightedColor: {r: 0.9622642, g: 0.48763603, b: 0, a: 1}
+    m_PressedColor: {r: 1, g: 0.31193793, b: 0, a: 1}
     m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
     m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
     m_ColorMultiplier: 1
-    m_FadeDuration: 0.1
+    m_FadeDuration: 0.05
   m_SpriteState:
     m_HighlightedSprite: {fileID: 0}
     m_PressedSprite: {fileID: 0}
@@ -62822,7 +62822,7 @@ MonoBehaviour:
       m_Calls: []
   m_Sprite: {fileID: 834271043, guid: a1e29a5a5991cc04bb8e753b052eb52d, type: 3}
   m_Type: 0
-  m_PreserveAspect: 0
+  m_PreserveAspect: 1
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -62838,6 +62838,23 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1014579916}
   m_CullTransparentMesh: 1
+--- !u!114 &1014579921
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1014579916}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b57a1943f9574a84ea7d438780586291, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ButtonHoverAnimator
+  hoverScale: {x: 1.1, y: 1.1, z: 1.1}
+  clickScale: {x: 1.2, y: 1.2, z: 1.2}
+  scaleDuration: 0.1
+  wiggleAmplitude: 2
+  wiggleSpeed: 10
 --- !u!1 &1015629451
 GameObject:
   m_ObjectHideFlags: 0
@@ -63543,7 +63560,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   types: 0
   Inspector: {fileID: 6195339671105370887}
-  Title: Texture Quailty
+  Title: Qualidade da Textura
   Description: Add description here.
   image: {fileID: 0}
   _Title: {fileID: 894109293}
@@ -68354,10 +68371,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Pular cutscene
+  m_text: PULAR
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 3cbc2027e267f6f4d900fbe8ddb36148, type: 2}
-  m_sharedMaterial: {fileID: 8307331056465373369, guid: 3cbc2027e267f6f4d900fbe8ddb36148,
+  m_fontAsset: {fileID: 11400000, guid: 70c02e3b1eb3ee74dbd7894ab32e167e, type: 2}
+  m_sharedMaterial: {fileID: 1807027573382352039, guid: 70c02e3b1eb3ee74dbd7894ab32e167e,
     type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -68382,8 +68399,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 28.7
-  m_fontSizeBase: 28.7
+  m_fontSize: 42.72
+  m_fontSizeBase: 42.72
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -68596,7 +68613,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Texture Filtering
+  m_text: "Filtragem Anisotr\xF3pica"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 70c02e3b1eb3ee74dbd7894ab32e167e, type: 2}
   m_sharedMaterial: {fileID: 1807027573382352039, guid: 70c02e3b1eb3ee74dbd7894ab32e167e,
@@ -78576,7 +78593,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   types: 0
   Inspector: {fileID: 6195339671105370887}
-  Title: Level of Detail
+  Title: "N\xEDvel de Detalhe"
   Description: Add description here.
   image: {fileID: 0}
   _Title: {fileID: 894109293}
@@ -85095,7 +85112,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 15.398, y: -0.00007299275}
-  m_SizeDelta: {x: -15.398193, y: 540}
+  m_SizeDelta: {x: -15.398193, y: 360}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1320309658
 MonoBehaviour:
@@ -89560,7 +89577,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   types: 0
   Inspector: {fileID: 6195339671105370887}
-  Title: Depth of Field
+  Title: Profundidade de Campo
   Description: Add description here.
   image: {fileID: 0}
   _Title: {fileID: 894109293}
@@ -114111,8 +114128,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   defaultValueIndex: 0
   data:
-  - ON
-  - OFF
+  - LIGADO
+  - DESLIGADO
   text: {fileID: 0}
 --- !u!114 &1766182398
 MonoBehaviour:
@@ -115786,7 +115803,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   types: 0
   Inspector: {fileID: 6195339671105370887}
-  Title: Texture Filtering
+  Title: "Filtragem Anisotr\xF3pica"
   Description: Add description here.
   image: {fileID: 0}
   _Title: {fileID: 894109293}
@@ -118505,7 +118522,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   types: 0
   Inspector: {fileID: 6195339671105370887}
-  Title: Shadow Quailty
+  Title: Qualidade da Sombra
   Description: Add description here.
   image: {fileID: 0}
   _Title: {fileID: 894109293}
@@ -122039,7 +122056,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Shadow Quality
+  m_text: Qualidade das Sombras
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 70c02e3b1eb3ee74dbd7894ab32e167e, type: 2}
   m_sharedMaterial: {fileID: 1807027573382352039, guid: 70c02e3b1eb3ee74dbd7894ab32e167e,
@@ -122499,7 +122516,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Texture Quality
+  m_text: Qualidade das Texturas
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 70c02e3b1eb3ee74dbd7894ab32e167e, type: 2}
   m_sharedMaterial: {fileID: 1807027573382352039, guid: 70c02e3b1eb3ee74dbd7894ab32e167e,
@@ -140216,7 +140233,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Ambient Occlusion
+  m_text: "Oclus\xE3o do Ambiente"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 70c02e3b1eb3ee74dbd7894ab32e167e, type: 2}
   m_sharedMaterial: {fileID: 1807027573382352039, guid: 70c02e3b1eb3ee74dbd7894ab32e167e,
