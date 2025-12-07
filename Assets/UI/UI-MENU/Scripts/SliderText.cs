@@ -28,7 +28,7 @@ public class SliderText : MonoBehaviour
     {
         Debug.LogError(v);
         AtualizarUI(v);
-        AudioManager.Instance.SetVolume(v);
+        if(transform.parent.name.Contains("music")) AudioManager.Instance.SetVolume(v);
     }
 
     void AtualizarUI(float v)
