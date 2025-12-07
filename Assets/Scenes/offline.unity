@@ -20070,6 +20070,18 @@ RectTransform:
     type: 3}
   m_PrefabInstance: {fileID: 279705508}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &279705510 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 708500755924647234, guid: c87d8babdf25712458ab7ce227d0f0f2,
+    type: 3}
+  m_PrefabInstance: {fileID: 279705508}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ebfc2de99b00bb74ea383ca3a9afc355, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RoomListUI
 --- !u!1 &279755708
 GameObject:
   m_ObjectHideFlags: 0
@@ -38458,26 +38470,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 259459875}
     m_Modifications:
-    - target: {fileID: 31075016142753238, guid: 37e7907ae7af1e84dbc1452e35ef8859,
-        type: 3}
-      propertyPath: m_Materials.Array.size
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 31075016142753238, guid: 37e7907ae7af1e84dbc1452e35ef8859,
-        type: 3}
-      propertyPath: 'm_Materials.Array.data[1]'
-      value: 
-      objectReference: {fileID: 2100000, guid: fb2a70bd8a1456147bfd4d780dc0cb56, type: 2}
-    - target: {fileID: 6510674490870034238, guid: 37e7907ae7af1e84dbc1452e35ef8859,
-        type: 3}
-      propertyPath: m_Materials.Array.size
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 6510674490870034238, guid: 37e7907ae7af1e84dbc1452e35ef8859,
-        type: 3}
-      propertyPath: 'm_Materials.Array.data[1]'
-      value: 
-      objectReference: {fileID: 2100000, guid: fb2a70bd8a1456147bfd4d780dc0cb56, type: 2}
     - target: {fileID: 2507095059016354261, guid: 088596ddad0f2054f8ffd32635e59289,
         type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
@@ -38553,6 +38545,26 @@ PrefabInstance:
       propertyPath: m_Name
       value: JulieteLaranja
       objectReference: {fileID: 0}
+    - target: {fileID: 31075016142753238, guid: 37e7907ae7af1e84dbc1452e35ef8859,
+        type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 31075016142753238, guid: 37e7907ae7af1e84dbc1452e35ef8859,
+        type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: fb2a70bd8a1456147bfd4d780dc0cb56, type: 2}
+    - target: {fileID: 6510674490870034238, guid: 37e7907ae7af1e84dbc1452e35ef8859,
+        type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6510674490870034238, guid: 37e7907ae7af1e84dbc1452e35ef8859,
+        type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: fb2a70bd8a1456147bfd4d780dc0cb56, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -41335,6 +41347,36 @@ MonoBehaviour:
         m_TargetAssemblyTypeName: RoomMenuController, Assembly-CSharp
         m_MethodName: OnClickJoinRoom
         m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  callJoinListRoomEvent:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 279705510}
+        m_TargetAssemblyTypeName: RoomListUI, Assembly-CSharp
+        m_MethodName: StepupCutsceneJoinListRoom
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  callCutsceneEvent:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 2013233356}
+        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+        m_MethodName: SetActive
+        m_Mode: 6
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine

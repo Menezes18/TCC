@@ -5,7 +5,8 @@ public enum CutsceneID
 {
     None,
     CreateRoom,
-    JoinRoom
+    JoinRoom,
+    JoinListRoom
 }
 
 public class ManagerCutscene : MonoBehaviour
@@ -35,12 +36,16 @@ public class ManagerCutscene : MonoBehaviour
     public UnityEvent callCreateRoomEvent;
     public UnityEvent callJoinRoomEvent;
 
+
+    public UnityEvent callJoinListRoomEvent;
+    public UnityEvent callCutsceneEvent;
+
+
     private void Awake()
     {
         if (_instance == null)
         {
             _instance = this;
-            DontDestroyOnLoad(gameObject);
         }
         else if (_instance != this)
         {
@@ -54,7 +59,10 @@ public class ManagerCutscene : MonoBehaviour
         this.id = id;
     }
 
-
+    public void callCutsceneJoinListRoomEvent()
+    {
+        callCutsceneEvent?.Invoke();
+    }
     public void callCutscene()
     {
         if (id == CutsceneID.CreateRoom)
@@ -64,6 +72,10 @@ public class ManagerCutscene : MonoBehaviour
         else if (id == CutsceneID.JoinRoom)
         {
             callJoinRoomEvent?.Invoke();
+        }
+        else if (id == CutsceneID.JoinListRoom)
+        {
+            callJoinListRoomEvent?.Invoke();
         }
     }
 
@@ -79,6 +91,9 @@ public class ManagerCutscene : MonoBehaviour
                 break;
             case 2:
                 this.id = CutsceneID.JoinRoom;
+                break;
+            case 3:
+                this.id = CutsceneID.JoinListRoom;
                 break;
         }
     }
