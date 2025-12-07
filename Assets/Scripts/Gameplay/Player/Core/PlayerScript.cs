@@ -63,6 +63,19 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         set {
             if (_status == value) return;
 
+            // Se estava Blinded e está saindo do estado Blinded, limpa o isBlinded
+            if (_status == PlayerStatus.Blinded && value != PlayerStatus.Blinded)
+            {
+                if (isServer)
+                {
+                    isBlinded = false;
+                }
+                else if (isLocalPlayer && isOwned)
+                {
+                    CmdSetBlinded(false);
+                }
+            }
+
             Debug.Log($"🔄 [STATUS] {_status} → {value}");
             _animator.SetInteger(_STATUS, (int)value);
             _status = value;
@@ -520,13 +533,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (Status == PlayerStatus.Blinded) {
             if (_blindTimer <= 0f) {
                 _blindTimer = 0f;
-                Status = PlayerStatus.Default;
-                
-                // Desativa o estado blinded sincronizado (remove indicador e bosta)
-                if (isLocalPlayer && isOwned)
-                {
-                    CmdSetBlinded(false);
-                }
+                Status = PlayerStatus.Default; // Isso já vai limpar o isBlinded no setter
             }
         }
 
@@ -1280,6 +1287,17 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     
     public void OnBlindedChanged(bool oldValue, bool newValue)
     {
+        // Garante que se o status não é Blinded, os objetos devem estar desativados
+        if (!newValue && Status == PlayerStatus.Blinded)
+        {
+            // Se isBlinded foi setado para false mas o status ainda é Blinded,
+            // força a atualização do status (pode ser um problema de sincronização)
+            if (isLocalPlayer && isOwned)
+            {
+                Status = PlayerStatus.Default;
+            }
+        }
+
         // Ativa/desativa o indicador de bosta (similar ao staggerIndicator)
         if (_bostaIndicator != null)
         {
@@ -1295,7 +1313,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             _gameObjectBosta.SetActive(newValue);
         }
         
-        Debug.Log($"💩 [BLINDED] Indicador e bosta na cara: {(newValue ? "ATIVADO" : "DESATIVADO")}");
+        Debug.Log($"💩 [BLINDED] Status: {Status}, isBlinded: {newValue}, Indicador e bosta na cara: {(newValue ? "ATIVADO" : "DESATIVADO")}");
     }
 
     [Command]
@@ -1757,7 +1775,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         _throwCooldown = 0;
         
         // Garante que o estado blinded seja desativado ao resetar
-        if (isLocalPlayer && isOwned)
+        if (isServer)
+        {
+            isBlinded = false;
+        }
+        else if (isLocalPlayer && isOwned)
         {
             CmdSetBlinded(false);
         }
