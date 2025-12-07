@@ -101,6 +101,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SerializeField] private Transform shootOrigin;
     [SerializeField] private float shootOffset = 0.5f;
     [SerializeField] public Transform _staggerIndicator;
+    [SerializeField] public Transform _bostaIndicator;
+    [SerializeField] public GameObject _gameObjectBosta;
 
     private float _inertiaCap;
     private float InertiaCap {
@@ -178,6 +180,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     [SyncVar(hook = nameof(OnStaggerChanged))]
     private bool isStaggered;
+    
+    [SyncVar(hook = nameof(OnBlindedChanged))]
+    private bool isBlinded;
 
     private float _lastPredictedImpulseTime = -999f;
     private const float PredictedImpulseReconcileWindow = 0.15f;
@@ -516,6 +521,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             if (_blindTimer <= 0f) {
                 _blindTimer = 0f;
                 Status = PlayerStatus.Default;
+                
+                // Desativa o estado blinded sincronizado (remove indicador e bosta)
+                if (isLocalPlayer && isOwned)
+                {
+                    CmdSetBlinded(false);
+                }
             }
         }
 
@@ -1117,6 +1128,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         // Only flag stagger when the incoming damage will actually stagger the player
         if (dmgType == DamageType.Push)
             isStaggered = true;
+        if (dmgType == DamageType.Poop)
+            isBlinded = true;
         TargetRpcReceiveDamage(coon, dmgType, dir);
     }
 
@@ -1124,14 +1137,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public void TargetRpcReceiveDamage(NetworkConnection coon, DamageType dmgType, Vector3 dir)
     {
         if (dmgType == DamageType.Poop) {
-
             Status = PlayerStatus.Blinded;
             _blindTimer = db.playerBlindDuration;
             float slowDuration = db != null ? Mathf.Max(0f, db.playerPoopSlowDuration) : 0f;
             if (slowDuration <= 0f && db != null)
                 slowDuration = Mathf.Max(0f, db.playerBlindDuration);
             _poopSlowTimer = slowDuration;
-
+            // O servidor já ativou isBlinded = true, então o hook OnBlindedChanged será chamado automaticamente
             return;
         }
 
@@ -1260,11 +1272,37 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             if (rotateTool != null) rotateTool.enabled = newValue;
         }
     }
+    
+    public void OnBlindedChanged(bool oldValue, bool newValue)
+    {
+        // Ativa/desativa o indicador de bosta (similar ao staggerIndicator)
+        if (_bostaIndicator != null)
+        {
+            _bostaIndicator.gameObject.SetActive(newValue);
+            
+            var rotateTool = _bostaIndicator.GetComponent<RotateAroundTool>();
+            if (rotateTool != null) rotateTool.enabled = newValue;
+        }
+        
+        // Ativa/desativa o GameObject da bosta na cara
+        if (_gameObjectBosta != null)
+        {
+            _gameObjectBosta.SetActive(newValue);
+        }
+        
+        Debug.Log($"💩 [BLINDED] Indicador e bosta na cara: {(newValue ? "ATIVADO" : "DESATIVADO")}");
+    }
 
     [Command]
     private void CmdSetStaggered(bool active)
     {
         isStaggered = active;
+    }
+    
+    [Command]
+    private void CmdSetBlinded(bool active)
+    {
+        isBlinded = active;
     }
 
     public void OnHitKill()
@@ -1712,6 +1750,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         _blindTimer = 0;
         _poopSlowTimer = 0;
         _throwCooldown = 0;
+        
+        // Garante que o estado blinded seja desativado ao resetar
+        if (isLocalPlayer && isOwned)
+        {
+            CmdSetBlinded(false);
+        }
     }
     [Command]
     void CmdDeath()
