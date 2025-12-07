@@ -66,13 +66,8 @@ public class SumoMinigameController : MinigameController, IObserver
         Adicionar(this);
         Notifica();
         Debug.Log($"[Sumo] Round iniciado com {alivePlayers.Count} jogadores.");
-        Invoke("AddPlayer", 2f);
     }
 
-    public void AddPlayer()
-    { 
-        alivePlayers  = playerList.players.ToList();    
-    }
     public override void UpdateScores()
     {
         if (!isServer || !_startGame || state == HideState.Done)
@@ -133,6 +128,12 @@ public class SumoMinigameController : MinigameController, IObserver
             Debug.LogWarning($"[Sumo] Tentativa de eliminar {pd.playerInfo.steamId} após fim da partida - IGNORADO");
             return;
         }
+
+        if (eliminationOrder.Contains(pd))
+        {
+            Debug.LogWarning($"[Sumo] Jogador {pd.playerInfo.steamId} já eliminado anteriormente - IGNORADO");
+            return;
+        }
         
         alivePlayers.Remove(pd);
         eliminationOrder.Add(pd);
@@ -152,11 +153,12 @@ public class SumoMinigameController : MinigameController, IObserver
         finalScores.Clear();
         int posIndex = 0;
 
-        if (alivePlayers.Count == 1)
+        if (alivePlayers.Count > 0)
         {
-            var winner = alivePlayers[0];
-            finalScores[winner.playerInfo.steamId] =
-                (posIndex == 0) ? gameData.firstPlaceBonus : 0;
+            foreach (var winner in alivePlayers)
+            {
+                finalScores[winner.playerInfo.steamId] = gameData.firstPlaceBonus;
+            }
             posIndex++;
         }
 
@@ -164,7 +166,8 @@ public class SumoMinigameController : MinigameController, IObserver
         {
             var pd = eliminationOrder[i];
             int pts = 0;
-            switch (posIndex) // 0=1º, 1=2º, 2=3º, 3=4º
+            
+            switch (posIndex) 
             {
                 case 0: pts = gameData.firstPlaceBonus;  break;
                 case 1: pts = gameData.secondPlaceBonus; break;
@@ -172,9 +175,12 @@ public class SumoMinigameController : MinigameController, IObserver
                 case 3: pts = gameData.fourthPlaceBonus; break;
                 default: pts = 0; break;
             }
+            
             finalScores[pd.playerInfo.steamId] = pts;
             posIndex++;
         }
+        
+        Debug.Log($"[Sumo] Pontos atribuídos. Vivos: {alivePlayers.Count}, Eliminados: {eliminationOrder.Count}");
     }
 
 
