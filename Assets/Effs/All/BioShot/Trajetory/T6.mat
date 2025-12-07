@@ -13,24 +13,26 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
+  - _RECEIVE_SHADOWS_OFF
   - _SURFACE_TYPE_TRANSPARENT
   m_InvalidKeywords:
   - _EMISSION
   m_LightmapFlags: 2
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_CustomRenderQueue: 3000
   stringTagMap:
     RenderType: Transparent
   disabledShaderPasses:
-  - DepthOnly
   - MOTIONVECTORS
+  - DepthOnly
+  - SHADOWCASTER
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
     - _BorderTex:
-        m_Texture: {fileID: 2800000, guid: ceb18670dfde0e049a4bc1aa9146268d, type: 3}
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - unity_Lightmaps:
@@ -47,29 +49,33 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _Alpha: 0.12
     - _AlphaClip: 0
     - _AlphaToMask: 0
     - _Blend: 0
-    - _CastShadows: 1
+    - _BlendModePreserveSpecular: 0
+    - _CastShadows: 0
     - _Cull: 2
-    - _DotNoise: 67.5
-    - _DotSize: 1.14
+    - _DotNoise: 66.63
+    - _DotSize: -0.75
     - _DstBlend: 10
     - _DstBlendAlpha: 10
-    - _MaskPower: -0.43
-    - _NoiseScale: 11.08
+    - _MaskPower: 0
+    - _NoiseScale: 0
     - _QueueControl: 0
     - _QueueOffset: 0
+    - _ReceiveShadows: 0
     - _SrcBlend: 5
     - _SrcBlendAlpha: 1
     - _Surface: 1
+    - _WorkflowMode: 1
     - _ZTest: 4
     - _ZWrite: 0
     - _ZWriteControl: 0
     m_Colors:
-    - _BorderColor: {r: 4.541206, g: 0.7586227, b: 0, a: 1}
-    - _DotColor: {r: 0.8867924, g: 0.2814608, b: 0, a: 1}
-    - _DotsTilling: {r: 44, g: 17.2, b: 0, a: 0}
+    - _BorderColor: {r: 0, g: 0, b: 0, a: 1}
+    - _DotColor: {r: 0.80722797, g: 2.6390157, b: 0, a: 1}
+    - _DotsTilling: {r: 21.13, g: 5, b: 0, a: 0}
     - _NoiseSpeed: {r: 0, g: 0.1, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
