@@ -30,7 +30,7 @@ public class LoadingScreenUI : MonoBehaviour
     private Coroutine progressRoutine; // added
     
     // Nome da cena offline para auto-hide
-    private const string OFFLINE_SCENE_NAME = "MainMenu";
+    private const string OFFLINE_SCENE_NAME = "offline";
     private static readonly string[] OFFLINE_SCENE_NAMES = { "offline" };
 
     void Awake()
@@ -39,11 +39,14 @@ public class LoadingScreenUI : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            // If panel was assigned in scene, detach and persist
+            
             if (panel != null)
             {
-                panel.transform.SetParent(null);
-                DontDestroyOnLoad(panel);
+                if (panel.transform.root != transform.root)
+                {
+                    DontDestroyOnLoad(panel.transform.root.gameObject);
+                }
+                
                 panel.SetActive(false);
             }
             
@@ -67,16 +70,7 @@ public class LoadingScreenUI : MonoBehaviour
         // Verifica se é uma cena offline
         bool isOfflineScene = IsOfflineScene(scene.name);
         
-        // Se não está conectado a nenhum servidor e está numa cena offline, esconde o loading
-        if (!NetworkClient.active && !NetworkServer.active)
-        {
-            if (panel != null && panel.activeSelf)
-            {
-                Debug.Log($"[LoadingUI] Auto-hiding on scene '{scene.name}' - not connected to network");
-                Hide();
-            }
-        }
-        else if (isOfflineScene && panel != null && panel.activeSelf)
+        if (isOfflineScene && panel != null)
         {
             Debug.Log($"[LoadingUI] Auto-hiding on offline scene '{scene.name}'");
             Hide();
@@ -88,14 +82,6 @@ public class LoadingScreenUI : MonoBehaviour
         foreach (var offlineName in OFFLINE_SCENE_NAMES)
         {
             if (sceneName.Contains(offlineName))
-                return true;
-        }
-        
-        // Também verifica se é a offlineScene configurada no NetworkManager
-        if (NetworkManager.singleton != null && !string.IsNullOrEmpty(NetworkManager.singleton.offlineScene))
-        {
-            if (sceneName.Contains(NetworkManager.singleton.offlineScene) || 
-                NetworkManager.singleton.offlineScene.Contains(sceneName))
                 return true;
         }
         
