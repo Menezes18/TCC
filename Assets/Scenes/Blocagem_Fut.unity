@@ -6146,10 +6146,18 @@ MonoBehaviour:
   _respawnTimer: {fileID: 1998620243}
   _gameover: {fileID: 1674593098}
   _potatoHolder: {fileID: 0}
+  playerHUDContainer: {fileID: 0}
   spinDuration: 0.45
   spinEase: 27
   popOvershoot: 1.15
   popBackDuration: 0.12
+  timerPulseScale: 1.15
+  timerPulseDuration: 0.5
+  timerNormalColor: {r: 1, g: 1, b: 1, a: 1}
+  timerWarningColor: {r: 1, g: 0.84, b: 0.3, a: 1}
+  timerCriticalColor: {r: 1, g: 0.36, b: 0.36, a: 1}
+  warningThreshold: 30
+  criticalThreshold: 10
 --- !u!114 &1629105044
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8196,6 +8204,10 @@ MonoBehaviour:
   rightGoal: {fileID: 0}
   database: {fileID: 0}
   goalCooldown: 0.75
+  outOfBoundsY: -20
+  resetCooldown: 1
+  blueSpawns: []
+  redSpawns: []
 --- !u!114 &2105664907
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8232,6 +8244,7 @@ MonoBehaviour:
   settingsMiniGameData: {fileID: 11400000, guid: d98b16f7a49579c40bf2eb8ea077fca3,
     type: 2}
   HUDSO: {fileID: 11400000, guid: 159da097a9cb83941a79e616fe586e23, type: 2}
+  resultsOverlayDelaySeconds: 5
   _spawns:
   - {fileID: 1183473117}
   - {fileID: 1212019014}
