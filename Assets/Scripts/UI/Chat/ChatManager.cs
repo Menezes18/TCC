@@ -176,6 +176,16 @@ public class ChatManager : MonoBehaviour
         {
             // Garantir alinhamento para mostrar as mensagens mais recentes
             chatText.alignment = TextAlignmentOptions.BottomLeft;
+
+            // Garante listeners caso a UI já exista
+            inputField.onSubmit.RemoveListener(OnSubmit);
+            inputField.onSubmit.AddListener(OnSubmit);
+
+            if (sendButton != null)
+            {
+                sendButton.onClick.RemoveListener(OnSendClicked);
+                sendButton.onClick.AddListener(OnSendClicked);
+            }
             return;
         }
 
@@ -278,7 +288,7 @@ public class ChatManager : MonoBehaviour
         inputField.placeholder = placeholder;
         inputField.lineType = TMP_InputField.LineType.SingleLine;
         inputField.characterLimit = 140;
-        inputField.onSubmit.AddListener(_ => OnSendClicked());
+        inputField.onSubmit.AddListener(OnSubmit);
 
         // Send button
         var sendBtnGO = new GameObject("SendButton", typeof(RectTransform), typeof(Image), typeof(Button));
@@ -472,6 +482,8 @@ public class ChatManager : MonoBehaviour
             }
         }
     }
+
+    void OnSubmit(string text) => OnSendClicked();
 
     void OnSendClicked()
     {
