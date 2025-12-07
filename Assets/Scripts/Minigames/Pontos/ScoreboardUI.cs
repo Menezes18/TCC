@@ -136,16 +136,46 @@ public class ScoreboardUI : NetworkBehaviour, IObserver
                 bool isAlive = useAliveStatus
                     ? (aliveStates != null && i < aliveStates.Length ? aliveStates[i] : true)
                     : true;
+                
                 string label;
+                Color pointsColor = Color.white;
+                
                 if (useAliveStatus)
                 {
                     label = isAlive ? "Vivo" : "Morto";
+                }
+                else if (controller is RaceMinigameController)
+                {
+                    // Mostra porcentagem para Race
+                    label = $"{points[i]}%";
+                    
+                    // Determina cor baseada no progresso relativo
+                    float minProgress = points.Min();
+                    float maxProgress = points.Max();
+                    float currentProgress = points[i];
+                    
+                    if (maxProgress - minProgress > 0)
+                    {
+                        float normalizedRelativeProgress = (currentProgress - minProgress) / (maxProgress - minProgress);
+                        if (normalizedRelativeProgress >= 0.7f) // Top 30%
+                            pointsColor = Color.green;
+                        else if (normalizedRelativeProgress >= 0.3f) // Middle 40%
+                            pointsColor = Color.yellow;
+                        else // Bottom 30%
+                            pointsColor = Color.red;
+                    }
+                    else
+                    {
+                        // Todos com mesmo progresso
+                        pointsColor = Color.white;
+                    }
                 }
                 else
                 {
                     label = points[i].ToString();
                 }
-                activeSlots[i].Refresh(i + 1, names[i], label, c, isAlive, useTeamColors, nameColor);
+                
+                activeSlots[i].Refresh(i + 1, names[i], label, c, isAlive, useTeamColors, nameColor, pointsColor);
             }
             else
             {

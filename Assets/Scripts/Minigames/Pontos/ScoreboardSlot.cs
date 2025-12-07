@@ -23,7 +23,7 @@ public class ScoreboardSlot : MonoBehaviour
         }
     }
 
-    public void Refresh(int rank, string playerName, string pointsLabel, Color color, bool isAlive, bool tintNameColor, Color nameColor)
+    public void Refresh(int rank, string playerName, string pointsLabel, Color color, bool isAlive, bool tintNameColor, Color nameColor, Color pointsColor)
     {
         if (rankText != null) rankText.text = rank.ToString();
         if (nameText != null)
@@ -37,8 +37,15 @@ public class ScoreboardSlot : MonoBehaviour
         if (pointsText != null)
         {
             pointsText.text = pointsLabel;
-            pointsText.color = isAlive ? aliveLabelColor : deadLabelColor;
+            pointsText.color = pointsColor;
         }
         if (colorImage != null) colorImage.color = color;
+    }
+    
+    // Sobrecarga para manter compatibilidade com código existente
+    public void Refresh(int rank, string playerName, string pointsLabel, Color color, bool isAlive, bool tintNameColor, Color nameColor)
+    {
+        Color pointsColor = isAlive ? aliveLabelColor : deadLabelColor;
+        Refresh(rank, playerName, pointsLabel, color, isAlive, tintNameColor, nameColor, pointsColor);
     }
 }
