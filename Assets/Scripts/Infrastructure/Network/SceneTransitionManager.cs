@@ -22,12 +22,21 @@ public class SceneTransitionManager : MonoBehaviour
         {
             singleton = this;
             DontDestroyOnLoad(gameObject);
-            RegisterHandlers();
         }
         else
         {
             Destroy(gameObject);
         }
+    }
+
+    private void Start()
+    {
+        // Handlers will be registered by MyNetworkManager
+    }
+    
+    private void OnEnable()
+    {
+        // Handlers will be registered by MyNetworkManager
     }
     #endregion
 
@@ -113,22 +122,21 @@ public class SceneTransitionManager : MonoBehaviour
 
     #region Message Registration
 
-    private void RegisterHandlers()
+    public void RegisterServerHandlers()
     {
-        if (!_serverHandlersRegistered)
-        {
-            NetworkServer.RegisterHandler<ScenePreloadAckMessage>(OnServerReceivePreloadAck, false);
-            NetworkServer.RegisterHandler<SceneActivationAckMessage>(OnServerReceiveActivationAck, false);
-            _serverHandlersRegistered = true;
-        }
+        NetworkServer.RegisterHandler<ScenePreloadAckMessage>(OnServerReceivePreloadAck, false);
+        NetworkServer.RegisterHandler<SceneActivationAckMessage>(OnServerReceiveActivationAck, false);
+        _serverHandlersRegistered = true;
+        Debug.Log("[SceneTransitionManager] Server handlers registered");
+    }
 
-        if (!_clientHandlersRegistered)
-        {
-            NetworkClient.RegisterHandler<ScenePreloadMessage>(OnClientReceivePreloadMessage, false);
-            NetworkClient.RegisterHandler<SceneActivationMessage>(OnClientReceiveActivationMessage, false);
-            NetworkClient.RegisterHandler<LoadingProgressUpdateMessage>(OnClientReceiveLoadingProgress, false);
-            _clientHandlersRegistered = true;
-        }
+    public void RegisterClientHandlers()
+    {
+        NetworkClient.RegisterHandler<ScenePreloadMessage>(OnClientReceivePreloadMessage, false);
+        NetworkClient.RegisterHandler<SceneActivationMessage>(OnClientReceiveActivationMessage, false);
+        NetworkClient.RegisterHandler<LoadingProgressUpdateMessage>(OnClientReceiveLoadingProgress, false);
+        _clientHandlersRegistered = true;
+        Debug.Log("[SceneTransitionManager] Client handlers registered");
     }
 
     private void OnDestroy()

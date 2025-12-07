@@ -114,7 +114,14 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     {
         base.OnStartServer();
         EnsureSceneTransitionManager();
-        Debug.Log("[MyNetworkManager] OnStartServer - SceneTransitionManager ensured");
+        
+        // Register server handlers for scene transition
+        if (SceneTransitionManager.singleton != null)
+        {
+            SceneTransitionManager.singleton.RegisterServerHandlers();
+        }
+        
+        Debug.Log("[MyNetworkManager] OnStartServer - SceneTransitionManager ensured and handlers registered");
     }
 
     [Server]
@@ -262,6 +269,12 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         }
 
         base.OnStartClient();
+        
+        // Register client handlers for scene transition
+        if (SceneTransitionManager.singleton != null)
+        {
+            SceneTransitionManager.singleton.RegisterClientHandlers();
+        }
         
         StartCoroutine(HideLoadingScreenAfterClientStart());
     }
