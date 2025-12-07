@@ -28,6 +28,10 @@ public class LoadingScreenUI : MonoBehaviour
     private AsyncOperation op;
     private string targetSceneName;
     private Coroutine progressRoutine; // added
+    
+    // Nome da cena offline para auto-hide
+    private const string OFFLINE_SCENE_NAME = "offline";
+    private static readonly string[] OFFLINE_SCENE_NAMES = { "offline" };
 
     void Awake()
     {
@@ -35,15 +39,53 @@ public class LoadingScreenUI : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            // If panel was assigned in scene, detach and persist
+            
             if (panel != null)
             {
-                panel.transform.SetParent(null);
-                DontDestroyOnLoad(panel);
+                if (panel.transform.root != transform.root)
+                {
+                    DontDestroyOnLoad(panel.transform.root.gameObject);
+                }
+                
                 panel.SetActive(false);
             }
+            
+            // Subscribe to scene changes to auto-hide on offline scene
+            SceneManager.sceneLoaded += OnSceneLoaded;
         }
         else Destroy(gameObject);
+    }
+    
+    private void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+    
+    /// <summary>
+    /// Auto-esconde a tela de loading quando uma cena offline é carregada.
+    /// Isso garante que o cliente não fique preso na tela de loading se desconectar.
+    /// </summary>
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // Verifica se é uma cena offline
+        bool isOfflineScene = IsOfflineScene(scene.name);
+        
+        if (isOfflineScene && panel != null)
+        {
+            Debug.Log($"[LoadingUI] Auto-hiding on offline scene '{scene.name}'");
+            Hide();
+        }
+    }
+    
+    private bool IsOfflineScene(string sceneName)
+    {
+        foreach (var offlineName in OFFLINE_SCENE_NAMES)
+        {
+            if (sceneName.Contains(offlineName))
+                return true;
+        }
+        
+        return false;
     }
 
     public void SetMirrorTargetScene(string sceneName)

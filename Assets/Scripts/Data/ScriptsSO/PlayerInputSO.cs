@@ -43,4 +43,36 @@ public class PlayerInputSO : ScriptableObject{
     public event Action<CallbackContext> OnCancel;
     public void Cancel(CallbackContext obj) {this.OnCancel?.Invoke(obj);}
     
+    /// <summary>
+    /// Limpa todos os eventos registrados.
+    /// Deve ser chamado quando o jogador desconecta para evitar referências a objetos destruídos.
+    /// </summary>
+    public void ClearAllEvents()
+    {
+        OnMove = null;
+        OnLook = null;
+        OnJump = null;
+        OnPush = null;
+        OnThrow = null;
+        OnMenuCelular = null;
+        OnCursor = null;
+        OnRoll = null;
+        OnDebug = null;
+        OnScroll = null;
+        OnCancel = null;
+        
+        UnityEngine.Debug.Log("[PlayerInputSO] All events cleared");
+    }
+    
+    /// <summary>
+    /// Chamado quando o ScriptableObject é habilitado (início do jogo ou após recompilação).
+    /// </summary>
+    private void OnEnable()
+    {
+        // Limpa eventos ao iniciar para garantir estado limpo
+        // Isso é útil especialmente no editor onde os SOs persistem entre play sessions
+        #if UNITY_EDITOR
+        ClearAllEvents();
+        #endif
+    }
 }

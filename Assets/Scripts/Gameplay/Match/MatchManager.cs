@@ -61,8 +61,65 @@ public class MatchManager : NetworkBehaviour
         _activePlayers.Clear();
         _winnerPlayers .Clear();
         
-        // Always return to lobby (RASCUNHO) after each minigame
-        MyNetworkManager.manager.ServerChangeSceneSynchronized("RASCUNHO");
+        // Tenta iniciar a votação
+        if (VotingManager.Instance != null)
+        {
+            Debug.Log("🗳️ [MATCH] Tentando iniciar votação...");
+            bool votingStarted = VotingManager.Instance.StartVotingRound();
+            
+            if (votingStarted)
+            {
+                Debug.Log("🗳️ [MATCH] Votação iniciada! Aguardando conclusão...");
+                
+                // Aguarda o tempo da votação
+                // Adicionamos um pequeno buffer para garantir sincronia
+                yield return new WaitForSeconds(VotingManager.Instance.VotingTimeRemaining + 1.0f);
+                
+                // Finaliza a votação e pega o vencedor
+                var winner = VotingManager.Instance.EndVoting();
+                
+                if (winner != null && !string.IsNullOrEmpty(winner.SceneIdentifier))
+                {
+                    // Mark as played
+                    if (MinigameRotationState.Instance != null)
+                    {
+                        MinigameRotationState.Instance.MarkAsPlayed(winner.id);
+                    }
+
+                    Debug.Log($"🗳️ [MATCH] Vencedor da votação: {winner.displayName}. Carregando cena: {winner.SceneIdentifier}");
+                    MyNetworkManager.manager.ServerChangeSceneSynchronized(winner.SceneIdentifier);
+                    yield break;
+                }
+                else
+                {
+                    Debug.LogError("❌ [MATCH] Votação terminou sem vencedor válido!");
+                }
+            }
+            else
+            {
+                Debug.Log("⚠️ [MATCH] Não foi possível iniciar votação (sem minigames elegíveis?). Indo para Vitória.");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ [MATCH] VotingManager não encontrado!");
+        }
+
+        // Se não houve votação ou falhou, tenta ir para a cena de vitória
+        // A cena de vitória geralmente é a última na rotação do MyNetworkManager
+        var rotation = MyNetworkManager.manager.SceneRotation;
+        if (rotation != null && rotation.Count > 0)
+        {
+            string lastScene = rotation[rotation.Count - 1];
+            Debug.Log($"🏁 [MATCH] Carregando cena final (Vitória): {lastScene}");
+            MyNetworkManager.manager.ServerChangeSceneSynchronized(lastScene);
+        }
+        else
+        {
+            // Fallback para o Lobby se tudo falhar
+            Debug.LogWarning("⚠️ [MATCH] Fallback para o Lobby (RASCUNHO)");
+            MyNetworkManager.manager.ServerChangeSceneSynchronized("RASCUNHO");
+        }
     }
 
     #endregion
@@ -244,6 +301,23 @@ public class MatchManager : NetworkBehaviour
             _activePlayers.Add(pd);
 
         }
+    }
+
+    /// <summary>
+    /// Registra todos os jogadores ativos na lista _activePlayers.
+    /// Usado quando o minigame gerencia seus próprios spawns ou precisa garantir que todos os jogadores estão registrados.
+    /// </summary>
+    [Server]
+    public void RegisterAllActivePlayers()
+    {
+        foreach (PlayerData pd in PlayerList.singleton.players)
+        {
+            if (!_activePlayers.Contains(pd))
+            {
+                _activePlayers.Add(pd);
+            }
+        }
+        Debug.Log($"[MatchManager] {_activePlayers.Count} jogadores registrados como ativos para verificação de término antecipado");
     }
 
     [Server]
@@ -441,7 +515,7 @@ public class MatchManager : NetworkBehaviour
         RpcShowSimpleResults(names, totals, gains, colors, hatIndices, glassesIndices, shirtIndices);
 
         float exitTimer = ResultsUI.singleton != null ? ResultsUI.singleton.exitTimerSeconds : 10f;
-        StartCoroutine(WaitAndReturnToLobby(exitTimer));
+        // StartCoroutine(WaitAndReturnToLobby(exitTimer));
     }
     
     [Server]

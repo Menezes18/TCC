@@ -16,12 +16,25 @@ using UnityEngine.InputSystem;
         float _x, _y;
 
         private float _mouse;
+        private bool _hasSubscribed = false;
+        
         private void Start(){
             
             playerScript = GetComponent<PlayerScript>();
             
             if (!playerScript.isLocalPlayer) return;
             
+            SubscribeToInputEvents();
+        }
+        
+        /// <summary>
+        /// Inscreve nos eventos de input.
+        /// </summary>
+        private void SubscribeToInputEvents()
+        {
+            if (_hasSubscribed) return;
+            
+            // Agora inscreve nos eventos
             PlayerInputSO.OnMove += PlayerInputSO_OnMove;
             PlayerInputSO.OnLook += PlayerInputSO_OnLook;
             PlayerInputSO.OnJump += PlayerInputSO_OnJump;
@@ -32,14 +45,20 @@ using UnityEngine.InputSystem;
             PlayerInputSO.OnDebug += PlayerInputSOOnOnDebug;
             PlayerInputSO.OnScroll += PlayerInputSO_OnScroll;
             PlayerInputSO.OnCancel += PlayerInputSO_OnCancel;
-
-
+            
+            _hasSubscribed = true;
+            Debug.Log("[PlayerControls] Subscribed to input events");
         }
-
-
-
-        private void OnDestroy(){
-            if (playerScript != null && playerScript.isLocalPlayer) {
+        
+        /// <summary>
+        /// Remove as inscrições dos eventos de input.
+        /// </summary>
+        private void UnsubscribeFromInputEvents()
+        {
+            if (!_hasSubscribed) return;
+            
+            if (PlayerInputSO != null)
+            {
                 PlayerInputSO.OnMove  -= PlayerInputSO_OnMove;
                 PlayerInputSO.OnLook  -= PlayerInputSO_OnLook;
                 PlayerInputSO.OnJump  -= PlayerInputSO_OnJump;
@@ -49,6 +68,24 @@ using UnityEngine.InputSystem;
                 PlayerInputSO.OnMenuCelular -= PlayerInputSO_OnMenuCelular;
                 PlayerInputSO.OnScroll -= PlayerInputSO_OnScroll;
                 PlayerInputSO.OnCancel -= PlayerInputSO_OnCancel;
+                PlayerInputSO.OnDebug -= PlayerInputSOOnOnDebug;
+            }
+            
+            _hasSubscribed = false;
+            Debug.Log("[PlayerControls] Unsubscribed from input events");
+        }
+
+        private void OnDestroy(){
+            if (playerScript != null && playerScript.isLocalPlayer) {
+                UnsubscribeFromInputEvents();
+            }
+        }
+        
+        private void OnDisable()
+        {
+            // Também limpa quando desabilitado para evitar problemas
+            if (playerScript != null && playerScript.isLocalPlayer) {
+                UnsubscribeFromInputEvents();
             }
         }
         

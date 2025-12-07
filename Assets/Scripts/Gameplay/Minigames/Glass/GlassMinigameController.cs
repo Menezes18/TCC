@@ -131,6 +131,13 @@ public class GlassMinigameController : MinigameController
         _finalPointsByPlayer.Clear();
         _liveScoresByPlayer.Clear();
         _lastRowByPlayer.Clear();
+        
+        // ✅ Registra todos os jogadores ativos para permitir término antecipado quando todos chegarem
+        if (MatchManager.singleton != null)
+        {
+            MatchManager.singleton.RegisterAllActivePlayers();
+        }
+        
         Notifica();
     }
 
@@ -202,6 +209,10 @@ public class GlassMinigameController : MinigameController
         ulong id = pd.playerInfo.steamId;
         if (_finishOrder.Contains(id)) return;
         _finishOrder.Add(id);
+        
+        Debug.Log($"[Glass] Jogador {pd.playerInfo.username} chegou ao final! Ordem: {_finishOrder.Count}/{PlayerList.singleton.players.Count}");
+        
+        // Informa MatchManager para encerrar quando todos chegarem (igual ao RaceMinigameController)
         MatchManager.singleton?.AddWinnerPlayer(pd);
     }
 }

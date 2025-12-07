@@ -134,7 +134,7 @@ public class RoomMenuController : MonoBehaviour
         SetStatus("Sala criada. Compartilhe o código.");
 
         steamLobby?.ReloadLobbyList();
-        ClosePopup();
+      //  ClosePopup();
         ToggleButtons(true);
     }
 

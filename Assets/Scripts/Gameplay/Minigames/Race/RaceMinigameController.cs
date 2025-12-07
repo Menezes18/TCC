@@ -14,6 +14,10 @@ public class RaceMinigameController : MinigameController
     [SerializeField] private Transform startReference; // ponto inicial opcional para cálculo de progresso
     [SerializeField] private RaceFinishTrigger finishTrigger;
     [SerializeField] private List<RaceCheckpoint> checkpoints = new();
+    
+    [Header("Waypoints para Progresso")]
+    [SerializeField] private List<Transform> progressWaypoints = new();
+    
     [SerializeField] private int maxPoints = 250;
     private bool _matchActive;
     private PlayerList PlayerList => PlayerList.singleton;
@@ -118,10 +122,8 @@ public class RaceMinigameController : MinigameController
         {
             ulong id = pd.playerInfo.steamId;
             float prog = GetNormalizedProgress(pd);
-            int pts = settingsData != null
-                ? Mathf.RoundToInt(prog * Mathf.Max(0, maxPoints))
-                : Mathf.RoundToInt(prog * 100f);
-            _liveScoresByPlayer[id] = pts;
+            int progressPercent = Mathf.RoundToInt(prog * 100f);
+            _liveScoresByPlayer[id] = progressPercent;
         }
 
         Notifica();
@@ -132,10 +134,33 @@ public class RaceMinigameController : MinigameController
     {
         _finalPointsByPlayer.Clear();
 
-        // bônus por posição para quem chegou
-        for (int i = 0; i < _finishOrder.Count; i++)
+        var allPlayersRanked = new List<(ulong id, float progress, bool finished)>();
+        
+        foreach (var finishedId in _finishOrder)
         {
-            int bonus = i switch
+            allPlayersRanked.Add((finishedId, 1f, true));
+        }
+        
+        var nonFinishers = new List<(ulong id, float progress)>();
+        foreach (var pd in PlayerList.players)
+        {
+            ulong id = pd.playerInfo.steamId;
+            if (!_finished.Contains(id))
+            {
+                float prog = GetNormalizedProgress(pd);
+                nonFinishers.Add((id, prog));
+            }
+        }
+        nonFinishers.Sort((a, b) => b.progress.CompareTo(a.progress));
+        
+        foreach (var nf in nonFinishers)
+        {
+            allPlayersRanked.Add((nf.id, nf.progress, false));
+        }
+
+        for (int i = 0; i < allPlayersRanked.Count; i++)
+        {
+            int points = i switch
             {
                 0 => settingsData?.firstPlaceBonus ?? 0,
                 1 => settingsData?.secondPlaceBonus ?? 0,
@@ -143,49 +168,15 @@ public class RaceMinigameController : MinigameController
                 3 => settingsData?.fourthPlaceBonus ?? 0,
                 _ => 0
             };
-            _finalPointsByPlayer[_finishOrder[i]] = bonus;
-        }
-
-        // progresso para não-finalistas
-        foreach (var pd in PlayerList.players)
-        {
-            ulong id = pd.playerInfo.steamId;
-            if (_finished.Contains(id)) continue;
-
-            float prog = GetNormalizedProgress(pd);
-            int pts = Mathf.RoundToInt(prog * Mathf.Max(0, maxPoints));
-            _finalPointsByPlayer[id] = pts;
-        }
-
-        // Override: pontuação final por colocação (1º..4º), incluindo não-finalistas por progresso
-        var ranked = new List<ulong>();
-        ranked.AddRange(_finishOrder);
-        var nonFinishers = new List<(ulong id, float prog)>();
-        foreach (var pd2 in PlayerList.players)
-        {
-            ulong nid = pd2.playerInfo.steamId;
-            if (_finished.Contains(nid)) continue;
-            nonFinishers.Add((nid, GetNormalizedProgress(pd2)));
-        }
-        nonFinishers.Sort((a, b) => b.prog.CompareTo(a.prog));
-        foreach (var nf in nonFinishers) ranked.Add(nf.id);
-        _finalPointsByPlayer.Clear();
-        for (int ri = 0; ri < ranked.Count; ri++)
-        {
-            int p = ri switch
-            {
-                0 => settingsData?.firstPlaceBonus ?? 0,
-                1 => settingsData?.secondPlaceBonus ?? 0,
-                2 => settingsData?.thirdPlaceBonus  ?? 0,
-                3 => settingsData?.fourthPlaceBonus ?? 0,
-                _ => 0
-            };
-            _finalPointsByPlayer[ranked[ri]] = p;
+            ulong playerId = allPlayersRanked[i].id;
+            _finalPointsByPlayer[playerId] = points;
         }
     }
 
-    public override Dictionary<ulong, int> GetResults() =>
-        _finalPointsByPlayer.Count > 0 ? _finalPointsByPlayer : _liveScoresByPlayer;
+    public override Dictionary<ulong, int> GetResults()
+    {
+                return _finalPointsByPlayer;
+    }
 
     public override Dictionary<ulong, int> GetLiveScores() => _liveScoresByPlayer;
 
@@ -250,34 +241,91 @@ public class RaceMinigameController : MinigameController
         }
     }
 
-    // ======== Cálculo de progresso ========
     private float GetNormalizedProgress(PlayerData pd)
     {
-        ulong id = pd.playerInfo.steamId;
-        int idx = _lastCheckpointIndex.TryGetValue(id, out var cp) ? cp : -1;
-
-        Transform prev = idx < 0 ? startReference : GetCheckpointTransform(idx);
-        Transform next = GetNextTransform(idx);
-
-        if (prev == null && startReference != null) prev = startReference;
-        if (next == null)
+        List<Transform> activeWaypoints = GetActiveWaypoints();
+        if (activeWaypoints == null || activeWaypoints.Count == 0)
         {
-            // sem próximo: considera finalizado se passou do último checkpoint e existe finish
-            return (finishTrigger != null && idx >= checkpoints.Count - 1) ? 1f : 0f;
+            return 0f;
         }
 
-        Vector3 a = prev.position;
-        Vector3 b = next.position;
-        Vector3 p = pd.transform.position;
-        Vector3 ab = b - a;
-        float segLen = ab.magnitude;
-        if (segLen <= 0.0001f) return 0f;
-        float t = Mathf.Clamp01(Vector3.Dot(p - a, ab.normalized) / segLen);
+        Vector3 playerPos = pd.transform.position;
+        Vector3 playerPosFlat = new Vector3(playerPos.x, 0f, playerPos.z);
 
-        int segmentsCount = checkpoints.Count + (finishTrigger != null ? 1 : 0);
-        int completedSegments = Mathf.Max(0, idx + 1); // -1 => 0; 0 => 1; etc.
-        float normalized = segmentsCount > 0 ? Mathf.Clamp01((completedSegments + t) / segmentsCount) : 0f;
+        float closestDistance = float.MaxValue;
+        int closestSegmentIndex = -1;
+        float closestT = 0f;
+
+        for (int i = 0; i < activeWaypoints.Count - 1; i++)
+        {
+            if (activeWaypoints[i] == null || activeWaypoints[i + 1] == null) continue;
+
+            Vector3 a = activeWaypoints[i].position;
+            Vector3 b = activeWaypoints[i + 1].position;
+            Vector3 aFlat = new Vector3(a.x, 0f, a.z);
+            Vector3 bFlat = new Vector3(b.x, 0f, b.z);
+
+            Vector3 ab = bFlat - aFlat;
+            float segLen = ab.magnitude;
+            if (segLen <= 0.0001f) continue;
+
+            Vector3 ap = playerPosFlat - aFlat;
+            float t = Mathf.Clamp01(Vector3.Dot(ap, ab.normalized) / segLen);
+            Vector3 projectedPoint = aFlat + ab.normalized * (t * segLen);
+            
+            float dist = Vector3.Distance(playerPosFlat, projectedPoint);
+
+            if (dist < closestDistance)
+            {
+                closestDistance = dist;
+                closestSegmentIndex = i;
+                closestT = t;
+            }
+        }
+
+        if (closestSegmentIndex < 0)
+        {
+            for (int i = 0; i < activeWaypoints.Count; i++)
+            {
+                if (activeWaypoints[i] == null) continue;
+                float dist = Vector3.Distance(playerPosFlat, new Vector3(activeWaypoints[i].position.x, 0f, activeWaypoints[i].position.z));
+                if (dist < 5f) // margem de 5 unidades
+                {
+                    closestSegmentIndex = i;
+                    closestT = 0f;
+                    break;
+                }
+            }
+        }
+
+        if (closestSegmentIndex < 0) return 0f;
+
+        float totalProgress = closestSegmentIndex + closestT;
+        float maxProgress = activeWaypoints.Count - 1; // número de segmentos
+        
+        if (maxProgress <= 0) return 0f;
+        
+        float normalized = Mathf.Clamp01(totalProgress / maxProgress);
         return normalized;
+    }
+
+    private List<Transform> GetActiveWaypoints()
+    {
+        if (progressWaypoints != null && progressWaypoints.Count > 0)
+        {
+            return progressWaypoints.Where(w => w != null).ToList();
+        }
+        
+        if (checkpoints != null && checkpoints.Count > 0)
+        {
+            return checkpoints
+                .Where(c => c != null)
+                .OrderBy(c => c.index)
+                .Select(c => c.transform)
+                .ToList();
+        }
+        
+        return new List<Transform>();
     }
 
     private Transform GetCheckpointTransform(int idx)
@@ -292,6 +340,110 @@ public class RaceMinigameController : MinigameController
         if (nextIdx < checkpoints.Count) return checkpoints[nextIdx].transform;
         if (finishTrigger != null) return finishTrigger.transform;
         return null;
+    }
+
+    private void OnDrawGizmos()
+    {
+        DrawWaypointGizmos(false);
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        DrawWaypointGizmos(true);
+    }
+
+    private void DrawWaypointGizmos(bool selected)
+    {
+        List<Transform> activeWaypoints = GetActiveWaypoints();
+        
+        if (activeWaypoints == null || activeWaypoints.Count == 0) return;
+
+        Gizmos.color = selected ? Color.yellow : new Color(1f, 1f, 0f, 0.5f);
+        
+        if (startReference != null && activeWaypoints.Count > 0 && activeWaypoints[0] != startReference)
+        {
+            Gizmos.DrawLine(startReference.position, activeWaypoints[0].position);
+            Gizmos.color = selected ? Color.green : new Color(0f, 1f, 0f, 0.5f);
+            Gizmos.DrawSphere(startReference.position, 0.5f);
+        }
+
+
+        Gizmos.color = selected ? Color.yellow : new Color(1f, 1f, 0f, 0.5f);
+        for (int i = 0; i < activeWaypoints.Count - 1; i++)
+        {
+            if (activeWaypoints[i] != null && activeWaypoints[i + 1] != null)
+            {
+                Gizmos.DrawLine(
+                    activeWaypoints[i].position,
+                    activeWaypoints[i + 1].position
+                );
+            }
+        }
+
+        if (finishTrigger != null && activeWaypoints.Count > 0)
+        {
+            Transform lastWaypoint = activeWaypoints[activeWaypoints.Count - 1];
+            if (lastWaypoint != null && finishTrigger.transform != lastWaypoint)
+            {
+                Gizmos.DrawLine(
+                    lastWaypoint.position,
+                    finishTrigger.transform.position
+                );
+            }
+            Gizmos.color = selected ? Color.red : new Color(1f, 0f, 0f, 0.5f);
+            Gizmos.DrawSphere(finishTrigger.transform.position, 0.5f);
+        }
+
+        for (int i = 0; i < activeWaypoints.Count; i++)
+        {
+            var wp = activeWaypoints[i];
+            if (wp == null) continue;
+
+            Vector3 pos = wp.position;
+            
+            Gizmos.color = selected ? Color.cyan : new Color(0f, 1f, 1f, 0.5f);
+            Gizmos.DrawSphere(pos, 0.4f);
+            
+            Gizmos.DrawLine(pos, pos + Vector3.up * 2f);
+        }
+
+        #if UNITY_EDITOR
+        UnityEditor.Handles.color = Color.white;
+        
+        int totalWaypoints = activeWaypoints.Count;
+        for (int i = 0; i < activeWaypoints.Count; i++)
+        {
+            var wp = activeWaypoints[i];
+            if (wp == null) continue;
+            
+            Vector3 labelPos = wp.position + Vector3.up * 2.5f;
+            
+            int percent = 0;
+            if (totalWaypoints > 1)
+            {
+                percent = Mathf.RoundToInt((i / (float)(totalWaypoints - 1)) * 100f);
+            }
+            else if (totalWaypoints == 1)
+            {
+                percent = 100;
+            }
+            
+            string label = $"WP {i + 1}\n{percent}%";
+            UnityEditor.Handles.Label(labelPos, label);
+        }
+
+        if (startReference != null && (activeWaypoints.Count == 0 || activeWaypoints[0] != startReference))
+        {
+            UnityEditor.Handles.color = Color.green;
+            UnityEditor.Handles.Label(startReference.position + Vector3.up * 2.5f, "START\n0%");
+        }
+
+        if (finishTrigger != null)
+        {
+            UnityEditor.Handles.color = Color.red;
+            UnityEditor.Handles.Label(finishTrigger.transform.position + Vector3.up * 2.5f, "FINISH\n100%");
+        }
+        #endif
     }
 }
 

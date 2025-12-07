@@ -160,6 +160,13 @@ public class HUDSO : ScriptableObject{
         this.EventOnThrowCooldownUpdated?.Invoke(normalizedValue);
     }
 
+    // Ability Block UI (local-only)
+    public event Action<bool> EventOnAbilityBlockUpdated;
+    public void SetAbilityBlock(bool blocked)
+    {
+        this.EventOnAbilityBlockUpdated?.Invoke(blocked);
+    }
+
     // Score UI (local-only)
     public event Action<int> EventOnScoreUpdated;
 
@@ -175,5 +182,48 @@ public class HUDSO : ScriptableObject{
     {
         this.EventOnSpectatorModeChanged?.Invoke(isSpectating);
     }
+    
+    /// <summary>
+    /// Limpa todos os eventos registrados para evitar referências a objetos destruídos.
+    /// </summary>
+    public void ClearAllEvents()
+    {
+        EventOnShowColorChangePanel = null;
+        EventOnHideColorChangePanel = null;
+        EventOnSetBlindAlpha = null;
+        EventOnFreezeTimerUpdated = null;
+        EventOnPrepareTimerUpdated = null;
+        EventOnMatchTimerUpdated = null;
+        EventOnVotingTimerUpdated = null;
+        EventOnRespawnTimerUpdated = null;
+        EventOnPotatoHolderUpdated = null;
+        EventOnGameOver = null;
+        EventOnShowMinigameSelectionPanel = null;
+        EventOnHideMinigameSelectionPanel = null;
+        EventOnShowCustomizationPanel = null;
+        EventOnHideCustomizationPanel = null;
+        EventOnShowFriendListPanel = null;
+        EventOnHideFriendListPanel = null;
+        EventOnShowInteractHint = null;
+        EventOnHideInteractHint = null;
+        EventOnShowMenuPanel = null;
+        EventOnHideMenuPanel = null;
+        EventOnShowBriefing = null;
+        EventOnHideBriefing = null;
+        EventOnShowVotingPanel = null;
+        EventOnHideVotingPanel = null;
+        EventOnPushCooldownUpdated = null;
+        EventOnThrowCooldownUpdated = null;
+        EventOnScoreUpdated = null;
+        EventOnSpectatorModeChanged = null;
+        
+        Debug.Log("[HUDSO] All events cleared");
+    }
+    
+    private void OnEnable()
+    {
+        #if UNITY_EDITOR
+        ClearAllEvents();
+        #endif
+    }
 }
-

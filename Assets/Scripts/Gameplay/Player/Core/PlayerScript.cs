@@ -101,6 +101,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SerializeField] private Transform shootOrigin;
     [SerializeField] private float shootOffset = 0.5f;
     [SerializeField] public Transform _staggerIndicator;
+    [SerializeField] public Transform _bostaIndicator;
+    [SerializeField] public GameObject _gameObjectBosta;
 
     private float _inertiaCap;
     private float InertiaCap {
@@ -178,6 +180,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     [SyncVar(hook = nameof(OnStaggerChanged))]
     private bool isStaggered;
+    
+    [SyncVar(hook = nameof(OnBlindedChanged))]
+    private bool isBlinded;
 
     private float _lastPredictedImpulseTime = -999f;
     private const float PredictedImpulseReconcileWindow = 0.15f;
@@ -516,6 +521,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             if (_blindTimer <= 0f) {
                 _blindTimer = 0f;
                 Status = PlayerStatus.Default;
+                
+                // Desativa o estado blinded sincronizado (remove indicador e bosta)
+                if (isLocalPlayer && isOwned)
+                {
+                    CmdSetBlinded(false);
+                }
             }
         }
 
@@ -687,6 +698,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             ShowBanana();
         else
             HideBanana();
+
+        if (isOwned)
+        {
+            HUDSO.SetAbilityBlock(newVal);
+        }
     }
     
     private void ShowBanana()
@@ -1117,6 +1133,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         // Only flag stagger when the incoming damage will actually stagger the player
         if (dmgType == DamageType.Push)
             isStaggered = true;
+        if (dmgType == DamageType.Poop)
+            isBlinded = true;
         TargetRpcReceiveDamage(coon, dmgType, dir);
     }
 
@@ -1124,14 +1142,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public void TargetRpcReceiveDamage(NetworkConnection coon, DamageType dmgType, Vector3 dir)
     {
         if (dmgType == DamageType.Poop) {
-
             Status = PlayerStatus.Blinded;
             _blindTimer = db.playerBlindDuration;
             float slowDuration = db != null ? Mathf.Max(0f, db.playerPoopSlowDuration) : 0f;
             if (slowDuration <= 0f && db != null)
                 slowDuration = Mathf.Max(0f, db.playerBlindDuration);
             _poopSlowTimer = slowDuration;
-
+            // O servidor já ativou isBlinded = true, então o hook OnBlindedChanged será chamado automaticamente
             return;
         }
 
@@ -1260,11 +1277,37 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             if (rotateTool != null) rotateTool.enabled = newValue;
         }
     }
+    
+    public void OnBlindedChanged(bool oldValue, bool newValue)
+    {
+        // Ativa/desativa o indicador de bosta (similar ao staggerIndicator)
+        if (_bostaIndicator != null)
+        {
+            _bostaIndicator.gameObject.SetActive(newValue);
+            
+            var rotateTool = _bostaIndicator.GetComponent<RotateAroundTool>();
+            if (rotateTool != null) rotateTool.enabled = newValue;
+        }
+        
+        // Ativa/desativa o GameObject da bosta na cara
+        if (_gameObjectBosta != null)
+        {
+            _gameObjectBosta.SetActive(newValue);
+        }
+        
+        Debug.Log($"💩 [BLINDED] Indicador e bosta na cara: {(newValue ? "ATIVADO" : "DESATIVADO")}");
+    }
 
     [Command]
     private void CmdSetStaggered(bool active)
     {
         isStaggered = active;
+    }
+    
+    [Command]
+    private void CmdSetBlinded(bool active)
+    {
+        isBlinded = active;
     }
 
     public void OnHitKill()
@@ -1276,8 +1319,51 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if (base.isOwned == false) return;
         OnContextualHit(DeathCause.Default, true);
-
     }
+    
+    /// <summary>
+    /// Método chamado pelo servidor para forçar a morte/espectador de um jogador.
+    /// Diferente de OnHitSpectate que só funciona no cliente local.
+    /// </summary>
+    [Server]
+    public void ServerForceSpectate(DeathCause cause = DeathCause.Default)
+    {
+        Debug.Log($"💀 [SERVER] Forçando espectador para {gameObject.name}");
+        
+        // Atualiza o estado no servidor
+        isStaggered = false;
+        
+        // Envia RPC para o cliente dono do PlayerScript
+        var conn = connectionToClient;
+        if (conn != null)
+        {
+            TargetForceSpectate(conn, cause);
+        }
+        
+        // Também envia RPC para todos verem os efeitos de morte
+        RpcOnDeathWithCause(cause, true, transform.position, transform.rotation);
+    }
+    
+    /// <summary>
+    /// TargetRpc enviado apenas para o dono do PlayerScript para iniciar o modo espectador.
+    /// </summary>
+    [TargetRpc]
+    private void TargetForceSpectate(NetworkConnection conn, DeathCause cause)
+    {
+        Debug.Log($"💀 [CLIENT] Recebido TargetForceSpectate - cause: {cause}");
+        
+        var entry = deathEffects != null ? deathEffects.Get(cause) : null;
+        float hideDelay = deathEffects != null ? deathEffects.GetHideDelay(cause) : 0f;
+        bool shouldHideModel = entry == null || entry.hideModelAfterDelay;
+        if (entry != null && entry.hideModelAfterDelay)
+            hideDelay = Mathf.Max(hideDelay, entry.hideModelDelay);
+        
+        _animator?.SetInteger(_DEATHCAUSE, (int)cause);
+        
+        // Inicia o processo de morte permanente (espectador)
+        InternalDeath(true, hideDelay, shouldHideModel);
+    }
+    
     private void OnExtraFreezeChanged(bool oldVal, bool newVal)
     {
         
@@ -1669,6 +1755,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         _blindTimer = 0;
         _poopSlowTimer = 0;
         _throwCooldown = 0;
+        
+        // Garante que o estado blinded seja desativado ao resetar
+        if (isLocalPlayer && isOwned)
+        {
+            CmdSetBlinded(false);
+        }
     }
     [Command]
     void CmdDeath()
