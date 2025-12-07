@@ -114,7 +114,14 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     {
         base.OnStartServer();
         EnsureSceneTransitionManager();
-        Debug.Log("[MyNetworkManager] OnStartServer - SceneTransitionManager ensured");
+        
+        // Register server handlers for scene transition
+        if (SceneTransitionManager.singleton != null)
+        {
+            SceneTransitionManager.singleton.RegisterServerHandlers();
+        }
+        
+        Debug.Log("[MyNetworkManager] OnStartServer - SceneTransitionManager ensured and handlers registered");
     }
 
     [Server]
@@ -263,6 +270,12 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
         base.OnStartClient();
         
+        // Register client handlers for scene transition
+        if (SceneTransitionManager.singleton != null)
+        {
+            SceneTransitionManager.singleton.RegisterClientHandlers();
+        }
+        
         StartCoroutine(HideLoadingScreenAfterClientStart());
     }
     
@@ -289,6 +302,12 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     {
         Debug.Log("[MyNetworkManager] OnStopClient called - cleaning up client state");
         
+        // Unregister client handlers
+        if (SceneTransitionManager.singleton != null)
+        {
+            SceneTransitionManager.singleton.UnregisterClientHandlers();
+        }
+        
         // Limpa o estado do SceneTransitionManager para evitar que o cliente fique preso
         if (SceneTransitionManager.singleton != null)
         {
@@ -307,6 +326,9 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             if (MainMenu.instance != null)
                 MainMenu.instance.SetMenuState(MenuState.Home);
         }
+
+        // Ensure local state is cleaned up even if OnClientDisconnect wasn't called (e.g. voluntary leave)
+        CleanupClientLocalState();
 
         base.OnStopClient();
     }
@@ -430,6 +452,13 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public override void OnStopServer()
     {
         Debug.Log("[MyNetworkManager] OnStopServer called - cleaning up server state");
+        
+        // Unregister server handlers
+        if (SceneTransitionManager.singleton != null)
+        {
+            SceneTransitionManager.singleton.UnregisterServerHandlers();
+        }
+        
         CleanupNetworkState();
         base.OnStopServer();
     }

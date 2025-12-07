@@ -85,6 +85,14 @@ public class SteamLobby : MonoBehaviour
         ReloadLobbyList();
     }
 
+    private void OnDestroy()
+    {
+        if (lobbyCreated != null) { lobbyCreated.Dispose(); lobbyCreated = null; }
+        if (joinRequested != null) { joinRequested.Dispose(); joinRequested = null; }
+        if (lobbyEntered != null) { lobbyEntered.Dispose(); lobbyEntered = null; }
+        if (lobbyMatchList != null) { lobbyMatchList.Dispose(); lobbyMatchList = null; }
+    }
+
 
     #region Steam Lobby
     public void ReloadLobbyList()
