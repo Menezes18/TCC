@@ -1,34 +1,32 @@
 using UnityEngine;
-using UnityEngine.UI;
-using Mirror;
+using UnityEngine.Events;
 
 public class CooldownUI : MonoBehaviour
 {
-    [SerializeField] private Image pushFillImage;
-    [SerializeField] private Image throwFillImage;
+    [SerializeField] private HUDSO HUDSO;
 
-    public PlayerScript player;
-
-    public void Init(PlayerScript target)
-    {
-        player = target;
-    }
+    public UnityEvent<float> OnPushCooldownChanged;
+    public UnityEvent<float> OnThrowCooldownChanged;
 
     void Start()
     {
-        if (player == null && NetworkClient.localPlayer != null)
-            player = NetworkClient.localPlayer.GetComponent<PlayerScript>();
+        HUDSO.EventOnPushCooldownUpdated += HUDSOOnPushCooldownUpdated;
+        HUDSO.EventOnThrowCooldownUpdated += HUDSOOnThrowCooldownUpdated;
     }
 
-    void Update()
+    void OnDestroy()
     {
-        if (player == null)
-            return;
+        HUDSO.EventOnPushCooldownUpdated -= HUDSOOnPushCooldownUpdated;
+        HUDSO.EventOnThrowCooldownUpdated -= HUDSOOnThrowCooldownUpdated;
+    }
 
-        if (pushFillImage != null)
-            pushFillImage.fillAmount = player.PushCooldownNormalized;
+    private void HUDSOOnPushCooldownUpdated(float value)
+    {
+        this.OnPushCooldownChanged?.Invoke(value);
+    }
 
-        if (throwFillImage != null)
-            throwFillImage.fillAmount = player.ThrowCooldownNormalized;
+    private void HUDSOOnThrowCooldownUpdated(float value)
+    {
+        this.OnThrowCooldownChanged?.Invoke(value);
     }
 }

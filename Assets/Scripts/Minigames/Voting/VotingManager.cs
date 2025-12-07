@@ -205,15 +205,8 @@ public class VotingManager : NetworkBehaviour
         // Handle case where no minigames are eligible
         if (eligible.Count == 0)
         {
-            Debug.LogWarning("⚠️ [VOTING] No eligible minigames found! Forcing rotation reset.");
-            rotationState.Reset();
-            eligible = rotationState.GetEligibleMinigames();
-
-            if (eligible.Count == 0)
-            {
-                Debug.LogError("[VOTING] Even after reset, no eligible minigames found! Check catalog setup.");
-                return false;
-            }
+            Debug.LogWarning("⚠️ [VOTING] No eligible minigames found! Returning false to trigger Victory flow.");
+            return false;
         }
 
         // Clear previous state

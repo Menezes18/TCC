@@ -11,6 +11,12 @@ public class HUDManager : MonoBehaviour
     [SerializeField] TMP_Text _matchTimer, _freezeTimer, _respawnTimer, _gameover;
     [SerializeField] TMP_Text _potatoHolder;
 
+    [Header("Player HUD Elements")]
+    [SerializeField] GameObject playerHUDContainer;
+    private string playerHUDContainerName = "HUD:UIPlayer";
+    
+    private CanvasGroup _playerHUDCanvasGroup;
+    private int _panelsOpenCount = 0;
     
     [Header("Countdown FX")]
     [SerializeField] float spinDuration = 0.45f;
@@ -35,12 +41,29 @@ public class HUDManager : MonoBehaviour
     TMP_Text tmp;
     void Start()
     {
+        // Timer events
         HUDSO.EventOnMatchTimerUpdated += HUDSOOnEventOnMatchTimerUpdated;
         HUDSO.EventOnPrepareTimerUpdated += HUDSOOnEventOnPrepareTimerUpdated;
         HUDSO.EventOnFreezeTimerUpdated += HUDSOOnEventOnFreezeTimerUpdated;
         HUDSO.EventOnRespawnTimerUpdated += HUDSOOnEventOnRespawnTimerUpdated;
         HUDSO.EventOnGameOver += HUDSOOnEventOnGameOver;
         HUDSO.EventOnPotatoHolderUpdated += OnPotatoHolderUpdated;
+        
+        // Spectator mode
+        HUDSO.EventOnSpectatorModeChanged += OnSpectatorModeChanged;
+        
+        // Panel visibility events
+        HUDSO.EventOnShowColorChangePanel += OnPanelOpened;
+        HUDSO.EventOnHideColorChangePanel += OnPanelClosed;
+        HUDSO.EventOnShowMinigameSelectionPanel += OnPanelOpened;
+        HUDSO.EventOnHideMinigameSelectionPanel += OnPanelClosed;
+        HUDSO.EventOnShowBriefing += OnPanelOpened;
+        HUDSO.EventOnHideBriefing += OnPanelClosed;
+        HUDSO.EventOnShowVotingPanel += OnPanelOpened;
+        HUDSO.EventOnHideVotingPanel += OnPanelClosed;
+        HUDSO.EventOnShowMenuPanel += OnPanelOpened;
+        HUDSO.EventOnHideMenuPanel += OnPanelClosed;
+        
         _matchTimer.text = _freezeTimer.text = _respawnTimer.text = _gameover.text = "";
 
         _numColors = new Dictionary<int, Color> {
@@ -50,15 +73,34 @@ public class HUDManager : MonoBehaviour
             {2, new Color(0.50f, 0.83f, 1.00f)}, // azul
             {1, new Color(0.55f, 0.35f, 1.00f)}, // violeta
         };
+        
+        // Inicializa PlayerHUD container
+        InitializePlayerHUDContainer();
     }
 
     void OnDestroy()
     {
+        // Timer events
         HUDSO.EventOnMatchTimerUpdated -= HUDSOOnEventOnMatchTimerUpdated;
         HUDSO.EventOnPrepareTimerUpdated -= HUDSOOnEventOnPrepareTimerUpdated;
         HUDSO.EventOnFreezeTimerUpdated -= HUDSOOnEventOnFreezeTimerUpdated;
         HUDSO.EventOnRespawnTimerUpdated -= HUDSOOnEventOnRespawnTimerUpdated;
         HUDSO.EventOnGameOver -= HUDSOOnEventOnGameOver;
+        
+        // Spectator mode
+        HUDSO.EventOnSpectatorModeChanged -= OnSpectatorModeChanged;
+        
+        // Panel visibility events
+        HUDSO.EventOnShowColorChangePanel -= OnPanelOpened;
+        HUDSO.EventOnHideColorChangePanel -= OnPanelClosed;
+        HUDSO.EventOnShowMinigameSelectionPanel -= OnPanelOpened;
+        HUDSO.EventOnHideMinigameSelectionPanel -= OnPanelClosed;
+        HUDSO.EventOnShowBriefing -= OnPanelOpened;
+        HUDSO.EventOnHideBriefing -= OnPanelClosed;
+        HUDSO.EventOnShowVotingPanel -= OnPanelOpened;
+        HUDSO.EventOnHideVotingPanel -= OnPanelClosed;
+        HUDSO.EventOnShowMenuPanel -= OnPanelOpened;
+        HUDSO.EventOnHideMenuPanel -= OnPanelClosed;
     }
 
     void HUDSOOnEventOnRespawnTimerUpdated(float obj)
@@ -202,5 +244,80 @@ public class HUDManager : MonoBehaviour
         tmp.havePropertiesChanged = true;
         tmp.SetMaterialDirty();
     }
+
+    #region Player HUD Visibility Management
+    
+    private void InitializePlayerHUDContainer()
+    {
+        // Se não configurado, busca por nome
+        if (playerHUDContainer == null)
+        {
+            playerHUDContainer = GameObject.Find(playerHUDContainerName);
+            
+            if (playerHUDContainer == null)
+            {
+                Debug.LogWarning($"[HUDManager] GameObject '{playerHUDContainerName}' não encontrado. PlayerHUD não será escondido automaticamente.");
+                return;
+            }
+        }
+        
+        // Obtém ou adiciona CanvasGroup
+        _playerHUDCanvasGroup = playerHUDContainer.GetComponent<CanvasGroup>();
+        if (_playerHUDCanvasGroup == null)
+        {
+            _playerHUDCanvasGroup = playerHUDContainer.AddComponent<CanvasGroup>();
+            Debug.Log($"[HUDManager] CanvasGroup adicionado automaticamente ao '{playerHUDContainer.name}'");
+        }
+        
+        // Garante que começa visível
+        _playerHUDCanvasGroup.alpha = 1f;
+    }
+    
+    private void OnPanelOpened()
+    {
+        _panelsOpenCount++;
+        UpdatePlayerHUDVisibility();
+    }
+    
+    private void OnPanelClosed()
+    {
+        _panelsOpenCount--;
+        if (_panelsOpenCount < 0) _panelsOpenCount = 0; // Segurança
+        UpdatePlayerHUDVisibility();
+    }
+    
+    private void UpdatePlayerHUDVisibility()
+    {
+        if (_playerHUDCanvasGroup == null) return;
+        
+        // Esconde se algum painel estiver aberto, mostra se todos fechados
+        float targetAlpha = _panelsOpenCount > 0 ? 0f : 1f;
+        _playerHUDCanvasGroup.alpha = targetAlpha;
+        
+        if (targetAlpha == 0f)
+            Debug.Log($"[HUDManager] PlayerHUD escondido ({_panelsOpenCount} painéis abertos)");
+        else
+            Debug.Log("[HUDManager] PlayerHUD mostrado (nenhum painel aberto)");
+    }
+    
+    private void OnSpectatorModeChanged(bool isSpectating)
+    {
+        if (_playerHUDCanvasGroup == null) return;
+        
+        if (isSpectating)
+        {
+            // Esconde o PlayerHUD quando entrar em modo espectador
+            _playerHUDCanvasGroup.alpha = 0f;
+            Debug.Log("👁️ [HUDManager] PlayerHUD escondido (modo espectador ativado)");
+        }
+        else
+        {
+            // Mostra o PlayerHUD quando sair do modo espectador
+            _playerHUDCanvasGroup.alpha = 1f;
+            Debug.Log("✅ [HUDManager] PlayerHUD mostrado (modo espectador desativado)");
+        }
+    }
+    
+    #endregion
 
 }

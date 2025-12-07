@@ -52,28 +52,18 @@ public class PlayerList : NetworkBehaviour{
         base.OnStartServer();
         RebuildColorPool(); 
         SceneManager.sceneLoaded += OnSceneLoadedServer;
-        // if (ColorsAvailable.Count == 0)
-        // {
-        //     for (int i = 0; i < db.playerColors.Count; i++)
-        //         ColorsAvailable.Add(i);
-        // }
-        //
-        // foreach (var pd in FindObjectsOfType<PlayerData>())
-        // {
-        //     AddToList(pd);
-        // }
-        //
-        //
-        // SceneManager.sceneLoaded += (_, __) =>
-        // {
-        //     foreach (var pd in FindObjectsOfType<PlayerData>())
-        //         AddToList(pd);
-        // };
+    }
+    
+    public override void OnStopServer()
+    {
+        base.OnStopServer();
+        SceneManager.sceneLoaded -= OnSceneLoadedServer;
     }
     
     private void OnDestroy()
     {
         ColorsAvailable.Callback -= ColorsAvailable_Callback;
+        SceneManager.sceneLoaded -= OnSceneLoadedServer;
     }
 
     [Server]
@@ -129,6 +119,7 @@ public class PlayerList : NetworkBehaviour{
     [Server]
     private void OnSceneLoadedServer(Scene _, LoadSceneMode __)
     {
+        if (!NetworkServer.active) return;
         RebuildColorPool();
     }
     [Server]
@@ -152,6 +143,37 @@ public class PlayerList : NetworkBehaviour{
 
         ColorsAvailable.Remove(randomColor);
         return randomColor;
+    }
+    
+    /// <summary>
+    /// Limpa todos os jogadores e reseta o pool de cores.
+    /// Chamado pelo MyNetworkManager ao parar o host/servidor.
+    /// </summary>
+    public void ClearAllPlayers()
+    {
+        Debug.Log("[PlayerList] ClearAllPlayers called - resetting player list");
+        
+        // Only clear SyncLists if server is active to avoid "InitSyncObject: IsWritable" error
+        if (NetworkServer.active)
+        {
+            // Limpa a lista de jogadores
+            players.Clear();
+            
+            // Reseta o pool de cores
+            ColorsAvailable.Clear();
+            if (db != null)
+            {
+                for (int i = 0; i < db.playerColors.Count; i++)
+                {
+                    ColorsAvailable.Add(i);
+                }
+            }
+            Debug.Log("[PlayerList] Player list cleared and colors reset (Server Active)");
+        }
+        else
+        {
+            Debug.LogWarning("[PlayerList] NetworkServer not active - skipping SyncList clear to avoid errors");
+        }
     }
     
     [Server]

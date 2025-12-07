@@ -329,10 +329,8 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         ps.ServerSetHotPotatoHolder(false);
         
         // Elimina o jogador e coloca em modo espectador
-        IHitKillable ik = pd.transform.GetComponent<IHitKillable>(); 
-        ik.OnHitSpectate();   
-
-        
+        // Usa ServerForceSpectate que funciona tanto para host quanto para clientes
+        ps.ServerForceSpectate(DeathCause.Default);
 
         Notifica();
 
@@ -377,8 +375,8 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         if (attacker.playerInfo.steamId != potatoHolderId) return;
         if (!alivePlayers.Contains(target)) return;
 
-        float distSqr = (attacker.transform.position - target.transform.position).sqrMagnitude;
-        if (distSqr > passDistance * passDistance) return;
+        // float distSqr = (attacker.transform.position - target.transform.position).sqrMagnitude;
+        // if (distSqr > passDistance * passDistance) return;
 
         potatoHolderId = target.playerInfo.steamId;
         // roundTimer = timeLimit;

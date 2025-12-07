@@ -73,20 +73,35 @@ public class SpectatorManager : MonoBehaviour
 
     private void EnsureOverlayLoaded()
     {
-        if (overlayLoadingOrLoaded) return;
-
         var scene = SceneManager.GetSceneByName(overlaySceneName);
+        
+        // Se a cena já está carregada, apenas marca como loaded
         if (scene.isLoaded)
         {
             overlayLoadingOrLoaded = true;
+            Debug.Log($"👁️ [SpectatorManager] Overlay '{overlaySceneName}' já está carregado");
             return;
         }
 
-        overlayLoadingOrLoaded = true;
-        SceneManager.LoadSceneAsync(overlaySceneName, LoadSceneMode.Additive).completed += _ =>
+        // Se já está carregando, não tenta carregar novamente
+        if (overlayLoadingOrLoaded)
         {
-           
-        };
+            Debug.Log($"👁️ [SpectatorManager] Overlay '{overlaySceneName}' já está sendo carregado");
+            return;
+        }
+
+        // Carrega a cena overlay de forma assíncrona
+        overlayLoadingOrLoaded = true;
+        Debug.Log($"👁️ [SpectatorManager] Carregando overlay '{overlaySceneName}' assincronamente...");
+        
+        var asyncOp = SceneManager.LoadSceneAsync(overlaySceneName, LoadSceneMode.Additive);
+        if (asyncOp != null)
+        {
+            asyncOp.completed += _ =>
+            {
+                Debug.Log($"✅ [SpectatorManager] Overlay '{overlaySceneName}' carregado com sucesso");
+            };
+        }
     }
 
     private void EnsureOverlayUnloaded()
@@ -95,13 +110,20 @@ public class SpectatorManager : MonoBehaviour
         if (!scene.isLoaded)
         {
             overlayLoadingOrLoaded = false;
+            Debug.Log($"👁️ [SpectatorManager] Overlay '{overlaySceneName}' já está descarregado");
             return;
         }
 
-        SceneManager.UnloadSceneAsync(scene).completed += _ =>
+        Debug.Log($"👁️ [SpectatorManager] Descarregando overlay '{overlaySceneName}'...");
+        var asyncOp = SceneManager.UnloadSceneAsync(scene);
+        if (asyncOp != null)
         {
-            overlayLoadingOrLoaded = false;
-        };
+            asyncOp.completed += _ =>
+            {
+                overlayLoadingOrLoaded = false;
+                Debug.Log($"✅ [SpectatorManager] Overlay '{overlaySceneName}' descarregado com sucesso");
+            };
+        }
     }
 
 

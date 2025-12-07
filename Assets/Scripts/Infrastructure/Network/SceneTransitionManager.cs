@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Mirror;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -8,6 +9,7 @@ using UnityEngine.SceneManagement;
 /// <summary>
 /// Manages synchronized scene transitions across all clients.
 /// Ensures all players preload the scene before activating it.
+/// Implements robust ACK system with telemetry for debugging.
 /// </summary>
 public class SceneTransitionManager : MonoBehaviour
 {
@@ -20,57 +22,155 @@ public class SceneTransitionManager : MonoBehaviour
         {
             singleton = this;
             DontDestroyOnLoad(gameObject);
-            RegisterHandlers();
         }
         else
         {
             Destroy(gameObject);
         }
     }
+
+    private void Start()
+    {
+        // Handlers will be registered by MyNetworkManager
+    }
+    
+    private void OnEnable()
+    {
+        // Handlers will be registered by MyNetworkManager
+    }
+    #endregion
+
+    #region Telemetry Events
+    
+    /// <summary>
+    /// Telemetry event types for scene loading
+    /// </summary>
+    public enum TelemetryEventType
+    {
+        SceneLoadingStarted,
+        SceneLoadACKReceived,
+        SceneLoadTimeout,
+        SceneActivationStarted,
+        SceneActivationACKReceived,
+        MatchStarted,
+        PlayerDisconnectedDuringLoad
+    }
+    
+    /// <summary>
+    /// Telemetry data structure for scene loading events
+    /// </summary>
+    [Serializable]
+    public struct SceneLoadTelemetry
+    {
+        public TelemetryEventType eventType;
+        public int connectionId;
+        public string playerName;
+        public string sceneName;
+        public float timestamp;
+        public float loadDuration;
+        public string additionalInfo;
+        
+        public override string ToString()
+        {
+            string durationStr = loadDuration > 0 ? $" (duration: {loadDuration:F2}s)" : "";
+            string infoStr = !string.IsNullOrEmpty(additionalInfo) ? $" | {additionalInfo}" : "";
+            return $"[Telemetry] {eventType} | Player: {playerName} (conn:{connectionId}) | Scene: {sceneName} | Time: {timestamp:F2}s{durationStr}{infoStr}";
+        }
+    }
+    
+    /// <summary>
+    /// Player loading state tracking
+    /// </summary>
+    [Serializable]
+    public class PlayerLoadState
+    {
+        public int connectionId;
+        public string playerName;
+        public ulong steamId;
+        public float loadStartTime;
+        public float loadEndTime;
+        public bool hasPreloaded;
+        public bool hasActivated;
+        public bool timedOut;
+        public bool disconnected;
+        
+        public float LoadDuration => hasPreloaded ? (loadEndTime - loadStartTime) : (Time.realtimeSinceStartup - loadStartTime);
+    }
+    
+    // Telemetry log
+    private readonly List<SceneLoadTelemetry> _telemetryLog = new List<SceneLoadTelemetry>();
+    
+    // Player load states (server-side)
+    private readonly Dictionary<int, PlayerLoadState> _playerLoadStates = new Dictionary<int, PlayerLoadState>();
+    
+    /// <summary>
+    /// Event fired when a telemetry event is logged
+    /// </summary>
+    public event Action<SceneLoadTelemetry> OnTelemetryEvent;
+    
+    /// <summary>
+    /// Event fired when all players have loaded (for external systems to react)
+    /// </summary>
+    public event Action OnAllPlayersLoaded;
+    
+    /// <summary>
+    /// Event fired when loading progress changes (for UI updates)
+    /// </summary>
+    public event Action<int, int> OnLoadingProgressChanged; // (loaded, total)
+    
     #endregion
 
     #region Message Registration
 
-    private void RegisterHandlers()
+    public void RegisterServerHandlers()
     {
-        if (!_serverHandlersRegistered)
-        {
-            NetworkServer.RegisterHandler<ScenePreloadAckMessage>(OnServerReceivePreloadAck, false);
-            NetworkServer.RegisterHandler<SceneActivationAckMessage>(OnServerReceiveActivationAck, false);
-            _serverHandlersRegistered = true;
-        }
+        if (_serverHandlersRegistered) return;
+        
+        NetworkServer.RegisterHandler<ScenePreloadAckMessage>(OnServerReceivePreloadAck, false);
+        NetworkServer.RegisterHandler<SceneActivationAckMessage>(OnServerReceiveActivationAck, false);
+        _serverHandlersRegistered = true;
+        Debug.Log("[SceneTransitionManager] Server handlers registered");
+    }
 
-        if (!_clientHandlersRegistered)
-        {
-            NetworkClient.RegisterHandler<ScenePreloadMessage>(OnClientReceivePreloadMessage, false);
-            NetworkClient.RegisterHandler<SceneActivationMessage>(OnClientReceiveActivationMessage, false);
-            _clientHandlersRegistered = true;
-        }
+    public void UnregisterServerHandlers()
+    {
+        if (!_serverHandlersRegistered) return;
+        
+        NetworkServer.UnregisterHandler<ScenePreloadAckMessage>();
+        NetworkServer.UnregisterHandler<SceneActivationAckMessage>();
+        _serverHandlersRegistered = false;
+        Debug.Log("[SceneTransitionManager] Server handlers unregistered");
+    }
+
+    public void RegisterClientHandlers()
+    {
+        if (_clientHandlersRegistered) return;
+
+        NetworkClient.RegisterHandler<ScenePreloadMessage>(OnClientReceivePreloadMessage, false);
+        NetworkClient.RegisterHandler<SceneActivationMessage>(OnClientReceiveActivationMessage, false);
+        NetworkClient.RegisterHandler<LoadingProgressUpdateMessage>(OnClientReceiveLoadingProgress, false);
+        _clientHandlersRegistered = true;
+        Debug.Log("[SceneTransitionManager] Client handlers registered");
+    }
+
+    public void UnregisterClientHandlers()
+    {
+        if (!_clientHandlersRegistered) return;
+
+        NetworkClient.UnregisterHandler<ScenePreloadMessage>();
+        NetworkClient.UnregisterHandler<SceneActivationMessage>();
+        NetworkClient.UnregisterHandler<LoadingProgressUpdateMessage>();
+        _clientHandlersRegistered = false;
+        Debug.Log("[SceneTransitionManager] Client handlers unregistered");
     }
 
     private void OnDestroy()
     {
         if (singleton == this)
         {
-            UnregisterHandlers();
+            UnregisterServerHandlers();
+            UnregisterClientHandlers();
             singleton = null;
-        }
-    }
-
-    private void UnregisterHandlers()
-    {
-        if (_serverHandlersRegistered)
-        {
-            NetworkServer.UnregisterHandler<ScenePreloadAckMessage>();
-            NetworkServer.UnregisterHandler<SceneActivationAckMessage>();
-            _serverHandlersRegistered = false;
-        }
-
-        if (_clientHandlersRegistered)
-        {
-            NetworkClient.UnregisterHandler<ScenePreloadMessage>();
-            NetworkClient.UnregisterHandler<SceneActivationMessage>();
-            _clientHandlersRegistered = false;
         }
     }
 
@@ -177,12 +277,55 @@ public class SceneTransitionManager : MonoBehaviour
         return $"Connection {sender.connectionId}";
     }
 
+    private ulong ResolveSteamId(NetworkConnectionToClient sender)
+    {
+        if (sender == null) return 0;
+        try
+        {
+            var identity = sender.identity;
+            if (identity != null && identity.TryGetComponent(out PlayerData pd) && pd != null)
+            {
+                return pd.playerInfo.steamId;
+            }
+        }
+        catch (MissingReferenceException) { }
+        return 0;
+    }
+
+    private void LogTelemetry(TelemetryEventType eventType, int connectionId, string playerName, float loadDuration = 0, string additionalInfo = "")
+    {
+        var telemetry = new SceneLoadTelemetry
+        {
+            eventType = eventType,
+            connectionId = connectionId,
+            playerName = playerName,
+            sceneName = _targetSceneName,
+            timestamp = Time.realtimeSinceStartup,
+            loadDuration = loadDuration,
+            additionalInfo = additionalInfo
+        };
+        
+        _telemetryLog.Add(telemetry);
+        Debug.Log(telemetry.ToString());
+        OnTelemetryEvent?.Invoke(telemetry);
+    }
+
     #endregion
 
     [Header("Configuration")]
-    [SerializeField] private float preloadTimeout = 10f;
-    [SerializeField] private float activationTimeout = 5f;
+    [SerializeField] private float preloadTimeout = 30f;
+    [SerializeField] private float activationTimeout = 10f;
     [SerializeField] private bool forceActivateAfterTimeout = true;
+    
+    [Header("Timeout Behavior")]
+    [Tooltip("What to do when a player times out during loading")]
+    [SerializeField] private TimeoutBehavior timeoutBehavior = TimeoutBehavior.DisconnectAndContinue;
+    
+    public enum TimeoutBehavior
+    {
+        DisconnectAndContinue,  // Remove o player e continua com os demais
+        CancelAndReturnToLobby  // Cancela a transição e volta ao lobby
+    }
 
     // Server-side tracking
     private readonly HashSet<int> _preloadAcks = new HashSet<int>();
@@ -190,6 +333,7 @@ public class SceneTransitionManager : MonoBehaviour
     private string _targetSceneName;
     private bool _isTransitioning = false;
     private Coroutine _transitionCoroutine;
+    private float _transitionStartTime;
     
     // Client-side state
     private AsyncOperation _preloadOperation;
@@ -199,10 +343,12 @@ public class SceneTransitionManager : MonoBehaviour
     private static bool _serverHandlersRegistered = false;
     private static bool _clientHandlersRegistered = false;
 
+    // Network Messages
     [Serializable]
     private struct ScenePreloadMessage : NetworkMessage
     {
         public string SceneName;
+        public int ExpectedPlayers;
     }
 
     private struct SceneActivationMessage : NetworkMessage { }
@@ -210,12 +356,27 @@ public class SceneTransitionManager : MonoBehaviour
     private struct ScenePreloadAckMessage : NetworkMessage { }
 
     private struct SceneActivationAckMessage : NetworkMessage { }
+    
+    /// <summary>
+    /// Message sent from server to clients to update loading progress UI
+    /// </summary>
+    private struct LoadingProgressUpdateMessage : NetworkMessage 
+    { 
+        public int LoadedPlayers;
+        public int TotalPlayers;
+        public string StatusMessage;
+    }
 
     private int expectedClients = 0;
     private int preloadedClients = 0;
     private int activatedClients = 0;
     private bool _preloadAckSent = false;
     private bool _activationAckSent = false;
+    
+    // Client-side loading progress display
+    private int _clientLoadedPlayers = 0;
+    private int _clientTotalPlayers = 0;
+    private string _clientStatusMessage = "";
 
     #region Public API
 
@@ -248,10 +409,12 @@ public class SceneTransitionManager : MonoBehaviour
         Debug.Log($"[SceneTransition] SERVER: Initiating synchronized transition to '{sceneName}'");
         _targetSceneName = sceneName;
         _isTransitioning = true;
+        _transitionStartTime = Time.realtimeSinceStartup;
 
         // Reset tracking
         _preloadAcks.Clear();
         _activationAcks.Clear();
+        _playerLoadStates.Clear();
         _preloadAckSent = false;
         _activationAckSent = false;
         
@@ -267,6 +430,9 @@ public class SceneTransitionManager : MonoBehaviour
         preloadedClients = 0;
         activatedClients = 0;
 
+        // Initialize player load states for all connected clients
+        InitializePlayerLoadStates();
+
         Debug.Log($"[SceneTransition] Expecting {expectedClients} clients to preload");
 
         // Freeze all players during transition
@@ -277,38 +443,121 @@ public class SceneTransitionManager : MonoBehaviour
         }
 
         // Tell all clients to preload via network message
-        BroadcastToAll(new ScenePreloadMessage { SceneName = sceneName });
+        BroadcastToAll(new ScenePreloadMessage { SceneName = sceneName, ExpectedPlayers = expectedClients });
+        
+        // Send initial loading progress
+        BroadcastLoadingProgress("Carregando...");
 
-        // Start timeout coroutine with shorter timeout
+        // Start timeout coroutine
         if (_transitionCoroutine != null)
             StopCoroutine(_transitionCoroutine);
         _transitionCoroutine = StartCoroutine(PreloadTimeoutCoroutine());
+    }
+    
+    /// <summary>
+    /// Returns the current telemetry log for debugging
+    /// </summary>
+    public IReadOnlyList<SceneLoadTelemetry> GetTelemetryLog() => _telemetryLog;
+    
+    /// <summary>
+    /// Clears the telemetry log
+    /// </summary>
+    public void ClearTelemetryLog() => _telemetryLog.Clear();
+    
+    /// <summary>
+    /// Gets current player load states (server only)
+    /// </summary>
+    public IReadOnlyDictionary<int, PlayerLoadState> GetPlayerLoadStates() => _playerLoadStates;
+    
+    /// <summary>
+    /// Client: Gets current loading status for UI display
+    /// </summary>
+    public (int loaded, int total, string status) GetClientLoadingStatus()
+    {
+        return (_clientLoadedPlayers, _clientTotalPlayers, _clientStatusMessage);
     }
 
     #endregion
 
     #region Server Methods
+    
+    private void InitializePlayerLoadStates()
+    {
+        foreach (var kvp in NetworkServer.connections)
+        {
+            var conn = kvp.Value;
+            if (conn == null || !conn.isAuthenticated) continue;
+            
+            var state = new PlayerLoadState
+            {
+                connectionId = conn.connectionId,
+                playerName = ResolveClientName(conn),
+                steamId = ResolveSteamId(conn),
+                loadStartTime = Time.realtimeSinceStartup,
+                hasPreloaded = false,
+                hasActivated = false,
+                timedOut = false,
+                disconnected = false
+            };
+            _playerLoadStates[conn.connectionId] = state;
+            
+            // Log telemetry
+            LogTelemetry(TelemetryEventType.SceneLoadingStarted, conn.connectionId, state.playerName);
+        }
+    }
+    
+    private void BroadcastLoadingProgress(string statusMessage = null)
+    {
+        if (!NetworkServer.active) return;
+        
+        int loaded = _preloadAcks.Count;
+        int total = expectedClients;
+        string message = statusMessage ?? $"Aguardando jogadores... ({loaded}/{total} prontos)";
+        
+        BroadcastToAll(new LoadingProgressUpdateMessage
+        {
+            LoadedPlayers = loaded,
+            TotalPlayers = total,
+            StatusMessage = message
+        });
+        
+        OnLoadingProgressChanged?.Invoke(loaded, total);
+    }
 
     private IEnumerator PreloadTimeoutCoroutine()
     {
         float startTime = Time.time;
         float lastLogTime = Time.time;
+        float lastProgressBroadcast = Time.time;
         bool noResponseWarningShown = false;
 
         while (_preloadAcks.Count < expectedClients)
         {
             float elapsed = Time.time - startTime;
             
-            // If no clients responded after 2 seconds and we have a fallback option, warn and prepare to use standard scene change
-            if (!noResponseWarningShown && elapsed >= 2f && _preloadAcks.Count == 0)
+            // Handle disconnections during load
+            CheckForDisconnections();
+            
+            // Update expected clients count (may have changed due to disconnections)
+            int activeExpected = GetActiveExpectedClients();
+            if (_preloadAcks.Count >= activeExpected && activeExpected > 0)
             {
-                Debug.LogWarning($"[SceneTransition] No clients responded after 2 seconds. This may indicate the RPC system isn't working properly.");
+                Debug.Log($"[SceneTransition] All remaining clients preloaded ({_preloadAcks.Count}/{activeExpected}).");
+                break;
+            }
+            
+            // If no clients responded after 3 seconds, warn
+            if (!noResponseWarningShown && elapsed >= 3f && _preloadAcks.Count == 0)
+            {
+                Debug.LogWarning($"[SceneTransition] No clients responded after 3 seconds. This may indicate the message system isn't working properly.");
                 noResponseWarningShown = true;
-                
-                if (forceActivateAfterTimeout)
-                {
-                    Debug.LogWarning($"[SceneTransition] Will fall back to standard scene change at {preloadTimeout}s if no responses received.");
-                }
+            }
+            
+            // Broadcast loading progress every 0.5 seconds
+            if (Time.time - lastProgressBroadcast >= 0.5f)
+            {
+                BroadcastLoadingProgress();
+                lastProgressBroadcast = Time.time;
             }
             
             // Log progress every second
@@ -321,26 +570,153 @@ public class SceneTransitionManager : MonoBehaviour
             // Check timeout
             if (elapsed >= preloadTimeout)
             {
-                if (_preloadAcks.Count == 0 && forceActivateAfterTimeout)
-                {
-                    Debug.LogError($"[SceneTransition] TIMEOUT with ZERO responses! Falling back to standard Mirror scene change.");
-                    // Use standard Mirror scene change as fallback
-                    _isTransitioning = false; // Reset state
-                    NetworkManager.singleton.ServerChangeScene(_targetSceneName);
-                    yield break;
-                }
-                else
-                {
-                    Debug.LogWarning($"[SceneTransition] Preload timeout! Only {_preloadAcks.Count}/{expectedClients} clients ready. Proceeding anyway...");
-                    break;
-                }
+                HandlePreloadTimeout();
+                yield break;
             }
 
             yield return null;
         }
 
         Debug.Log($"[SceneTransition] All clients preloaded ({_preloadAcks.Count}/{expectedClients}). Activating scene...");
+        OnAllPlayersLoaded?.Invoke();
         ServerActivateScene();
+    }
+    
+    private void CheckForDisconnections()
+    {
+        var toRemove = new List<int>();
+        
+        foreach (var kvp in _playerLoadStates)
+        {
+            int connId = kvp.Key;
+            var state = kvp.Value;
+            
+            if (state.disconnected) continue;
+            
+            // Check if connection still exists
+            bool exists = false;
+            foreach (var connKvp in NetworkServer.connections)
+            {
+                if (connKvp.Value != null && connKvp.Value.connectionId == connId && connKvp.Value.isAuthenticated)
+                {
+                    exists = true;
+                    break;
+                }
+            }
+            
+            if (!exists)
+            {
+                state.disconnected = true;
+                LogTelemetry(TelemetryEventType.PlayerDisconnectedDuringLoad, connId, state.playerName, 
+                    additionalInfo: $"Disconnected after {Time.realtimeSinceStartup - state.loadStartTime:F2}s");
+                
+                // Remove from expected acks
+                _preloadAcks.Remove(connId);
+                toRemove.Add(connId);
+            }
+        }
+        
+        // Update expected count
+        if (toRemove.Count > 0)
+        {
+            expectedClients = GetActiveExpectedClients();
+            Debug.Log($"[SceneTransition] {toRemove.Count} player(s) disconnected. Now expecting {expectedClients} clients.");
+        }
+    }
+    
+    private int GetActiveExpectedClients()
+    {
+        int count = 0;
+        foreach (var kvp in _playerLoadStates)
+        {
+            if (!kvp.Value.disconnected && !kvp.Value.timedOut)
+                count++;
+        }
+        return Mathf.Max(count, 0);
+    }
+    
+    private void HandlePreloadTimeout()
+    {
+        var timedOutPlayers = new List<string>();
+        
+        foreach (var kvp in _playerLoadStates)
+        {
+            var state = kvp.Value;
+            if (!state.hasPreloaded && !state.disconnected && !state.timedOut)
+            {
+                state.timedOut = true;
+                timedOutPlayers.Add(state.playerName);
+                
+                LogTelemetry(TelemetryEventType.SceneLoadTimeout, kvp.Key, state.playerName,
+                    loadDuration: Time.realtimeSinceStartup - state.loadStartTime);
+            }
+        }
+        
+        Debug.LogWarning($"[SceneTransition] Timeout! Players that didn't load: {string.Join(", ", timedOutPlayers)}");
+        
+        if (timeoutBehavior == TimeoutBehavior.DisconnectAndContinue)
+        {
+            // Disconnect timed out players
+            foreach (var kvp in _playerLoadStates)
+            {
+                if (kvp.Value.timedOut)
+                {
+                    var conn = GetConnectionById(kvp.Key);
+                    if (conn != null)
+                    {
+                        Debug.Log($"[SceneTransition] Disconnecting timed out player: {kvp.Value.playerName}");
+                        conn.Disconnect();
+                    }
+                }
+            }
+            
+            // Update expected and continue if we have anyone left
+            expectedClients = GetActiveExpectedClients();
+            if (expectedClients > 0 || _preloadAcks.Count > 0)
+            {
+                Debug.Log($"[SceneTransition] Continuing with {_preloadAcks.Count} loaded clients.");
+                ServerActivateScene();
+            }
+            else
+            {
+                Debug.LogError($"[SceneTransition] No clients remaining! Falling back to standard scene change.");
+                _isTransitioning = false;
+                NetworkManager.singleton.ServerChangeScene(_targetSceneName);
+            }
+        }
+        else // CancelAndReturnToLobby
+        {
+            Debug.Log("[SceneTransition] Canceling transition and returning to lobby...");
+            _isTransitioning = false;
+            _transitionCoroutine = null;
+            
+            // Unfreeze players
+            if (PlayerList.singleton != null)
+            {
+                PlayerList.singleton.SetAllPlayersFrozen(false);
+            }
+            
+            // Notify clients to hide loading screen
+            BroadcastToAll(new LoadingProgressUpdateMessage
+            {
+                LoadedPlayers = 0,
+                TotalPlayers = 0,
+                StatusMessage = "Carregamento cancelado. Retornando ao lobby..."
+            });
+            
+            // Return to lobby scene (RASCUNHO)
+            NetworkManager.singleton.ServerChangeScene("RASCUNHO");
+        }
+    }
+    
+    private NetworkConnectionToClient GetConnectionById(int connectionId)
+    {
+        foreach (var kvp in NetworkServer.connections)
+        {
+            if (kvp.Value != null && kvp.Value.connectionId == connectionId)
+                return kvp.Value;
+        }
+        return null;
     }
 
     private void ServerActivateScene()
@@ -350,8 +726,18 @@ public class SceneTransitionManager : MonoBehaviour
 
         Debug.Log($"[SceneTransition] SERVER: Activating scene '{_targetSceneName}' for all clients");
         
+        // Log telemetry
+        foreach (var kvp in _playerLoadStates)
+        {
+            if (kvp.Value.hasPreloaded)
+            {
+                LogTelemetry(TelemetryEventType.SceneActivationStarted, kvp.Key, kvp.Value.playerName);
+            }
+        }
+        
         // Tell clients to activate their preloaded scenes
         BroadcastToAll(new SceneActivationMessage());
+        BroadcastLoadingProgress("Iniciando partida...");
 
         // Server also needs to load the scene
         StartCoroutine(ServerLoadSceneCoroutine());
@@ -368,7 +754,9 @@ public class SceneTransitionManager : MonoBehaviour
         float startTime = Time.time;
         float lastLogTime = Time.time;
 
-        while (_activationAcks.Count < expectedClients)
+        int activeExpected = GetActiveExpectedClients();
+        
+        while (_activationAcks.Count < activeExpected)
         {
             if (Time.time - lastLogTime >= 1f)
             {
@@ -378,20 +766,26 @@ public class SceneTransitionManager : MonoBehaviour
 
             if (Time.time - startTime >= activationTimeout)
             {
-                Debug.LogWarning($"[SceneTransition] Activation timeout! Only {_activationAcks.Count}/{expectedClients} clients activated.");
+                Debug.LogWarning($"[SceneTransition] Activation timeout! Only {_activationAcks.Count}/{activeExpected} clients activated.");
                 break;
             }
 
             yield return null;
         }
 
-        Debug.Log($"[SceneTransition] All clients activated scene ({_activationAcks.Count}/{expectedClients})");
+        Debug.Log($"[SceneTransition] All clients activated scene ({_activationAcks.Count}/{activeExpected})");
         ServerFinishTransition();
     }
 
     private void ServerFinishTransition()
     {
-        Debug.Log("[SceneTransition] SERVER: Scene transition complete. Starting briefing flow...");
+        float totalDuration = Time.realtimeSinceStartup - _transitionStartTime;
+        Debug.Log($"[SceneTransition] SERVER: Scene transition complete in {totalDuration:F2}s. Starting briefing flow...");
+        
+        // Log final telemetry
+        LogTelemetry(TelemetryEventType.MatchStarted, -1, "ALL", loadDuration: totalDuration,
+            additionalInfo: $"Players loaded: {_preloadAcks.Count}/{expectedClients}");
+        
         _isTransitioning = false;
         _transitionCoroutine = null;
 
@@ -406,13 +800,24 @@ public class SceneTransitionManager : MonoBehaviour
         
         foreach (var conn in connections)
         {
+            if (conn == null) continue;
+            
             bool ready = _preloadAcks.Contains(conn.connectionId);
-            var pd = conn.identity?.GetComponent<PlayerData>();
-            string name = pd != null ? pd.alias : $"Conn{conn.connectionId}";
-            status.Add($"{name}: {(ready ? "✓" : "⏳")}");
+            string name = ResolveClientName(conn);
+            
+            if (_playerLoadStates.TryGetValue(conn.connectionId, out var state))
+            {
+                float elapsed = Time.realtimeSinceStartup - state.loadStartTime;
+                string stateStr = ready ? "✓" : $"⏳ ({elapsed:F1}s)";
+                status.Add($"{name}: {stateStr}");
+            }
+            else
+            {
+                status.Add($"{name}: {(ready ? "✓" : "⏳")}");
+            }
         }
 
-        Debug.Log($"[SceneTransition] Preload Progress ({_preloadAcks.Count}/{expectedClients}):\n  " + string.Join("\n  ", status));
+        Debug.Log($"[SceneTransition] Preload Progress ({_preloadAcks.Count}/{GetActiveExpectedClients()}):\n  " + string.Join("\n  ", status));
     }
 
     private void LogActivationProgress()
@@ -422,18 +827,19 @@ public class SceneTransitionManager : MonoBehaviour
         
         foreach (var conn in connections)
         {
+            if (conn == null) continue;
+            
             bool activated = _activationAcks.Contains(conn.connectionId);
-            var pd = conn.identity?.GetComponent<PlayerData>();
-            string name = pd != null ? pd.alias : $"Conn{conn.connectionId}";
+            string name = ResolveClientName(conn);
             status.Add($"{name}: {(activated ? "✓" : "⏳")}");
         }
 
-        Debug.Log($"[SceneTransition] Activation Progress ({_activationAcks.Count}/{expectedClients}):\n  " + string.Join("\n  ", status));
+        Debug.Log($"[SceneTransition] Activation Progress ({_activationAcks.Count}/{GetActiveExpectedClients()}):\n  " + string.Join("\n  ", status));
     }
 
     #endregion
 
-    #region Client RPC
+    #region Client Message Handlers
 
     private void OnClientReceivePreloadMessage(ScenePreloadMessage message)
     {
@@ -448,6 +854,8 @@ public class SceneTransitionManager : MonoBehaviour
         _waitingForActivation = true;
         _preloadAckSent = false;
         _activationAckSent = false;
+        _clientTotalPlayers = message.ExpectedPlayers;
+        _clientLoadedPlayers = 0;
 
         // Show loading screen
         LoadingScreenUI.Ensure();
@@ -483,6 +891,19 @@ public class SceneTransitionManager : MonoBehaviour
             Debug.LogWarning("[SceneTransition] CLIENT: No preload operation found!");
         }
     }
+    
+    private void OnClientReceiveLoadingProgress(LoadingProgressUpdateMessage message)
+    {
+        _clientLoadedPlayers = message.LoadedPlayers;
+        _clientTotalPlayers = message.TotalPlayers;
+        _clientStatusMessage = message.StatusMessage;
+        
+        // Update loading screen with player progress
+        if (LoadingScreenUI.Instance != null)
+        {
+            LoadingScreenUI.Instance.SetPlayerProgress(message.LoadedPlayers, message.TotalPlayers, message.StatusMessage);
+        }
+    }
 
     #endregion
 
@@ -503,6 +924,14 @@ public class SceneTransitionManager : MonoBehaviour
         // Wait for preload to reach 90% (Unity stops at 0.9 when allowSceneActivation is false)
         while (_preloadOperation.progress < 0.9f)
         {
+            // Verifica se ainda estamos conectados
+            if (!NetworkClient.active || !NetworkClient.isConnected)
+            {
+                Debug.LogWarning("[SceneTransition] CLIENT: Lost connection during preload, aborting");
+                HandleClientDisconnectedDuringLoad();
+                yield break;
+            }
+            
             // Update loading UI
             if (LoadingScreenUI.Instance != null)
             {
@@ -513,19 +942,55 @@ public class SceneTransitionManager : MonoBehaviour
 
         Debug.Log($"[SceneTransition] CLIENT: Preload complete for '{sceneName}' (progress: {_preloadOperation.progress})");
         
-        // Notify server that this client is ready
+        // CRITICAL: Only send ACK AFTER scene is fully preloaded
+        // This ensures the server knows the client has truly finished loading
         SendPreloadAck();
 
         // Wait for server to signal activation
         Debug.Log("[SceneTransition] CLIENT: Waiting for server activation signal...");
+        
+        // Update UI to show waiting for others
+        if (LoadingScreenUI.Instance != null)
+        {
+            LoadingScreenUI.Instance.SetProgress(1f);
+        }
+        
+        // Timeout de segurança para evitar loop infinito caso o host desconecte
+        float waitStartTime = Time.realtimeSinceStartup;
+        float maxWaitForActivation = 60f; // 60 segundos de timeout
+        
         while (!_preloadOperation.allowSceneActivation)
         {
+            // Verifica se ainda estamos conectados
+            if (!NetworkClient.active || !NetworkClient.isConnected)
+            {
+                Debug.LogWarning("[SceneTransition] CLIENT: Lost connection while waiting for activation signal");
+                HandleClientDisconnectedDuringLoad();
+                yield break;
+            }
+            
+            // Verifica timeout
+            if (Time.realtimeSinceStartup - waitStartTime > maxWaitForActivation)
+            {
+                Debug.LogWarning("[SceneTransition] CLIENT: Timeout waiting for activation signal");
+                HandleClientDisconnectedDuringLoad();
+                yield break;
+            }
+            
             yield return null;
         }
 
         // Wait for actual scene activation
         while (!_preloadOperation.isDone)
         {
+            // Verifica se ainda estamos conectados
+            if (!NetworkClient.active || !NetworkClient.isConnected)
+            {
+                Debug.LogWarning("[SceneTransition] CLIENT: Lost connection during scene activation");
+                HandleClientDisconnectedDuringLoad();
+                yield break;
+            }
+            
             yield return null;
         }
 
@@ -533,11 +998,42 @@ public class SceneTransitionManager : MonoBehaviour
         _isPreloading = false;
         _waitingForActivation = false;
 
-        // Notify server that activation is complete
+        // CRITICAL: Send activation ACK only after scene is fully activated and ready
+        // Add a small delay to ensure all scene objects are initialized
+        yield return new WaitForEndOfFrame();
+        yield return null; // Extra frame for safety
+        
         SendActivationAck();
 
-        // Hide loading screen (will be shown again by briefing if needed)
-        LoadingScreenUI.Instance?.Hide();
+        Debug.Log("[SceneTransition] CLIENT: Scene ready, waiting for briefing to hide loading screen");
+    }
+    
+    /// <summary>
+    /// Trata a situação em que o cliente é desconectado durante o carregamento.
+    /// Limpa o estado e esconde a tela de loading.
+    /// </summary>
+    private void HandleClientDisconnectedDuringLoad()
+    {
+        Debug.Log("[SceneTransition] HandleClientDisconnectedDuringLoad - cleaning up");
+        
+        // Limpa o estado do cliente
+        _isPreloading = false;
+        _waitingForActivation = false;
+        _preloadAckSent = false;
+        _activationAckSent = false;
+        
+        // Se ainda temos uma operação de preload, permite que ela termine
+        if (_preloadOperation != null && !_preloadOperation.isDone)
+        {
+            _preloadOperation.allowSceneActivation = true;
+        }
+        _preloadOperation = null;
+        
+        // Esconde a tela de loading
+        if (LoadingScreenUI.Instance != null)
+        {
+            LoadingScreenUI.Instance.Hide();
+        }
     }
 
     #endregion
@@ -554,16 +1050,31 @@ public class SceneTransitionManager : MonoBehaviour
             preloadedClients = _preloadAcks.Count;
 
             string clientName = ResolveClientName(sender);
+            
+            // Update player state
+            if (_playerLoadStates.TryGetValue(sender.connectionId, out var state))
+            {
+                state.hasPreloaded = true;
+                state.loadEndTime = Time.realtimeSinceStartup;
+                
+                LogTelemetry(TelemetryEventType.SceneLoadACKReceived, sender.connectionId, clientName,
+                    loadDuration: state.LoadDuration);
+            }
 
-            Debug.Log($"[SceneTransition] SERVER: Client '{clientName}' preloaded ({preloadedClients}/{expectedClients})");
+            Debug.Log($"[SceneTransition] SERVER: Client '{clientName}' preloaded ({preloadedClients}/{GetActiveExpectedClients()})");
+            
+            // Broadcast updated progress to all clients
+            BroadcastLoadingProgress();
 
-            if (_preloadAcks.Count >= expectedClients && expectedClients > 0)
+            int activeExpected = GetActiveExpectedClients();
+            if (_preloadAcks.Count >= activeExpected && activeExpected > 0)
             {
                 if (_transitionCoroutine != null)
                 {
                     StopCoroutine(_transitionCoroutine);
                     _transitionCoroutine = null;
                 }
+                OnAllPlayersLoaded?.Invoke();
                 ServerActivateScene();
             }
         }
@@ -579,16 +1090,124 @@ public class SceneTransitionManager : MonoBehaviour
             activatedClients = _activationAcks.Count;
 
             string clientName = ResolveClientName(sender);
+            
+            // Update player state
+            if (_playerLoadStates.TryGetValue(sender.connectionId, out var state))
+            {
+                state.hasActivated = true;
+                
+                LogTelemetry(TelemetryEventType.SceneActivationACKReceived, sender.connectionId, clientName);
+            }
 
-            Debug.Log($"[SceneTransition] SERVER: Client '{clientName}' activated scene ({activatedClients}/{expectedClients})");
+            Debug.Log($"[SceneTransition] SERVER: Client '{clientName}' activated scene ({activatedClients}/{GetActiveExpectedClients()})");
         }
     }
 
     #endregion
 
-    #region Utility
+    #region Public Utility
 
     public bool IsTransitioning => _isTransitioning;
+    
+    /// <summary>
+    /// Gets the current loading status as a formatted string for debugging
+    /// </summary>
+    public string GetLoadingStatusDebug()
+    {
+        if (!_isTransitioning)
+            return "Not transitioning";
+            
+        var lines = new List<string>();
+        lines.Add($"Scene: {_targetSceneName}");
+        lines.Add($"Progress: {_preloadAcks.Count}/{GetActiveExpectedClients()} preloaded, {_activationAcks.Count} activated");
+        lines.Add($"Time elapsed: {Time.realtimeSinceStartup - _transitionStartTime:F1}s");
+        
+        foreach (var kvp in _playerLoadStates)
+        {
+            var state = kvp.Value;
+            string status = state.disconnected ? "DISCONNECTED" : 
+                           state.timedOut ? "TIMED OUT" :
+                           state.hasActivated ? "ACTIVATED" :
+                           state.hasPreloaded ? "PRELOADED" : "LOADING";
+            lines.Add($"  {state.playerName}: {status} ({state.LoadDuration:F1}s)");
+        }
+        
+        return string.Join("\n", lines);
+    }
+    
+    /// <summary>
+    /// Prints the full telemetry log to the console
+    /// </summary>
+    public void PrintTelemetryLog()
+    {
+        Debug.Log("=== SCENE TRANSITION TELEMETRY LOG ===");
+        foreach (var entry in _telemetryLog)
+        {
+            Debug.Log(entry.ToString());
+        }
+        Debug.Log("=== END TELEMETRY LOG ===");
+    }
+    
+    /// <summary>
+    /// Limpa o estado do cliente quando desconecta.
+    /// Chamado pelo MyNetworkManager.OnStopClient para evitar que o cliente fique preso na tela de loading.
+    /// </summary>
+    public void CleanupClientState()
+    {
+        Debug.Log("[SceneTransition] CleanupClientState called - resetting client transition state");
+        
+        // Cancela qualquer coroutine de preload em andamento
+        if (_preloadOperation != null)
+        {
+            // Se a operação de preload ainda está em andamento, tenta cancelar
+            try
+            {
+                if (!_preloadOperation.isDone)
+                {
+                    _preloadOperation.allowSceneActivation = true; // Permite que termine para evitar estado inconsistente
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[SceneTransition] Error cleaning up preload operation: {e.Message}");
+            }
+            _preloadOperation = null;
+        }
+        
+        // Para todas as coroutines deste componente
+        StopAllCoroutines();
+        
+        // Reseta estados de cliente
+        _isPreloading = false;
+        _waitingForActivation = false;
+        _preloadAckSent = false;
+        _activationAckSent = false;
+        _clientLoadedPlayers = 0;
+        _clientTotalPlayers = 0;
+        _clientStatusMessage = "";
+        
+        // Se estamos no servidor (host), também limpa o estado do servidor
+        if (NetworkServer.active)
+        {
+            _isTransitioning = false;
+            _transitionCoroutine = null;
+            _preloadAcks.Clear();
+            _activationAcks.Clear();
+            _playerLoadStates.Clear();
+            _targetSceneName = null;
+            expectedClients = 0;
+            preloadedClients = 0;
+            activatedClients = 0;
+            
+            // Descongela os jogadores se ainda estiverem congelados
+            if (PlayerList.singleton != null)
+            {
+                PlayerList.singleton.SetAllPlayersFrozen(false);
+            }
+        }
+        
+        Debug.Log("[SceneTransition] Client state cleaned up successfully");
+    }
 
     #endregion
 }

@@ -152,7 +152,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public bool _extraFreeze;
     public bool isFrozen
     {
-        get => MatchManager.singleton.Freeze || _extraFreeze;
+        get => (MatchManager.singleton != null && MatchManager.singleton.Freeze) || _extraFreeze;
         [Server]
         set => _extraFreeze = value;
     }
@@ -214,8 +214,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SerializeField] private GameObject canvasCelularPrefab;
     private GameObject celularInstance;
     public MainMenu mainMenu;
-    [SerializeField] private GameObject cooldownUIPrefab;
-    GameObject cooldownUIInstance;
+
+
     
     [Header("Minigame Street - Banana")]
     [SerializeField] private Transform bananaAttachPoint; // Ponto nas costas do jogador
@@ -312,13 +312,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             
             if (mainMenu != null) mainMenu.SetHUD(HUDSO);
         }
-        if (cooldownUIPrefab != null)
-        {
-            cooldownUIInstance = Instantiate(cooldownUIPrefab);
-            var ui = cooldownUIInstance.GetComponent<CooldownUI>();
-            if (ui != null)
-                ui.Init(this);
-        }
+
         
         StartCoroutine(ApplyPlayerCustomizationDelayed());
         
@@ -340,13 +334,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         base.OnStopLocalPlayer();
 
         PlayerControlsSO.OnMenu -= EventOnCelularMenu;
-        if (cooldownUIInstance != null)
-            Destroy(cooldownUIInstance);
-
-
-        if (cooldownUIInstance != null)
-            Destroy(cooldownUIInstance);
-
+       
         HUDSO.EventOnShowMenuPanel -= OnShowMenuPanel;
         HUDSO.EventOnHideMenuPanel -= OnHideMenuPanel;
     }
@@ -402,9 +390,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
         //UI
         PlayerControlsSO.OnMenu -= EventOnCelularMenu;
-        // PlayerControlsSO.OnCursor -= PlayerControlsSO_OnCursor;
-        if (cooldownUIInstance != null)
-            Destroy(cooldownUIInstance);
+
     }
 
     private void Update()
@@ -421,6 +407,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (_rollCooldown > 0) _rollCooldown -= Time.deltaTime;
 
         if (_throwCooldown > 0) _throwCooldown -= Time.deltaTime;
+
+        // Atualiza cooldown UI via HUDSO
+        HUDSO.UpdatePushCooldown(PushCooldownNormalized);
+        HUDSO.UpdateThrowCooldown(ThrowCooldownNormalized);
 
         if (_blindTimer > 0) _blindTimer -= Time.deltaTime;
         if (_poopSlowTimer > 0f)
@@ -1286,8 +1276,51 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if (base.isOwned == false) return;
         OnContextualHit(DeathCause.Default, true);
-
     }
+    
+    /// <summary>
+    /// Método chamado pelo servidor para forçar a morte/espectador de um jogador.
+    /// Diferente de OnHitSpectate que só funciona no cliente local.
+    /// </summary>
+    [Server]
+    public void ServerForceSpectate(DeathCause cause = DeathCause.Default)
+    {
+        Debug.Log($"💀 [SERVER] Forçando espectador para {gameObject.name}");
+        
+        // Atualiza o estado no servidor
+        isStaggered = false;
+        
+        // Envia RPC para o cliente dono do PlayerScript
+        var conn = connectionToClient;
+        if (conn != null)
+        {
+            TargetForceSpectate(conn, cause);
+        }
+        
+        // Também envia RPC para todos verem os efeitos de morte
+        RpcOnDeathWithCause(cause, true, transform.position, transform.rotation);
+    }
+    
+    /// <summary>
+    /// TargetRpc enviado apenas para o dono do PlayerScript para iniciar o modo espectador.
+    /// </summary>
+    [TargetRpc]
+    private void TargetForceSpectate(NetworkConnection conn, DeathCause cause)
+    {
+        Debug.Log($"💀 [CLIENT] Recebido TargetForceSpectate - cause: {cause}");
+        
+        var entry = deathEffects != null ? deathEffects.Get(cause) : null;
+        float hideDelay = deathEffects != null ? deathEffects.GetHideDelay(cause) : 0f;
+        bool shouldHideModel = entry == null || entry.hideModelAfterDelay;
+        if (entry != null && entry.hideModelAfterDelay)
+            hideDelay = Mathf.Max(hideDelay, entry.hideModelDelay);
+        
+        _animator?.SetInteger(_DEATHCAUSE, (int)cause);
+        
+        // Inicia o processo de morte permanente (espectador)
+        InternalDeath(true, hideDelay, shouldHideModel);
+    }
+    
     private void OnExtraFreezeChanged(bool oldVal, bool newVal)
     {
         
@@ -1365,6 +1398,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         Debug.Log("👁️ [SPECTATOR] Entering spectator mode");
         _isSpectating = true;
+        
+        // Notifica o HUD que entrou em modo espectador
+        HUDSO?.SetSpectatorMode(true);
+        
         // Notifica o manager para carregar overlay e atualizar estado
         SpectatorManager.Instance?.OnLocalSpectatorEnter(this);
         // Replica estado de espectador para os demais clientes (apenas booleano)
@@ -1536,7 +1573,15 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         _controller.enabled = false;
         transform.position = pos;
-        transform.rotation = rot;
+        //transform.rotation = rot;
+        _smoothSyncMirror.setRotation(rot, true);
+        
+        if (isOwned)
+        {
+            _yaw = rot.eulerAngles.y;
+            _pitch = Mathf.Clamp(_pitch, db.minMouseY, db.maxMouseX);
+        }
+        
         _smoothSyncMirror.teleportOwnedObjectFromOwner();
         _controller.enabled = true;
 
@@ -1549,7 +1594,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         
         if (permaDeath)
         {
-            CmdRequestSpectate(hideDelay, shouldHideModel);
+            // Garante delay mínimo de 2 segundos para visualizar animação de morte
+            float spectatorDelay = Mathf.Max(2f, hideDelay);
+            Debug.Log($"💀 [DEATH] Morte permanente - aguardando {spectatorDelay}s antes de entrar em modo espectador");
+            
+            // Delay para entrar em modo espectador (permite ver animação)
+            StartCoroutine(DelayedSpectatorMode(spectatorDelay, shouldHideModel));
         }
         else
         {
@@ -1557,6 +1607,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             InternalResetProperties();
             CmdDeath();
         }
+    }
+    
+    private IEnumerator DelayedSpectatorMode(float delay, bool shouldHideModel)
+    {
+        yield return new WaitForSeconds(delay);
+        CmdRequestSpectate(0f, shouldHideModel); // Já esperamos o delay, passa 0 para o RPC
     }
 
     [Command]
@@ -1718,6 +1774,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         _alivePlayersCache.Clear();
         _currentSpectatorIndex = 0;
         CurrentSpectatedTarget = null;
+        
+        // Notifica o HUD que saiu do modo espectador
+        HUDSO?.SetSpectatorMode(false);
+        
         // Notifica o manager para descarregar overlay
         SpectatorManager.Instance?.OnLocalSpectatorExit(this);
         // Replica saída do espectador

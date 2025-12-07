@@ -28,6 +28,10 @@ public class LoadingScreenUI : MonoBehaviour
     private AsyncOperation op;
     private string targetSceneName;
     private Coroutine progressRoutine; // added
+    
+    // Nome da cena offline para auto-hide
+    private const string OFFLINE_SCENE_NAME = "MainMenu";
+    private static readonly string[] OFFLINE_SCENE_NAMES = { "offline" };
 
     void Awake()
     {
@@ -42,8 +46,60 @@ public class LoadingScreenUI : MonoBehaviour
                 DontDestroyOnLoad(panel);
                 panel.SetActive(false);
             }
+            
+            // Subscribe to scene changes to auto-hide on offline scene
+            SceneManager.sceneLoaded += OnSceneLoaded;
         }
         else Destroy(gameObject);
+    }
+    
+    private void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+    
+    /// <summary>
+    /// Auto-esconde a tela de loading quando uma cena offline é carregada.
+    /// Isso garante que o cliente não fique preso na tela de loading se desconectar.
+    /// </summary>
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // Verifica se é uma cena offline
+        bool isOfflineScene = IsOfflineScene(scene.name);
+        
+        // Se não está conectado a nenhum servidor e está numa cena offline, esconde o loading
+        if (!NetworkClient.active && !NetworkServer.active)
+        {
+            if (panel != null && panel.activeSelf)
+            {
+                Debug.Log($"[LoadingUI] Auto-hiding on scene '{scene.name}' - not connected to network");
+                Hide();
+            }
+        }
+        else if (isOfflineScene && panel != null && panel.activeSelf)
+        {
+            Debug.Log($"[LoadingUI] Auto-hiding on offline scene '{scene.name}'");
+            Hide();
+        }
+    }
+    
+    private bool IsOfflineScene(string sceneName)
+    {
+        foreach (var offlineName in OFFLINE_SCENE_NAMES)
+        {
+            if (sceneName.Contains(offlineName))
+                return true;
+        }
+        
+        // Também verifica se é a offlineScene configurada no NetworkManager
+        if (NetworkManager.singleton != null && !string.IsNullOrEmpty(NetworkManager.singleton.offlineScene))
+        {
+            if (sceneName.Contains(NetworkManager.singleton.offlineScene) || 
+                NetworkManager.singleton.offlineScene.Contains(sceneName))
+                return true;
+        }
+        
+        return false;
     }
 
     public void SetMirrorTargetScene(string sceneName)
@@ -149,8 +205,20 @@ public class LoadingScreenUI : MonoBehaviour
             progressRoutine = null;
         }
         if (panel != null) panel.SetActive(false);
+        
+        // Reset player progress display
+        _loadedPlayers = 0;
+        _totalPlayers = 0;
+        _playerStatusMessage = "";
+        
         Debug.Log("[LoadingUI] Hide");
     }
+
+    // Player progress tracking for synchronized loading
+    private int _loadedPlayers = 0;
+    private int _totalPlayers = 0;
+    private string _playerStatusMessage = "";
+    [SerializeField] private TextMeshProUGUI playerProgressText;
 
     /// <summary>
     /// Atualiza o progresso da barra de loading manualmente.
@@ -169,8 +237,58 @@ public class LoadingScreenUI : MonoBehaviour
         
         if (progressText != null)
         {
-            progressText.text = $"{(int)(normalizedProgress * 100)}%";
+            // Show combined progress with player status if available
+            if (_totalPlayers > 0)
+            {
+                progressText.text = $"{(int)(normalizedProgress * 100)}%";
+            }
+            else
+            {
+                progressText.text = $"{(int)(normalizedProgress * 100)}%";
+            }
         }
+    }
+    
+    /// <summary>
+    /// Atualiza o progresso de jogadores carregados.
+    /// Chamado pelo SceneTransitionManager para feedback visual sincronizado.
+    /// </summary>
+    /// <param name="loadedPlayers">Número de jogadores que já carregaram</param>
+    /// <param name="totalPlayers">Número total de jogadores</param>
+    /// <param name="statusMessage">Mensagem de status opcional</param>
+    public void SetPlayerProgress(int loadedPlayers, int totalPlayers, string statusMessage = null)
+    {
+        EnsureRuntimeUI();
+        
+        _loadedPlayers = loadedPlayers;
+        _totalPlayers = totalPlayers;
+        _playerStatusMessage = statusMessage ?? $"Aguardando jogadores... ({loadedPlayers}/{totalPlayers} prontos)";
+        
+        // Update UI
+        if (playerProgressText != null)
+        {
+            playerProgressText.text = _playerStatusMessage;
+        }
+        else if (progressText != null)
+        {
+            // Fallback: use progress text if player progress text not set
+            float currentProgress = progressBar != null ? progressBar.value : 0f;
+            if (currentProgress >= 0.9f)
+            {
+                // Scene loaded, show player waiting status
+                progressText.text = _playerStatusMessage;
+            }
+        }
+        
+        Debug.Log($"[LoadingUI] Player progress: {loadedPlayers}/{totalPlayers} - {_playerStatusMessage}");
+    }
+    
+    /// <summary>
+    /// Retorna o status atual de carregamento de jogadores
+    /// </summary>
+    public (int loaded, int total, string status) GetPlayerProgress()
+    {
+        return (_loadedPlayers, _totalPlayers, _playerStatusMessage);
     }
 
     private void EnsureRuntimeUI()
@@ -190,7 +308,7 @@ public class LoadingScreenUI : MonoBehaviour
         var panelGO = new GameObject("Panel");
         panelGO.transform.SetParent(canvasGO.transform, false);
         var img = panelGO.AddComponent<Image>();
-        img.color = new Color(0f, 0f, 0f, 0.6f);
+        img.color = new Color(0f, 0f, 0f, 1f);
         var rt = panelGO.GetComponent<RectTransform>();
         rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
 
@@ -202,11 +320,12 @@ public class LoadingScreenUI : MonoBehaviour
         srt.offsetMin = Vector2.zero; srt.offsetMax = Vector2.zero;
         var slider = sliderGO.AddComponent<Slider>();
         slider.minValue = 0f; slider.maxValue = 1f; slider.value = 0f;
+        slider.interactable = false;
         // background
         var bgGO = new GameObject("BG");
         bgGO.transform.SetParent(sliderGO.transform, false);
         var bg = bgGO.AddComponent<Image>();
-        bg.color = new Color(1f,1f,1f,0.2f);
+        bg.color = new Color(1f,1f,1f, 1f);
         var bgRT = bgGO.GetComponent<RectTransform>();
         bgRT.anchorMin = new Vector2(0f, 0f); bgRT.anchorMax = new Vector2(1f, 1f);
         bgRT.offsetMin = new Vector2(0f, 0f); bgRT.offsetMax = new Vector2(0f, 0f);
@@ -221,7 +340,7 @@ public class LoadingScreenUI : MonoBehaviour
         fillRT.offsetMin = Vector2.zero; fillRT.offsetMax = new Vector2(0f, 0f);
         slider.fillRect = fillRT;
 
-        // optional percent text
+        // Percent text
         TextMeshProUGUI tmp = null;
         try
         {
@@ -237,10 +356,29 @@ public class LoadingScreenUI : MonoBehaviour
             tmp.text = "0%";
         }
         catch { }
+        
+        // Player progress text (e.g., "Aguardando jogadores... (2/4 prontos)")
+        TextMeshProUGUI playerTmp = null;
+        try
+        {
+            var playerTextGO = new GameObject("PlayerProgressText");
+            playerTextGO.transform.SetParent(panelGO.transform, false);
+            playerTmp = playerTextGO.AddComponent<TextMeshProUGUI>();
+            playerTmp.alignment = TextAlignmentOptions.Center;
+            playerTmp.fontSize = 24f;
+            playerTmp.color = new Color(0.9f, 0.9f, 0.9f, 1f);
+            var ptrt = playerTextGO.GetComponent<RectTransform>();
+            ptrt.anchorMin = new Vector2(0.2f, 0.35f);
+            ptrt.anchorMax = new Vector2(0.8f, 0.43f);
+            ptrt.offsetMin = Vector2.zero; ptrt.offsetMax = Vector2.zero;
+            playerTmp.text = "";
+        }
+        catch { }
 
         panel = panelGO;
         progressBar = slider;
         progressText = tmp;
+        playerProgressText = playerTmp;
         panel.SetActive(false);
     }
 }

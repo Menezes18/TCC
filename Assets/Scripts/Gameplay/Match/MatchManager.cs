@@ -28,12 +28,12 @@ public class MatchManager : NetworkBehaviour
     }
 
     [ClientRpc]
-    void RpcShowSimpleResults(string[] names, int[] totals, int[] gains, Color32[] colors)
+    void RpcShowSimpleResults(string[] names, int[] totals, int[] gains, Color32[] colors, int[] hatIndices, int[] glassesIndices, int[] shirtIndices)
     {
-        StartCoroutine(ShowResultsRoutine(names, totals, gains, colors));
+        StartCoroutine(ShowResultsRoutine(names, totals, gains, colors, hatIndices, glassesIndices, shirtIndices));
     }
 
-    IEnumerator ShowResultsRoutine(string[] names, int[] totals, int[] gains, Color32[] colors)
+    IEnumerator ShowResultsRoutine(string[] names, int[] totals, int[] gains, Color32[] colors, int[] hatIndices, int[] glassesIndices, int[] shirtIndices)
     {
         const string overlayScene = "ResultsOverlay"; 
         var scn = SceneManager.GetSceneByName(overlayScene);
@@ -51,7 +51,7 @@ public class MatchManager : NetworkBehaviour
             Debug.LogWarning("[ResultsUI] SimpleResultsUI não encontrado na cena aditiva 'ResultsOverlay'.");
             yield break;
         }
-        ui.Show(names, totals, gains, colors);
+        ui.Show(names, totals, gains, colors, hatIndices, glassesIndices, shirtIndices);
     }
 
     [Server]
@@ -61,8 +61,65 @@ public class MatchManager : NetworkBehaviour
         _activePlayers.Clear();
         _winnerPlayers .Clear();
         
-        // Always return to lobby (RASCUNHO) after each minigame
-        MyNetworkManager.manager.ServerChangeSceneSynchronized("RASCUNHO");
+        // Tenta iniciar a votação
+        if (VotingManager.Instance != null)
+        {
+            Debug.Log("🗳️ [MATCH] Tentando iniciar votação...");
+            bool votingStarted = VotingManager.Instance.StartVotingRound();
+            
+            if (votingStarted)
+            {
+                Debug.Log("🗳️ [MATCH] Votação iniciada! Aguardando conclusão...");
+                
+                // Aguarda o tempo da votação
+                // Adicionamos um pequeno buffer para garantir sincronia
+                yield return new WaitForSeconds(VotingManager.Instance.VotingTimeRemaining + 1.0f);
+                
+                // Finaliza a votação e pega o vencedor
+                var winner = VotingManager.Instance.EndVoting();
+                
+                if (winner != null && !string.IsNullOrEmpty(winner.SceneIdentifier))
+                {
+                    // Mark as played
+                    if (MinigameRotationState.Instance != null)
+                    {
+                        MinigameRotationState.Instance.MarkAsPlayed(winner.id);
+                    }
+
+                    Debug.Log($"🗳️ [MATCH] Vencedor da votação: {winner.displayName}. Carregando cena: {winner.SceneIdentifier}");
+                    MyNetworkManager.manager.ServerChangeSceneSynchronized(winner.SceneIdentifier);
+                    yield break;
+                }
+                else
+                {
+                    Debug.LogError("❌ [MATCH] Votação terminou sem vencedor válido!");
+                }
+            }
+            else
+            {
+                Debug.Log("⚠️ [MATCH] Não foi possível iniciar votação (sem minigames elegíveis?). Indo para Vitória.");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ [MATCH] VotingManager não encontrado!");
+        }
+
+        // Se não houve votação ou falhou, tenta ir para a cena de vitória
+        // A cena de vitória geralmente é a última na rotação do MyNetworkManager
+        var rotation = MyNetworkManager.manager.SceneRotation;
+        if (rotation != null && rotation.Count > 0)
+        {
+            string lastScene = rotation[rotation.Count - 1];
+            Debug.Log($"🏁 [MATCH] Carregando cena final (Vitória): {lastScene}");
+            MyNetworkManager.manager.ServerChangeSceneSynchronized(lastScene);
+        }
+        else
+        {
+            // Fallback para o Lobby se tudo falhar
+            Debug.LogWarning("⚠️ [MATCH] Fallback para o Lobby (RASCUNHO)");
+            MyNetworkManager.manager.ServerChangeSceneSynchronized("RASCUNHO");
+        }
     }
 
     #endregion
@@ -112,6 +169,9 @@ public class MatchManager : NetworkBehaviour
         _matchTimer = -1;
         _freezeTimer = -1;
         _gameOver = string.Empty;
+        
+        // Esconde PlayerHUD durante briefing/câmera inicial (com delay para garantir que HUDManager inicializou)
+        LeanTween.delayedCall(0.5f, () => RpcHidePlayerHUD());
         
         LeanTween.delayedCall(2.0f, () =>
         { 
@@ -206,6 +266,9 @@ public class MatchManager : NetworkBehaviour
         PlayerList.singleton.SetAllPlayersFrozen(false);
         _freezeTimer = db.serverFreezeDuration;
         _matchHasStarted = true;
+        
+        // Mostra PlayerHUD quando o match começar
+        RpcShowPlayerHUD();
     }
 
 
@@ -233,7 +296,7 @@ public class MatchManager : NetworkBehaviour
 
             Debug.DrawRay(randomSpawn.position,Vector3.up * 100, Color.green, 10);
             
-            ps.TargetRpcTeleport(conn, randomSpawn.position, this.transform.rotation);
+            ps.TargetRpcTeleport(conn, randomSpawn.position, randomSpawn.rotation);
 
             _activePlayers.Add(pd);
 
@@ -277,7 +340,7 @@ public class MatchManager : NetworkBehaviour
         var sb = MyNetworkManager.manager.scoreboard.players;
         int n = sb.Count;
         
-        var sortedPlayers = new List<(string name, int total, int gain, Color32 color)>();
+        var sortedPlayers = new List<(string name, int total, int gain, Color32 color, int hatIndex, int glassesIndex, int shirtIndex)>();
         
         for (int i = 0; i < n; i++)
         {
@@ -289,8 +352,26 @@ public class MatchManager : NetworkBehaviour
             Color32 color = Color.white;
             if (db != null && db.playerColors != null && p.color >= 0 && p.color < db.playerColors.Count)
                 color = db.playerColors[p.color].color;
+            
+            // Busca a customização do jogador no PlayerData
+            int hatIndex = -1;
+            int glassesIndex = -1;
+            int shirtIndex = -1;
+            
+            var playerData = FindPlayerDataBySteamId(p.steamID);
+            if (playerData != null)
+            {
+                hatIndex = playerData.hatIndex;
+                glassesIndex = playerData.glassesIndex;
+                shirtIndex = playerData.shirtIndex;
+                Debug.Log($"[MatchManager] Customização coletada para {name}: Hat={hatIndex}, Glasses={glassesIndex}, Shirt={shirtIndex}");
+            }
+            else
+            {
+                Debug.LogWarning($"[MatchManager] PlayerData não encontrado para {name} (SteamID: {p.steamID})");
+            }
                 
-            sortedPlayers.Add((name, total, gain, color));
+            sortedPlayers.Add((name, total, gain, color, hatIndex, glassesIndex, shirtIndex));
         }
         
         // Ordena apenas pelos pontos totais (maior para menor)
@@ -300,6 +381,9 @@ public class MatchManager : NetworkBehaviour
         int[] totals = new int[n];
         int[] gains = new int[n];
         Color32[] colors = new Color32[n];
+        int[] hatIndices = new int[n];
+        int[] glassesIndices = new int[n];
+        int[] shirtIndices = new int[n];
         
         for (int i = 0; i < n; i++)
         {
@@ -307,9 +391,12 @@ public class MatchManager : NetworkBehaviour
             totals[i] = sortedPlayers[i].total;
             gains[i] = sortedPlayers[i].gain;
             colors[i] = sortedPlayers[i].color;
+            hatIndices[i] = sortedPlayers[i].hatIndex;
+            glassesIndices[i] = sortedPlayers[i].glassesIndex;
+            shirtIndices[i] = sortedPlayers[i].shirtIndex;
         }
         
-        StartCoroutine(ServerSendResultsAfterDelay(names, totals, gains, colors));
+        StartCoroutine(ServerSendResultsAfterDelay(names, totals, gains, colors, hatIndices, glassesIndices, shirtIndices));
 
         _gameOver = "Acabou!";
 
@@ -389,17 +476,43 @@ public class MatchManager : NetworkBehaviour
         HUDSO.GameOver(newValue);
     }
     
+    [ClientRpc]
+    private void RpcHidePlayerHUD()
+    {
+        HUDSO.ShowBriefing();
+    }
+    
+    [ClientRpc]
+    private void RpcShowPlayerHUD()
+    {
+        HUDSO.HideBriefing();
+    }
+    
     [Server]
-    private IEnumerator ServerSendResultsAfterDelay(string[] names, int[] totals, int[] gains, Color32[] colors)
+    private IEnumerator ServerSendResultsAfterDelay(string[] names, int[] totals, int[] gains, Color32[] colors, int[] hatIndices, int[] glassesIndices, int[] shirtIndices)
     {
         float delay = Mathf.Max(0f, resultsOverlayDelaySeconds);
         if (delay > 0f)
             yield return new WaitForSeconds(delay);
 
-        RpcShowSimpleResults(names, totals, gains, colors);
+        RpcShowSimpleResults(names, totals, gains, colors, hatIndices, glassesIndices, shirtIndices);
 
         float exitTimer = ResultsUI.singleton != null ? ResultsUI.singleton.exitTimerSeconds : 10f;
-        StartCoroutine(WaitAndReturnToLobby(exitTimer));
+        // StartCoroutine(WaitAndReturnToLobby(exitTimer));
+    }
+    
+    [Server]
+    private PlayerData FindPlayerDataBySteamId(ulong steamId)
+    {
+        if (steamId == 0) return null;
+        
+        foreach (var pd in PlayerList.singleton.players)
+        {
+            if (pd.playerInfo.steamId == steamId)
+                return pd;
+        }
+        
+        return null;
     }
     
 }

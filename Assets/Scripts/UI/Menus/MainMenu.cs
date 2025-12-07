@@ -87,19 +87,30 @@ public class MainMenu : MonoBehaviour
         LobbyController.singleton.StartGameSolo();
     }
 
+    /// <summary>
+    /// Sai da party atual e volta para o menu offline.
+    /// Não fecha o jogo.
+    /// </summary>
     public void LeaveParty()
     {
         if (!NetworkClient.active) return;
-
-        if (NetworkClient.localPlayer.isServer)
-            NetworkManager.singleton.StopHost();
-        else
-            NetworkManager.singleton.StopClient();
-
-        NetworkClient.Shutdown();
-        NetworkManager.ResetStatics();
+        
+        Debug.Log("[MainMenu] LeaveParty called");
         SteamLobby.instance.Leave();
-        Application.Quit();
+    }
+    
+    /// <summary>
+    /// Sai da party e fecha o jogo completamente.
+    /// </summary>
+    public void LeavePartyAndQuit()
+    {
+        if (!NetworkClient.active) 
+        {
+            Application.Quit();
+            return;
+        }
+
+        SteamLobby.instance.LeaveAndQuit();
     }
 
     public void FindMatch()

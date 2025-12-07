@@ -74,7 +74,6 @@ public class PlayerActiveFrame : NetworkBehaviour
             if (attacker != null)
                 ball.ServerRegisterTouch(attacker.playerInfo.steamId);
         }
-        damage.ReceiveDamage(dmgType, dir);
         if (dmgType == DamageType.Push)
         {
             var controller = FindObjectOfType<BatataQuenteMinigameController>();
@@ -86,5 +85,6 @@ public class PlayerActiveFrame : NetworkBehaviour
                     controller.OnPlayerPush(attacker, target);
             }
         }
+        damage.ReceiveDamage(dmgType, dir);
     }
 }

@@ -596,13 +596,33 @@ public class SoccerMinigameController : MinigameController
         if (scoringTeam == 0) _scoreA++; else _scoreB++;
 
         ulong scorerSid = 0UL;
+        string scorerAlias = string.Empty;
+        
         if (ball != null)
         {
             scorerSid = ball.GetLastTouchSteamId();
+            
+            // Busca o alias NO SERVIDOR antes de enviar o RPC
+            // Isso garante que todos os clientes recebam a mesma informação válida
+            if (scorerSid != 0UL)
+            {
+                try
+                {
+                    var pd = PlayerList?.players?.FirstOrDefault(p => p.playerInfo.steamId == scorerSid);
+                    if (pd != null)
+                    {
+                        scorerAlias = pd.alias;
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogWarning($"[SoccerMinigame] Erro ao buscar alias do jogador {scorerSid}: {ex.Message}");
+                }
+            }
         }
 
         RpcUpdateSoccerScore(_scoreA, _scoreB);
-        RpcShowGoal(scoringTeam, scorerSid);
+        RpcShowGoal(scoringTeam, scorerAlias); // Agora envia o ALIAS, não o SteamID
         RpcToast($"Gol! {ScoreString()}");
 
         UpdateLiveScoresFromTeamScores();
@@ -643,18 +663,11 @@ public class SoccerMinigameController : MinigameController
     }
 
     [ClientRpc]
-    private void RpcShowGoal(int team, ulong scorerSid)
+    private void RpcShowGoal(int team, string scorerAlias)
     {
-        string alias = string.Empty;
-        try
-        {
-            var pd = PlayerList?.players?.FirstOrDefault(p => p.playerInfo.steamId == scorerSid);
-            if (pd != null) alias = pd.alias;
-        }
-        catch { }
 
         var hud = FindAnyObjectByType<SoccerHUD>();
-        if (hud != null) hud.ShowGoal(team, alias);
+        if (hud != null) hud.ShowGoal(team, scorerAlias);
     }
 
     [Server]
