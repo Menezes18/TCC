@@ -160,6 +160,13 @@ public class HUDSO : ScriptableObject{
         this.EventOnThrowCooldownUpdated?.Invoke(normalizedValue);
     }
 
+    // Ability Block UI (local-only)
+    public event Action<bool> EventOnAbilityBlockUpdated;
+    public void SetAbilityBlock(bool blocked)
+    {
+        this.EventOnAbilityBlockUpdated?.Invoke(blocked);
+    }
+
     // Score UI (local-only)
     public event Action<int> EventOnScoreUpdated;
 

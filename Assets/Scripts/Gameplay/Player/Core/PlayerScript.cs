@@ -698,6 +698,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             ShowBanana();
         else
             HideBanana();
+
+        if (isOwned)
+        {
+            HUDSO.SetAbilityBlock(newVal);
+        }
     }
     
     private void ShowBanana()
