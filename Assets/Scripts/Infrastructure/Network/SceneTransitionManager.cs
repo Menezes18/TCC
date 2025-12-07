@@ -113,48 +113,55 @@ public class SceneTransitionManager : MonoBehaviour
 
     #region Message Registration
 
-    private void RegisterHandlers()
+    public void RegisterServerHandlers()
     {
-        if (!_serverHandlersRegistered)
-        {
-            NetworkServer.RegisterHandler<ScenePreloadAckMessage>(OnServerReceivePreloadAck, false);
-            NetworkServer.RegisterHandler<SceneActivationAckMessage>(OnServerReceiveActivationAck, false);
-            _serverHandlersRegistered = true;
-        }
+        if (_serverHandlersRegistered) return;
+        
+        NetworkServer.RegisterHandler<ScenePreloadAckMessage>(OnServerReceivePreloadAck, false);
+        NetworkServer.RegisterHandler<SceneActivationAckMessage>(OnServerReceiveActivationAck, false);
+        _serverHandlersRegistered = true;
+        Debug.Log("[SceneTransitionManager] Server handlers registered");
+    }
 
-        if (!_clientHandlersRegistered)
-        {
-            NetworkClient.RegisterHandler<ScenePreloadMessage>(OnClientReceivePreloadMessage, false);
-            NetworkClient.RegisterHandler<SceneActivationMessage>(OnClientReceiveActivationMessage, false);
-            NetworkClient.RegisterHandler<LoadingProgressUpdateMessage>(OnClientReceiveLoadingProgress, false);
-            _clientHandlersRegistered = true;
-        }
+    public void UnregisterServerHandlers()
+    {
+        if (!_serverHandlersRegistered) return;
+        
+        NetworkServer.UnregisterHandler<ScenePreloadAckMessage>();
+        NetworkServer.UnregisterHandler<SceneActivationAckMessage>();
+        _serverHandlersRegistered = false;
+        Debug.Log("[SceneTransitionManager] Server handlers unregistered");
+    }
+
+    public void RegisterClientHandlers()
+    {
+        if (_clientHandlersRegistered) return;
+
+        NetworkClient.RegisterHandler<ScenePreloadMessage>(OnClientReceivePreloadMessage, false);
+        NetworkClient.RegisterHandler<SceneActivationMessage>(OnClientReceiveActivationMessage, false);
+        NetworkClient.RegisterHandler<LoadingProgressUpdateMessage>(OnClientReceiveLoadingProgress, false);
+        _clientHandlersRegistered = true;
+        Debug.Log("[SceneTransitionManager] Client handlers registered");
+    }
+
+    public void UnregisterClientHandlers()
+    {
+        if (!_clientHandlersRegistered) return;
+
+        NetworkClient.UnregisterHandler<ScenePreloadMessage>();
+        NetworkClient.UnregisterHandler<SceneActivationMessage>();
+        NetworkClient.UnregisterHandler<LoadingProgressUpdateMessage>();
+        _clientHandlersRegistered = false;
+        Debug.Log("[SceneTransitionManager] Client handlers unregistered");
     }
 
     private void OnDestroy()
     {
         if (singleton == this)
         {
-            UnregisterHandlers();
+            UnregisterServerHandlers();
+            UnregisterClientHandlers();
             singleton = null;
-        }
-    }
-
-    private void UnregisterHandlers()
-    {
-        if (_serverHandlersRegistered)
-        {
-            NetworkServer.UnregisterHandler<ScenePreloadAckMessage>();
-            NetworkServer.UnregisterHandler<SceneActivationAckMessage>();
-            _serverHandlersRegistered = false;
-        }
-
-        if (_clientHandlersRegistered)
-        {
-            NetworkClient.UnregisterHandler<ScenePreloadMessage>();
-            NetworkClient.UnregisterHandler<SceneActivationMessage>();
-            NetworkClient.UnregisterHandler<LoadingProgressUpdateMessage>();
-            _clientHandlersRegistered = false;
         }
     }
 

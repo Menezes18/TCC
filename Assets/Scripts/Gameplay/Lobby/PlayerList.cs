@@ -162,20 +162,27 @@ public class PlayerList : NetworkBehaviour{
     {
         Debug.Log("[PlayerList] ClearAllPlayers called - resetting player list");
         
-        // Limpa a lista de jogadores
-        players.Clear();
-        
-        // Reseta o pool de cores
-        ColorsAvailable.Clear();
-        if (db != null)
+        // Only clear SyncLists if server is active to avoid "InitSyncObject: IsWritable" error
+        if (NetworkServer.active)
         {
-            for (int i = 0; i < db.playerColors.Count; i++)
+            // Limpa a lista de jogadores
+            players.Clear();
+            
+            // Reseta o pool de cores
+            ColorsAvailable.Clear();
+            if (db != null)
             {
-                ColorsAvailable.Add(i);
+                for (int i = 0; i < db.playerColors.Count; i++)
+                {
+                    ColorsAvailable.Add(i);
+                }
             }
+            Debug.Log("[PlayerList] Player list cleared and colors reset (Server Active)");
         }
-        
-        Debug.Log("[PlayerList] Player list cleared and colors reset");
+        else
+        {
+            Debug.LogWarning("[PlayerList] NetworkServer not active - skipping SyncList clear to avoid errors");
+        }
     }
     
     [Server]
