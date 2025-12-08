@@ -48,6 +48,12 @@ public class SumoMinigameController : MinigameController, IObserver
     public override bool UseAliveStatusOnScoreboard => true;
     public override void StartMatch()
     {
+        alivePlayers = playerList.players.Where(p => p != null).ToList();
+        eliminationOrder.Clear();
+        finalScores.Clear();
+        
+        Debug.Log($"[Sumo] StartMatch iniciado com {alivePlayers.Count} jogadores.");
+
         base.StartMatch();
         _matchEnded = false;
         Notifica();  
@@ -59,13 +65,8 @@ public class SumoMinigameController : MinigameController, IObserver
     public override void OnStartServer()
     {
         base.OnStartServer();
-    
-        alivePlayers  = playerList.players.ToList();   
-        eliminationOrder.Clear();
-        finalScores.Clear();
         Adicionar(this);
         Notifica();
-        Debug.Log($"[Sumo] Round iniciado com {alivePlayers.Count} jogadores.");
     }
 
     public override void UpdateScores()
@@ -120,6 +121,15 @@ public class SumoMinigameController : MinigameController, IObserver
         timer = timeBetweenSteps;
         state = HideState.Waiting;
     }
+    [Server]
+    public override void EndMatch()
+    {
+        if (_matchEnded) return;
+        _matchEnded = true;
+        AssignFinalPoints();
+        base.EndMatch();
+    }
+
     [Server]
     public void Eliminate(PlayerData pd)
     {

@@ -18,8 +18,8 @@ public class SpectatorManager : MonoBehaviour
 
     public PlayerScript LocalSpectator { get; private set; }
 
-
-    private bool overlayLoadingOrLoaded;
+    // Removido estado complexo, usando abordagem simples igual ResultsOverlay
+    private bool _isLoading = false;
 
     // Lista de espectadores desativada (sem snapshot)
 
@@ -51,7 +51,7 @@ public class SpectatorManager : MonoBehaviour
     
         LocalSpectator = local;
         OnLocalSpectatorStateChanged?.Invoke(true);
-        EnsureOverlayLoaded();
+        StartCoroutine(LoadOverlayRoutine());
     }
 
     public void OnLocalSpectatorExit(PlayerScript local)
@@ -61,7 +61,8 @@ public class SpectatorManager : MonoBehaviour
             LocalSpectator = null;
             CurrentTarget = null;
             OnLocalSpectatorStateChanged?.Invoke(false);
-            EnsureOverlayUnloaded();
+            // Não descarregamos mais manualmente, confiamos na troca de cena
+            // EnsureOverlayUnloaded();
         }
     }
 
@@ -71,60 +72,36 @@ public class SpectatorManager : MonoBehaviour
         OnLocalSpectatorTargetChanged?.Invoke(newTarget);
     }
 
-    private void EnsureOverlayLoaded()
+    private System.Collections.IEnumerator LoadOverlayRoutine()
     {
-        var scene = SceneManager.GetSceneByName(overlaySceneName);
-        
-        // Se a cena já está carregada, apenas marca como loaded
-        if (scene.isLoaded)
-        {
-            overlayLoadingOrLoaded = true;
-            Debug.Log($"👁️ [SpectatorManager] Overlay '{overlaySceneName}' já está carregado");
-            return;
-        }
+        if (_isLoading) yield break;
 
-        // Se já está carregando, não tenta carregar novamente
-        if (overlayLoadingOrLoaded)
-        {
-            Debug.Log($"👁️ [SpectatorManager] Overlay '{overlaySceneName}' já está sendo carregado");
-            return;
-        }
-
-        // Carrega a cena overlay de forma assíncrona
-        overlayLoadingOrLoaded = true;
-        Debug.Log($"👁️ [SpectatorManager] Carregando overlay '{overlaySceneName}' assincronamente...");
-        
-        var asyncOp = SceneManager.LoadSceneAsync(overlaySceneName, LoadSceneMode.Additive);
-        if (asyncOp != null)
-        {
-            asyncOp.completed += _ =>
-            {
-                Debug.Log($"✅ [SpectatorManager] Overlay '{overlaySceneName}' carregado com sucesso");
-            };
-        }
-    }
-
-    private void EnsureOverlayUnloaded()
-    {
         var scene = SceneManager.GetSceneByName(overlaySceneName);
         if (!scene.isLoaded)
         {
-            overlayLoadingOrLoaded = false;
-            Debug.Log($"👁️ [SpectatorManager] Overlay '{overlaySceneName}' já está descarregado");
-            return;
-        }
-
-        Debug.Log($"👁️ [SpectatorManager] Descarregando overlay '{overlaySceneName}'...");
-        var asyncOp = SceneManager.UnloadSceneAsync(scene);
-        if (asyncOp != null)
-        {
-            asyncOp.completed += _ =>
+            _isLoading = true;
+            Debug.Log($"👁️ [SpectatorManager] Carregando overlay '{overlaySceneName}'...");
+            
+            var op = SceneManager.LoadSceneAsync(overlaySceneName, LoadSceneMode.Additive);
+            if (op != null)
             {
-                overlayLoadingOrLoaded = false;
-                Debug.Log($"✅ [SpectatorManager] Overlay '{overlaySceneName}' descarregado com sucesso");
-            };
+                while (!op.isDone) yield return null;
+            }
+            
+            _isLoading = false;
+            Debug.Log($"✅ [SpectatorManager] Overlay carregado.");
+        }
+        else
+        {
+            Debug.Log($"👁️ [SpectatorManager] Overlay já estava carregado.");
         }
     }
+
+    // Métodos antigos removidos para simplificação
+    /*
+    private void EnsureOverlayLoaded() { ... }
+    private void EnsureOverlayUnloaded() { ... }
+    */
 
 
     private string SafeResolvePlayerName(PlayerScript ps)
