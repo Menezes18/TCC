@@ -22,6 +22,14 @@ public class UIAlwaysSelect : MonoBehaviour
 
     private void Update()
     {
+        // Verifica se o EventSystem está disponível
+        if (currentEventSystem == null)
+        {
+            currentEventSystem = EventSystem.current;
+            if (currentEventSystem == null)
+                return;
+        }
+
         //Check if the last known selected GameObject has changed since
         //the last frame
         if (currentEventSystem.currentSelectedGameObject != null &&
@@ -37,14 +45,44 @@ public class UIAlwaysSelect : MonoBehaviour
             // If this happens simply re-select the last known selected GameObject.
             if (currentlySelected != null)
             {
-                currentlySelected.GetComponent<Selectable>().Select();
+                // Verifica se o objeto ainda existe e está ativo na hierarquia
+                // (importante quando menus são desabilitados durante cutscenes)
+                if (currentlySelected.activeInHierarchy)
+                {
+                    var selectable = currentlySelected.GetComponent<Selectable>();
+                    if (selectable != null && selectable.interactable)
+                    {
+                        selectable.Select();
+                    }
+                    else
+                    {
+                        // Se o objeto não é mais selecionável, limpa a referência
+                        currentlySelected = null;
+                    }
+                }
+                else
+                {
+                    // Se o objeto foi desabilitado (ex: durante cutscene), limpa a referência
+                    currentlySelected = null;
+                }
             }
             else
             {
                 // If there is none, select the firstSelectedGameObject
                 // (which can be setup inthe EventSystem component).
-                currentlySelected = currentEventSystem.firstSelectedGameObject;
-                currentlySelected.GetComponent<Selectable>().Select();
+                if (currentEventSystem.firstSelectedGameObject != null)
+                {
+                    // Verifica se o primeiro objeto selecionado ainda está ativo
+                    if (currentEventSystem.firstSelectedGameObject.activeInHierarchy)
+                    {
+                        currentlySelected = currentEventSystem.firstSelectedGameObject;
+                        var selectable = currentlySelected.GetComponent<Selectable>();
+                        if (selectable != null && selectable.interactable)
+                        {
+                            selectable.Select();
+                        }
+                    }
+                }
             }
         }
     }

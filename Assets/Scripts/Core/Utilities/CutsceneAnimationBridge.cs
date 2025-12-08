@@ -12,7 +12,18 @@ public class CutsceneAnimationBridge : MonoBehaviour
     public string joinRoomPopupTitle = "Entrando na Partida";
     public void StartCutscene()
     {
-        if (ManagerCutscene.Instance.id == CutsceneID.CreateRoom)
+        if (ManagerCutscene.Instance.id == CutsceneID.None)
+        {
+            Debug.LogError("CutsceneAnimationBridge: id is None");
+            PopupManager.instance.Popup_Show("Erro ao iniciar", false, true);
+           
+        }
+        else if (ManagerCutscene.Instance.id == CutsceneID.JoinListRoom)
+        {
+            Debug.LogError("CutsceneAnimationBridge: id is JoinListRoom");
+            PopupManager.instance.Popup_Show(joinRoomPopupTitle, true, true);
+        }
+        else if (ManagerCutscene.Instance.id == CutsceneID.CreateRoom)
         {
             PopupManager.instance.Popup_Show(createRoomPopupTitle, false, true);
         }
@@ -33,7 +44,7 @@ public class CutsceneAnimationBridge : MonoBehaviour
 
     public void CallCutscene()
     {
-        ManagerCutscene.CallCutsceneByID(CutsceneID.CreateRoom);
+        ManagerCutscene.CallCutsceneByID(ManagerCutscene.Instance.id);
     }
 }
 
