@@ -8,7 +8,8 @@ public class ProjectileScript : NetworkBehaviour
     private Vector3 _velocity;
     private bool _launched;
     private Transform _owner;
-    public GameObject _vfx;//Phelipe
+    public GameObject _vfx; //Phelipe
+
     public Transform Owner
     {
         get => _owner;
@@ -42,7 +43,7 @@ public class ProjectileScript : NetworkBehaviour
             foreach (Collider c in hits)
             {
                 if (c.transform.root == _owner) continue;
-//                Debug.LogError("Player on");
+
                 var dmg = c.transform.root.GetComponent<IDamageable>();
                 if (dmg != null)
                 {
@@ -51,12 +52,22 @@ public class ProjectileScript : NetworkBehaviour
                     VFXActivator(); //Phelipe
                 }
             }
-            
+
             //_launched = false;
         }
     }
-    private void VFXActivator()
+
+    private void VFXActivator() //Phelipe
     {
-        _vfx.SetActive(!_vfx.activeInHierarchy);//Phelipe
+        if (_vfx == null) return;
+
+        // Instancia o VFX na posição do projétil
+        GameObject vfxInstance = Instantiate(_vfx, transform.position, Quaternion.identity);
+
+        // Garante que a cópia esteja ativa
+        vfxInstance.SetActive(true);
+
+        // Destroi a cópia depois
+        Destroy(vfxInstance, 2f);
     }
 }
