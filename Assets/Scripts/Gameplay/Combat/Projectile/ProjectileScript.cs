@@ -7,7 +7,9 @@ public class ProjectileScript : NetworkBehaviour
 
     private Vector3 _velocity;
     private bool _launched;
+    private bool _hasHit; //Phelipe
     private Transform _owner;
+
     public GameObject _vfx; //Phelipe
 
     public Transform Owner
@@ -33,8 +35,10 @@ public class ProjectileScript : NetworkBehaviour
         if (!_launched) return;
 
         _velocity += Physics.gravity * db.projectileGravityScale * Time.deltaTime;
-
         transform.position += _velocity * Time.deltaTime;
+
+        // Se já acertou, não processa mais colisões
+        if (_hasHit) return; //Phelipe
 
         // Colisão
         var hits = Physics.OverlapSphere(transform.position, db.projectileRadius, db.projectileMask);
@@ -49,6 +53,8 @@ public class ProjectileScript : NetworkBehaviour
                 {
                     Debug.LogError("Player on Damage");
                     dmg.ReceiveDamage(DamageType.Poop, transform.forward);
+
+                    _hasHit = true; //Phelipe
                     VFXActivator(); //Phelipe
                 }
             }
@@ -61,13 +67,9 @@ public class ProjectileScript : NetworkBehaviour
     {
         if (_vfx == null) return;
 
-        // Instancia o VFX na posição do projétil
         GameObject vfxInstance = Instantiate(_vfx, transform.position, Quaternion.identity);
-
-        // Garante que a cópia esteja ativa
         vfxInstance.SetActive(true);
 
-        // Destroi a cópia depois
         Destroy(vfxInstance, 2f);
     }
 }
