@@ -117,7 +117,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SerializeField] public Transform _staggerIndicator;
     [SerializeField] public Transform _bostaIndicator;
     [SerializeField] public GameObject _gameObjectBosta;
-    [SerializeField] public GameObject _audioBosta;
 
     private float _inertiaCap;
     private float InertiaCap {
@@ -1152,12 +1151,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if (dmgType == DamageType.Poop) {
             Status = PlayerStatus.Blinded;
-            _audioBosta.SetActive(true);
-            var ab = _audioBosta.GetComponent<AudioSource>();
-            if (ab != null && ab.clip != null)
-            {
-                StartCoroutine(DisableAudioAfterTime(_audioBosta, ab.clip.length));
-            }
             _blindTimer = db.playerBlindDuration;
             float slowDuration = db != null ? Mathf.Max(0f, db.playerPoopSlowDuration) : 0f;
             if (slowDuration <= 0f && db != null)
