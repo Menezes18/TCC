@@ -8,6 +8,7 @@ using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
+using Org.BouncyCastle.Math.EC;
 
 public enum PlayerState{
     Default,
@@ -116,7 +117,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [SerializeField] public Transform _staggerIndicator;
     [SerializeField] public Transform _bostaIndicator;
     [SerializeField] public GameObject _gameObjectBosta;
-    [SerializeField] public AudioSource _audioBosta;
+    [SerializeField] public GameObject _audioBosta;
 
     private float _inertiaCap;
     private float InertiaCap {
@@ -1151,7 +1152,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if (dmgType == DamageType.Poop) {
             Status = PlayerStatus.Blinded;
-            _audioBosta.Play();
+            _audioBosta.SetActive(true);
+            var ab = _audioBosta.GetComponent<AudioSource>();
+            if (ab != null && ab.clip != null)
+            {
+                StartCoroutine(DisableAudioAfterTime(_audioBosta, ab.clip.length));
+            }
             _blindTimer = db.playerBlindDuration;
             float slowDuration = db != null ? Mathf.Max(0f, db.playerPoopSlowDuration) : 0f;
             if (slowDuration <= 0f && db != null)
@@ -1181,6 +1187,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
         //StartCoroutine(ClearStagger(db.playerStaggerStunDuration));
 
+    }
+
+    private IEnumerator DisableAudioAfterTime(GameObject obj, float time)
+    {
+        yield return new WaitForSeconds(time);
+        if (obj != null)
+            obj.SetActive(false);
     }
 
     [Server]
