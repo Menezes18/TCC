@@ -17,6 +17,7 @@ public class RoomListUI : MonoBehaviour
     public float refreshIntervalSeconds = 5f;
 
     private readonly List<GameObject> _spawned = new();
+    private Lobby _selectedLobby;
 
     private void Awake()
     {
@@ -101,22 +102,51 @@ public class RoomListUI : MonoBehaviour
             var joinBtn = go.GetComponentInChildren<Button>();
             if (joinBtn != null)
             {
-                joinBtn.onClick.RemoveAllListeners();
-                joinBtn.onClick.AddListener(() =>
-                {
-                    networkManager?.SetMultiplayer(true);
-                    if (!string.IsNullOrWhiteSpace(lobby.roomCode))
-                    {
-                        if (roomMenuController != null && roomMenuController.roomCodeInput != null)
-                            roomMenuController.roomCodeInput.text = lobby.roomCode;
-                        roomMenuController?.OnClickJoinRoom();
-                    }
-                    else
-                    {
-                        steamLobby.JoinLobby(lobby.lobbyID);
-                    }
-                });
+                SetupJoinButton(joinBtn, lobby);
             }
         }
+    }
+    public void StepupCutsceneJoinListRoom()
+    {
+        ManagerCutscene.Instance.setCutsceneIDByInt(3);
+        ManagerCutscene.Instance.callCutsceneJoinListRoomEvent();
+    }
+
+
+    public void JoinSelectedLobby()
+    {
+        if (_selectedLobby == null)
+        {
+            Debug.LogError("[RoomListUI] Nenhum lobby foi selecionado para entrar.");
+            return;
+        }
+
+        networkManager?.SetMultiplayer(true);
+        
+        if (!string.IsNullOrWhiteSpace(_selectedLobby.roomCode))
+        {
+            if (roomMenuController != null && roomMenuController.roomCodeInput != null)
+                roomMenuController.roomCodeInput.text = _selectedLobby.roomCode;
+            roomMenuController?.OnClickJoinRoom();
+        }
+        else
+        {
+            steamLobby.JoinLobby(_selectedLobby.lobbyID);
+        }
+        
+        // Limpa a referência após usar
+        _selectedLobby = null;
+    }
+
+    private void SetupJoinButton(Button joinBtn, Lobby lobby)
+    {
+        joinBtn.onClick.RemoveAllListeners();
+        joinBtn.onClick.AddListener(() =>
+        {
+            
+            _selectedLobby = lobby;
+            
+            StepupCutsceneJoinListRoom();
+        });
     }
 }

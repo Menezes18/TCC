@@ -600,9 +600,9 @@ public class SlotRoleta : NetworkBehaviour
         if (winText == null) return;
 
         string coloredName = $"<color=#{ColorUtility.ToHtmlStringRGB(winTextColor)}>{rotulo.ToUpper()}</color>";
-        string coloredSubtext = $"<color=#{ColorUtility.ToHtmlStringRGB(subtextColor)}>Passe a batata rapidamente!</color>";
+        string coloredSubtext = $"<color=#{ColorUtility.ToHtmlStringRGB(subtextColor)}>Passe a banana rapidamente!</color>";
         
-        winText.text = $"<size=115%><b>{coloredName} ESTÁ COM A BATATA QUENTE!</b></size>\n<size=75%>{coloredSubtext}</size>";
+        winText.text = $"<size=115%><b>{coloredName} ESTÁ COM A BANANA QUENTE!</b></size>\n<size=75%>{coloredSubtext}</size>";
         winText.gameObject.SetActive(true);
 
         if (winGroup == null)

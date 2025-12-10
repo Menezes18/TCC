@@ -37,7 +37,7 @@ public class SwitchHandler : MonoBehaviour
 
     public void OnSwitch(bool on)
     {
-        indicator.text = on ? (indicator.text = "ON") : indicator.text = "OFF";
+        indicator.text = on ? (indicator.text = "SIM") : indicator.text = "NÃO";
 
         //uiHandleRectTransform.anchoredPosition = on ? handlePosition * -1 : handlePosition ; // no anim
         HandleImage.DOAnchorPos(on ? handlePosition * -1 : handlePosition, AnimationSpeed).SetEase(Ease.InSine);
