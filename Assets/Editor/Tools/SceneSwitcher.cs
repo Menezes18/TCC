@@ -60,19 +60,37 @@ public class SceneManagerWindow : EditorWindow
 
     private void InitializeStyles()
     {
-        if (EditorStyles.boldLabel == null || EditorStyles.miniButton == null || EditorStyles.helpBox == null)
+        EditorApplication.delayCall -= InitializeStyles;
+
+        GUIStyle boldLabel;
+        GUIStyle miniButton;
+        GUIStyle helpBox;
+        try
+        {
+            boldLabel = EditorStyles.boldLabel;
+            miniButton = EditorStyles.miniButton;
+            helpBox = EditorStyles.helpBox;
+        }
+        catch (NullReferenceException)
         {
             EditorApplication.delayCall += InitializeStyles;
             return;
         }
-        headerStyle = new GUIStyle(EditorStyles.boldLabel)
+
+        if (boldLabel == null || miniButton == null || helpBox == null)
+        {
+            EditorApplication.delayCall += InitializeStyles;
+            return;
+        }
+
+        headerStyle = new GUIStyle(boldLabel)
         {
             alignment = TextAnchor.MiddleLeft,
             padding = new RectOffset(5, 5, 8, 8),
             margin = new RectOffset(5, 5, 5, 0)
         };
 
-        sceneButtonStyle = new GUIStyle(EditorStyles.miniButton)
+        sceneButtonStyle = new GUIStyle(miniButton)
         {
             fontSize = 11,
             alignment = TextAnchor.MiddleLeft,
@@ -81,13 +99,13 @@ public class SceneManagerWindow : EditorWindow
             fixedHeight = 28
         };
 
-        categoryBoxStyle = new GUIStyle(EditorStyles.helpBox)
+        categoryBoxStyle = new GUIStyle(helpBox)
         {
             padding = new RectOffset(5, 5, 5, 5),
             margin = new RectOffset(5, 5, 5, 10)
         };
 
-        favoriteButtonStyle = new GUIStyle(EditorStyles.miniButton)
+        favoriteButtonStyle = new GUIStyle(miniButton)
         {
             fixedWidth = 24,
             fixedHeight = 22,
@@ -95,7 +113,7 @@ public class SceneManagerWindow : EditorWindow
             margin = new RectOffset(2, 2, 3, 3)
         };
 
-        actionButtonStyle = new GUIStyle(EditorStyles.miniButton)
+        actionButtonStyle = new GUIStyle(miniButton)
         {
             fixedWidth = 24,
             fixedHeight = 22,

@@ -59,12 +59,23 @@ public class ProjectileScript : NetworkBehaviour
                 var dmg = c.transform.root.GetComponent<IDamageable>();
                 if (dmg != null)
                 {
-                    Debug.LogError("Player on Damage");
-                    dmg.ReceiveDamage(DamageType.Poop, transform.forward);
+                    Vector3 impactDirection = _velocity.sqrMagnitude > 0.0001f
+                        ? _velocity.normalized
+                        : transform.forward;
+                    var ball = c.transform.root.GetComponent<BallPhysics>();
+                    dmg.ReceiveDamage(ball != null ? DamageType.Push : DamageType.Poop, impactDirection);
+
+                    if (ball != null && _owner != null)
+                    {
+                        var ownerData = _owner.GetComponent<PlayerData>();
+                        if (ownerData != null)
+                            ball.ServerRegisterTouch(ownerData.playerInfo.steamId);
+                    }
 
                     _hasHit = true; //Phelipe
-                    VFXActivator(); //Phelipe
                     _launched = false;
+                    RpcActivateVFX();
+                    NetworkServer.Destroy(gameObject);
                     break;
                 }
             }
@@ -73,7 +84,8 @@ public class ProjectileScript : NetworkBehaviour
         }
     }
 
-    private void VFXActivator() //Phelipe
+    [ClientRpc]
+    private void RpcActivateVFX() //Phelipe
     {
         if (_vfx == null) return;
 

@@ -82,7 +82,7 @@ public class AudioManager : MonoBehaviour
             return; 
         }
         
-        Debug.LogError("[AudioManager] Instância " + gameObject.name + " criada.");
+        Debug.Log("[AudioManager] Instância " + gameObject.name + " criada.");
 
         Instance = this;
         DontDestroyOnLoad(gameObject);

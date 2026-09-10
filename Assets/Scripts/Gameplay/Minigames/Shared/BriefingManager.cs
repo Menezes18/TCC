@@ -239,8 +239,15 @@ public class BriefingManager : NetworkBehaviour
         onBriefingStarted?.Invoke();
         StopAllCoroutines();
 
-        // Informa ao servidor que este cliente exibiu o briefing
-        CmdAckBriefingShown();
+        // Usa o objeto de jogador pertencente ao cliente para que o servidor
+        // consiga vincular o ACK à conexão autenticada correta.
+        var localPlayerData = NetworkClient.localPlayer != null
+            ? NetworkClient.localPlayer.GetComponent<PlayerData>()
+            : null;
+        if (localPlayerData != null)
+            localPlayerData.AcknowledgeBriefingShown();
+        else
+            StartCoroutine(AcknowledgeWhenLocalPlayerIsReady());
     }
     #endregion
 
@@ -286,11 +293,21 @@ public class BriefingManager : NetworkBehaviour
     }
     #endregion
 
-    // Novo: cliente confirma que o briefing apareceu
-    [Command(requiresAuthority = false)]
-    private void CmdAckBriefingShown(NetworkConnectionToClient sender = null)
+    private IEnumerator AcknowledgeWhenLocalPlayerIsReady()
     {
-        if (!isServer || sender == null || sender.identity == null || briefingStarted) return;
+        while (NetworkClient.active && NetworkClient.localPlayer == null)
+            yield return null;
+
+        NetworkClient.localPlayer?.GetComponent<PlayerData>()?.AcknowledgeBriefingShown();
+    }
+
+    [Server]
+    public void ServerAcknowledgeBriefing(PlayerData player)
+    {
+        NetworkConnectionToClient sender = player != null ? player.connectionToClient : null;
+        if (sender == null || sender.identity != player.netIdentity || briefingStarted)
+            return;
+
         if (_briefingAcks.Add(sender.connectionId))
         {
             receivedBriefingAcks = _briefingAcks.Count;

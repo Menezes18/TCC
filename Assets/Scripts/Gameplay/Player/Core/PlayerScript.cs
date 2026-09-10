@@ -1830,6 +1830,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private void RpcOnDeathWithCause(DeathCause cause, bool perma, Vector3 pos, Quaternion rot)
     {
         _animator?.SetInteger(_DEATHCAUSE, (int)cause);
+        // Replica a apresentação da morte também para os observadores. O dono já
+        // recebe o TargetRpc que desabilita seu controle, mas todos precisam entrar
+        // no estado de animação Death.
+        State = PlayerState.Death;
         if (deathEffects != null)
         {
             var entry = deathEffects.Get(cause);
@@ -1931,11 +1935,26 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (_serverIsDead)
             return;
         ServerSetDeathState(true, permanent);
-        if (permanent && connectionToClient != null)
-            TargetForceSpectate(connectionToClient, cause);
+        if (connectionToClient != null)
+        {
+            if (permanent)
+                TargetForceSpectate(connectionToClient, cause);
+            else
+                TargetApplyNonPermanentDeath(connectionToClient, cause);
+        }
         RpcOnDeathWithCause(cause, permanent, transform.position, transform.rotation);
         if (!permanent)
             EventOnDeathServerSide?.Invoke();
+    }
+
+    [TargetRpc]
+    private void TargetApplyNonPermanentDeath(NetworkConnection conn, DeathCause cause)
+    {
+        _animator?.SetInteger(_DEATHCAUSE, (int)cause);
+        State = PlayerState.Death;
+        if (_controller != null)
+            _controller.enabled = false;
+        InternalResetProperties();
     }
 
     [Server]

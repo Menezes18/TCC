@@ -367,6 +367,14 @@ public class PlayerData : NetworkBehaviour{
    
     public void ToggleReady() => Cmd_ToggleReady();
 
+    public void AcknowledgeBriefingShown() => CmdAcknowledgeBriefingShown();
+
+    [Command]
+    private void CmdAcknowledgeBriefingShown()
+    {
+        BriefingManager.singleton?.ServerAcknowledgeBriefing(this);
+    }
+
     [Command]
     private void Cmd_ToggleReady() 
     {

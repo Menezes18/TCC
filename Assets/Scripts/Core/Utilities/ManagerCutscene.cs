@@ -95,16 +95,16 @@ public class ManagerCutscene : MonoBehaviour
         if (id == CutsceneID.CreateRoom)
         {
             callCreateRoomEvent?.Invoke();
-            Debug.LogError("callCutsceneCreateRoomEvent");
+            Debug.Log("callCutsceneCreateRoomEvent");
         }
         else if (id == CutsceneID.JoinRoom)
         {
             callJoinRoomEvent?.Invoke();
-            Debug.LogError("callCutsceneJoinRoomEvent");
+            Debug.Log("callCutsceneJoinRoomEvent");
         }
         else if (id == CutsceneID.JoinListRoom)
         {
-            Debug.LogError("callCutsceneJoinListRoomEvent");
+            Debug.Log("callCutsceneJoinListRoomEvent");
             callJoinListRoomEvent?.Invoke();
         }
     }
