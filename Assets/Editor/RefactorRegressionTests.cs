@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Collections.Generic;
 using Mirror;
 using NUnit.Framework;
+using Steamworks;
 using UnityEngine;
 
 public class RefactorRegressionTests
@@ -12,7 +13,11 @@ public class RefactorRegressionTests
     public void SetUp() => root = new GameObject("Refactor regression fixture");
 
     [TearDown]
-    public void TearDown() => Object.DestroyImmediate(root);
+    public void TearDown()
+    {
+        SteamLobby.LobbyID = CSteamID.Nil;
+        Object.DestroyImmediate(root);
+    }
 
     [Test]
     public void RemoteResetRestoresDestroyedTileAndAllowsAnotherActivation()
@@ -199,6 +204,32 @@ public class RefactorRegressionTests
         }
     }
 
+    [Test]
+    public void CreatedLobbyEnterCallbackIsRecognizedAsHostAdmission()
+    {
+        var steamLobby = root.AddComponent<SteamLobby>();
+        var lobbyId = new CSteamID(123456UL);
+        SteamLobby.LobbyID = lobbyId;
+        Set(steamLobby, "_pendingHostLobbyEnter", lobbyId);
+
+        Assert.That((bool)Invoke(steamLobby, "IsExpectedHostLobbyEnter", lobbyId), Is.True);
+        Assert.That((bool)Invoke(steamLobby, "IsExpectedJoinLobbyEnter", lobbyId), Is.False);
+    }
+
+    [Test]
+    public void JoinCallbackMustMatchTheRequestedLobby()
+    {
+        var steamLobby = root.AddComponent<SteamLobby>();
+        var expectedLobby = new CSteamID(111UL);
+        var staleLobby = new CSteamID(222UL);
+        SetEnum(steamLobby, "_operation", "Joining");
+        Set(steamLobby, "_awaitingJoinCallback", true);
+        Set(steamLobby, "_pendingJoinLobby", expectedLobby);
+
+        Assert.That((bool)Invoke(steamLobby, "IsExpectedJoinLobbyEnter", expectedLobby), Is.True);
+        Assert.That((bool)Invoke(steamLobby, "IsExpectedJoinLobbyEnter", staleLobby), Is.False);
+    }
+
     private GameObject Child(string name)
     {
         var child = new GameObject(name);
@@ -211,6 +242,12 @@ public class RefactorRegressionTests
 
     private static T Get<T>(object target, string name) =>
         (T)target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(target);
+
+    private static void SetEnum(object target, string name, string value)
+    {
+        FieldInfo field = target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
+        field.SetValue(target, System.Enum.Parse(field.FieldType, value));
+    }
 
     private static object Invoke(object target, string name, params object[] arguments) =>
         target.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic).Invoke(target, arguments);

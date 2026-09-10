@@ -71,6 +71,8 @@ public class SteamLobby : MonoBehaviour
     private int _operationGeneration;
     private bool _awaitingCreateCallback;
     private bool _awaitingJoinCallback;
+    private CSteamID _pendingHostLobbyEnter;
+    private CSteamID _pendingJoinLobby;
     public bool IsOperationActive => _operation != LobbyOperation.None || _awaitingCreateCallback || _awaitingJoinCallback;
 
 
@@ -206,21 +208,22 @@ public class SteamLobby : MonoBehaviour
     /// </summary>
     public void CloseCurrentLobby()
     {
-        if (!SteamManager.Initialized)
-        {
-            Debug.LogError("[SteamLobby] Steam não está inicializado, não é possível sair do lobby.");
-            return;
-        }
+        ++_operationGeneration;
+        _operation = LobbyOperation.None;
+        _awaitingCreateCallback = false;
+        _awaitingJoinCallback = false;
+        _pendingHostLobbyEnter = CSteamID.Nil;
+        _pendingJoinLobby = CSteamID.Nil;
 
-        if (LobbyID.IsValid())
-        {
+        if (SteamManager.Initialized && LobbyID.IsValid())
             SteamMatchmaking.LeaveLobby(LobbyID);
-            LobbyID = CSteamID.Nil;
-            _pendingRoomCode = null;
-            _pendingJoinCode = null;
-            CurrentRoomCode = null;
-            RoomCodeUpdated?.Invoke(CurrentRoomCode);
-        }
+
+        LobbyID = CSteamID.Nil;
+        _pendingRoomCode = null;
+        _pendingJoinCode = null;
+        _searchingByCode = false;
+        CurrentRoomCode = null;
+        RoomCodeUpdated?.Invoke(CurrentRoomCode);
     }
 
     private void BeginLobbyCreation(bool showPopup, bool useDelay, int maxPlayers)
@@ -273,6 +276,7 @@ public class SteamLobby : MonoBehaviour
         if (IsOperationActive) return;
         _operation = LobbyOperation.Joining;
         ++_operationGeneration;
+        _pendingJoinLobby = lobby;
         _awaitingJoinCallback = true;
         SteamMatchmaking.JoinLobby(lobby);
     }
@@ -331,6 +335,7 @@ public class SteamLobby : MonoBehaviour
         string lobbyName = SteamFriends.GetFriendPersonaName(SteamUser.GetSteamID());
 
         LobbyID = new CSteamID(callback.m_ulSteamIDLobby);
+        _pendingHostLobbyEnter = LobbyID;
 
 
         var manager = NetworkManager.singleton as MyNetworkManager;
@@ -368,6 +373,7 @@ public class SteamLobby : MonoBehaviour
         StartCoroutine(DelayAction(_delaySeconds, () => {
         if (_operation == LobbyOperation.Joining && generation == _operationGeneration)
         {
+            _pendingJoinLobby = callback.m_steamIDLobby;
             _awaitingJoinCallback = true;
             SteamMatchmaking.JoinLobby(callback.m_steamIDLobby);
         }
@@ -376,24 +382,38 @@ public class SteamLobby : MonoBehaviour
 
     private void OnLobbyEntered(LobbyEnter_t callback)
     {
-        _awaitingJoinCallback = false;
-        if (_operation != LobbyOperation.Joining)
+        CSteamID enteredLobby = new CSteamID(callback.m_ulSteamIDLobby);
+
+        // Steam also sends LobbyEnter_t to the owner after CreateLobby succeeds.
+        // This is not a client join callback and must not make the host leave its own lobby.
+        if (IsExpectedHostLobbyEnter(enteredLobby))
         {
-            SteamMatchmaking.LeaveLobby((CSteamID)callback.m_ulSteamIDLobby);
+            _pendingHostLobbyEnter = CSteamID.Nil;
+            Debug.Log($"[SteamLobby] Host entered created lobby {enteredLobby.m_SteamID}.");
             return;
         }
+
+        if (!IsExpectedJoinLobbyEnter(enteredLobby))
+        {
+            Debug.LogWarning($"[SteamLobby] Ignoring stale lobby-enter callback for {enteredLobby.m_SteamID}.");
+            SteamMatchmaking.LeaveLobby(enteredLobby);
+            return;
+        }
+
+        _awaitingJoinCallback = false;
+        _pendingJoinLobby = CSteamID.Nil;
         // Locked is a privacy flag, not the result of the join request.
         if ((EChatRoomEnterResponse)callback.m_EChatRoomEnterResponse != EChatRoomEnterResponse.k_EChatRoomEnterResponseSuccess)
         {
-            SteamMatchmaking.LeaveLobby((CSteamID)callback.m_ulSteamIDLobby);
+            SteamMatchmaking.LeaveLobby(enteredLobby);
             PopupManager.instance?.Popup_Close();
             JoinByCodeFailed?.Invoke("Unable to enter the Steam lobby.");
             _operation = LobbyOperation.None;
             return;
         }
 
-        Debug.Log($"Entrou no lobby {LobbyID}");
-        LobbyID = new CSteamID(callback.m_ulSteamIDLobby);
+        Debug.Log($"[SteamLobby] Entered lobby {enteredLobby.m_SteamID}.");
+        LobbyID = enteredLobby;
         _operation = LobbyOperation.None;
 
         // Evita iniciar cliente múltiplas vezes
@@ -423,6 +443,21 @@ public class SteamLobby : MonoBehaviour
         ((MyNetworkManager)NetworkManager.singleton).SetMultiplayer(true);
         ((MyNetworkManager)NetworkManager.singleton).networkAddress = hostAddress;
         ((MyNetworkManager)NetworkManager.singleton).StartClient();
+    }
+
+    private bool IsExpectedHostLobbyEnter(CSteamID lobby)
+    {
+        return _pendingHostLobbyEnter.IsValid() &&
+               _pendingHostLobbyEnter.m_SteamID == lobby.m_SteamID &&
+               LobbyID.m_SteamID == lobby.m_SteamID;
+    }
+
+    private bool IsExpectedJoinLobbyEnter(CSteamID lobby)
+    {
+        return _operation == LobbyOperation.Joining &&
+               _awaitingJoinCallback &&
+               _pendingJoinLobby.IsValid() &&
+               _pendingJoinLobby.m_SteamID == lobby.m_SteamID;
     }
     #endregion
 
@@ -456,6 +491,10 @@ public class SteamLobby : MonoBehaviour
         // Limpa os códigos de sala
         _pendingRoomCode = null;
         _pendingJoinCode = null;
+        _pendingHostLobbyEnter = CSteamID.Nil;
+        _pendingJoinLobby = CSteamID.Nil;
+        _awaitingCreateCallback = false;
+        _awaitingJoinCallback = false;
         _searchingByCode = false;
         CurrentRoomCode = null;
         RoomCodeUpdated?.Invoke(CurrentRoomCode);
@@ -567,6 +606,7 @@ public class SteamLobby : MonoBehaviour
             return;
         }
 
+        _pendingJoinLobby = targetLobby;
         _awaitingJoinCallback = true;
         SteamMatchmaking.JoinLobby(targetLobby);
     }
