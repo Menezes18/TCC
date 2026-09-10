@@ -125,14 +125,7 @@ public class MinigameRotationState : MonoBehaviour
             var managers = FindObjectsByType<MyNetworkManager>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             if (managers.Length > 0 && managers[0] != null)
             {
-                // Try to get catalog from NetworkManager via reflection
-                var field = managers[0].GetType().GetField("minigameCatalog", 
-                    System.Reflection.BindingFlags.NonPublic | 
-                    System.Reflection.BindingFlags.Instance);
-                if (field != null)
-                {
-                    _catalog = field.GetValue(managers[0]) as MinigameCatalog;
-                }
+                _catalog = managers[0].MinigameCatalog;
             }
         }
     }

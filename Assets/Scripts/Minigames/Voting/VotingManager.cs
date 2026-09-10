@@ -96,16 +96,28 @@ public class VotingManager : NetworkBehaviour
     [SyncVar(hook = nameof(OnVotingTimeRemainingChanged))]
     private float _votingTimeRemaining;
 
-    [SyncVar]
+    [SyncVar] private int _winningOptionIndex = -1;
+    [SyncVar] private uint _roundId;
+    [SyncVar(hook = nameof(OnVotingActiveChanged))]
     private bool _isVotingActive;
+    private MinigameCatalog.MinigameEntry _latchedWinner;
 
     public event Action<float> OnVotingTimerUpdate;
     public float VotingTimeRemaining => _votingTimeRemaining;
     public bool IsVotingActive => _isVotingActive;
+    public uint RoundId => _roundId;
 
     private void OnVotingTimeRemainingChanged(float oldTime, float newTime)
     {
         OnVotingTimerUpdate?.Invoke(newTime);
+    }
+
+    private void OnVotingActiveChanged(bool wasActive, bool isActive)
+    {
+        if (!wasActive || isActive || isServer) return;
+        MinigameOptionRuntime winner = _winningOptionIndex >= 0 && _winningOptionIndex < _clientOptions.Count
+            ? _clientOptions[_winningOptionIndex] : null;
+        OnVotingEnded?.Invoke(winner);
     }
 
     #endregion
@@ -138,8 +150,8 @@ public class VotingManager : NetworkBehaviour
             if (_votingTimeRemaining <= 0)
             {
                 _votingTimeRemaining = 0;
-                _isVotingActive = false;
                 Debug.Log("⏰ [VOTING] Timer expired!");
+                EndVoting();
             }
         }
     }
@@ -211,6 +223,11 @@ public class VotingManager : NetworkBehaviour
 
         // Clear previous state
         ClearVotingState();
+        unchecked
+        {
+            _roundId++;
+            if (_roundId == 0) _roundId = 1;
+        }
 
         // Select up to maxOptions from eligible minigames
         int optionCount = Mathf.Min(_maxOptions, eligible.Count);
@@ -251,62 +268,23 @@ public class VotingManager : NetworkBehaviour
             FreezeAllPlayers(true);
         }
 
-        // Prepare data to send to clients via RPC
-        string[] ids = selectedOptions.Select(e => e.id).ToArray();
-        string[] names = selectedOptions.Select(e => {
-            string name = e.displayName;
-            return string.IsNullOrWhiteSpace(name) ? e.id : name;
-        }).ToArray();
-        string[] scenes = selectedOptions.Select(e => e.SceneIdentifier).ToArray();
-        
-        // Send to all clients via RPC (this will trigger OnVotingStarted for everyone including host)
-        RpcSyncVotingOptions(ids, names, scenes);
-        Debug.Log($"📡 [VOTING SERVER] Sent RPC with {names.Length} options");
+        // Pure clients rebuild from the authoritative SyncLists. The host needs
+        // the same UI notification directly because it does not subscribe as a client.
+        RebuildClientOptions();
 
         return true;
-    }
-
-    /// <summary>
-    /// ClientRpc to synchronize voting options from server to all clients.
-    /// This ensures clients receive the correct displayNames.
-    /// </summary>
-    [ClientRpc]
-    private void RpcSyncVotingOptions(string[] ids, string[] names, string[] scenes)
-    {
-        // Don't skip on server - host needs UI updates too!
-        Debug.Log($"📡 [VOTING CLIENT] Received RPC with {names.Length} options (isServer: {isServer})");
-        
-        // Only update SyncLists if we're a pure client (not server/host)
-        if (!isServer)
-        {
-            // Clear and populate with received data
-            _optionIds.Clear();
-            _optionNames.Clear();
-            _optionScenes.Clear();
-            
-            for (int i = 0; i < ids.Length; i++)
-            {
-                _optionIds.Add(ids[i]);
-                _optionNames.Add(i < names.Length ? names[i] : ids[i]);
-                _optionScenes.Add(i < scenes.Length ? scenes[i] : "");
-                
-                Debug.Log($"  📥 Option {i}: ID='{ids[i]}', Name='{names[i]}', Scene='{scenes[i]}'");
-            }
-        }
-        
-        // Rebuild client options with the new data (for both server and clients)
-        RebuildClientOptions();
     }
 
     /// <summary>
     /// Registers or updates a player's vote.
     /// </summary>
     [Server]
-    public void RegisterVote(ulong playerId, int optionIndex)
+    public void RegisterVote(ulong playerId, int optionIndex, uint roundId)
     {
-        if (optionIndex < 0 || optionIndex >= _optionIds.Count)
+        if (!_isVotingActive || _votingTimeRemaining <= 0 || roundId != _roundId ||
+            optionIndex < 0 || optionIndex >= _optionIds.Count || !IsRegisteredParticipant(playerId))
         {
-            Debug.LogWarning($"[VOTING] Invalid vote from player {playerId}: option index {optionIndex} out of range");
+            Debug.LogWarning($"[VOTING] Rejected vote from player {playerId}: option={optionIndex}, round={roundId}, activeRound={_roundId}");
             return;
         }
 
@@ -384,6 +362,7 @@ public class VotingManager : NetworkBehaviour
     [Server]
     public MinigameCatalog.MinigameEntry EndVoting()
     {
+        if (_latchedWinner != null) return _latchedWinner;
         if (_currentOptionEntries.Count == 0)
         {
             Debug.LogError("[VOTING] Cannot end voting: no options available!");
@@ -394,8 +373,8 @@ public class VotingManager : NetworkBehaviour
         if (_currentOptionEntries.Count == 1)
         {
             var winner = _currentOptionEntries[0];
+            FinalizeVoting(0, winner);
             Debug.Log($"🏆 [VOTING] Only one option available, auto-selecting: {winner.displayName}");
-            OnVotingEnded?.Invoke(MinigameOptionRuntime.FromCatalogEntry(winner));
             return winner;
         }
 
@@ -427,20 +406,28 @@ public class VotingManager : NetworkBehaviour
         }
 
         var winningEntry = _currentOptionEntries[winnerIndex];
-
-        // Stop voting timer and unfreeze players
-        _isVotingActive = false;
-        _votingTimeRemaining = 0;
-        
-        if (_SetAllPlayersFrozenDuringVoting)
-        {
-            FreezeAllPlayers(false);
-        }
-
-        // Notify listeners
-        OnVotingEnded?.Invoke(MinigameOptionRuntime.FromCatalogEntry(winningEntry));
+        FinalizeVoting(winnerIndex, winningEntry);
 
         return winningEntry;
+    }
+
+    [Server]
+    private bool IsRegisteredParticipant(ulong playerId)
+    {
+        var playerList = PlayerList.singleton;
+        return playerList != null && playerList.players.Any(player =>
+            player != null && player.playerInfo.steamId == playerId);
+    }
+
+    [Server]
+    private void FinalizeVoting(int winnerIndex, MinigameCatalog.MinigameEntry winner)
+    {
+        _latchedWinner = winner;
+        _winningOptionIndex = winnerIndex;
+        _votingTimeRemaining = 0;
+        if (_SetAllPlayersFrozenDuringVoting) FreezeAllPlayers(false);
+        OnVotingEnded?.Invoke(MinigameOptionRuntime.FromCatalogEntry(winner));
+        _isVotingActive = false;
     }
 
     /// <summary>
@@ -466,6 +453,8 @@ public class VotingManager : NetworkBehaviour
         _voteCounts.Clear();
         _isVotingActive = false;
         _votingTimeRemaining = 0;
+        _winningOptionIndex = -1;
+        _latchedWinner = null;
     }
 
     [Server]

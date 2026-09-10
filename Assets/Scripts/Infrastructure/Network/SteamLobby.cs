@@ -57,27 +57,38 @@ public class SteamLobby : MonoBehaviour
     protected Callback<LobbyCreated_t> lobbyCreated;
     protected Callback<GameLobbyJoinRequested_t> joinRequested;
     protected Callback<LobbyEnter_t> lobbyEntered;
-    protected Callback<LobbyMatchList_t> lobbyMatchList;
+    private CallResult<LobbyMatchList_t> lobbyMatchList;
+    private bool lobbyListPending;
+    private Coroutine findMatchCoroutine;
 
     private string _pendingRoomCode;
     private string _pendingJoinCode;
     private bool _searchingByCode;
     private int _pendingMaxPlayers;
     public string CurrentRoomCode { get; private set; }
+    private enum LobbyOperation { None, Creating, Joining, Leaving }
+    private LobbyOperation _operation;
+    private int _operationGeneration;
+    private bool _awaitingCreateCallback;
+    private bool _awaitingJoinCallback;
+    public bool IsOperationActive => _operation != LobbyOperation.None || _awaitingCreateCallback || _awaitingJoinCallback;
 
 
     private void Awake()
     {
-        if (instance == null)
-            instance = this;
-
-            lobbyMatchList = Callback<LobbyMatchList_t>.Create(OnLobbyMatchList);
+        if (instance != null && instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        instance = this;
     }
 
     private void Start()
     {
         if (!SteamManager.Initialized) return;
 
+        lobbyMatchList = CallResult<LobbyMatchList_t>.Create(OnLobbyListResult);
         lobbyCreated = Callback<LobbyCreated_t>.Create(OnLobbyCreated);
         joinRequested = Callback<GameLobbyJoinRequested_t>.Create(OnJoinRequest);
         lobbyEntered = Callback<LobbyEnter_t>.Create(OnLobbyEntered);
@@ -87,6 +98,7 @@ public class SteamLobby : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (instance == this) instance = null;
         if (lobbyCreated != null) { lobbyCreated.Dispose(); lobbyCreated = null; }
         if (joinRequested != null) { joinRequested.Dispose(); joinRequested = null; }
         if (lobbyEntered != null) { lobbyEntered.Dispose(); lobbyEntered = null; }
@@ -109,8 +121,33 @@ public class SteamLobby : MonoBehaviour
 
         SteamMatchmaking.AddRequestLobbyListDistanceFilter(ELobbyDistanceFilter.k_ELobbyDistanceFilterWorldwide);
         SteamMatchmaking.AddRequestLobbyListStringFilter("displayable", "true", ELobbyComparison.k_ELobbyComparisonEqual);
-        SteamMatchmaking.RequestLobbyList();
+        RequestLobbyList();
     }
+    private void RequestLobbyList()
+    {
+        lobbyMatchList ??= CallResult<LobbyMatchList_t>.Create(OnLobbyListResult);
+        lobbyListPending = true;
+        // Set replaces the previous call handle; stale results cannot change search mode.
+        lobbyMatchList.Set(SteamMatchmaking.RequestLobbyList());
+    }
+
+    private void OnLobbyListResult(LobbyMatchList_t result, bool ioFailure)
+    {
+        lobbyListPending = false;
+        if (ioFailure)
+        {
+            bool wasCodeSearch = _searchingByCode;
+            _searchingByCode = false;
+            _pendingJoinCode = null;
+            if (wasCodeSearch) _operation = LobbyOperation.None;
+            allLobbies.Clear();
+            if (wasCodeSearch) JoinByCodeFailed?.Invoke("Steam lobby search failed.");
+            else LobbyListUpdated?.Invoke(allLobbies);
+            return;
+        }
+        OnLobbyMatchList(result);
+    }
+
     void OnLobbyMatchList(LobbyMatchList_t param)
     {
         if (_searchingByCode)
@@ -139,19 +176,10 @@ public class SteamLobby : MonoBehaviour
             allLobbies.Add(new Lobby(lobbyID, name, code, memberCount, capacity, hostAddr));
         }
 
-        allLobbies.Sort((a, b) => SteamMatchmaking.GetNumLobbyMembers(b.lobbyID).CompareTo(SteamMatchmaking.GetNumLobbyMembers(a.lobbyID)));
+        allLobbies.Sort((a, b) => b.memberCount.CompareTo(a.memberCount));
         LobbyListUpdated?.Invoke(allLobbies);
 
-        /*for (int i = 0; i < allLobbies.Count; i++)
-        {
 
-            if (SteamMatchmaking.GetLobbyData(allLobbies[i].lobbyID, "displayable") == "true")
-            {
-                var lobbyElement = Instantiate(MainMenu.instance.lobbyElementPrefab, MainMenu.instance.lobbyListContainer).GetComponent<LobbyElement>();
-                lobbyElement.Initialize(allLobbies[i]);
-                allLobbies[i].listElement = lobbyElement.gameObject;
-            }
-        }*/
     }
 
     private readonly float _delaySeconds = 2.0f;
@@ -197,6 +225,7 @@ public class SteamLobby : MonoBehaviour
 
     private void BeginLobbyCreation(bool showPopup, bool useDelay, int maxPlayers)
     {
+        if (IsOperationActive) return;
         if (!SteamManager.Initialized)
         {
             Debug.LogError("[SteamLobby] Steam não está inicializado, não é possível criar lobby.");
@@ -205,6 +234,8 @@ public class SteamLobby : MonoBehaviour
         }
 
         _pendingMaxPlayers = maxPlayers;
+        _operation = LobbyOperation.Creating;
+        int generation = ++_operationGeneration;
 
         if (showPopup && PopupManager.instance != null)
             PopupManager.instance.Popup_Show("Criando Partida", false, true);
@@ -213,7 +244,9 @@ public class SteamLobby : MonoBehaviour
         {
             if (useDelay)
                 yield return new WaitForSeconds(_delaySeconds);
+            if (_operation != LobbyOperation.Creating || generation != _operationGeneration) yield break;
 
+            _awaitingCreateCallback = true;
             SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypePublic, _pendingMaxPlayers);
 
             if (MainMenu.instance != null)
@@ -237,11 +270,18 @@ public class SteamLobby : MonoBehaviour
 
     public void JoinLobby(CSteamID lobby)
     {
+        if (IsOperationActive) return;
+        _operation = LobbyOperation.Joining;
+        ++_operationGeneration;
+        _awaitingJoinCallback = true;
         SteamMatchmaking.JoinLobby(lobby);
     }
 
     public void JoinLobbyByCode(string code)
     {
+        if (IsOperationActive) return;
+        if (findMatchCoroutine != null) StopCoroutine(findMatchCoroutine);
+        findMatchCoroutine = null;
         _pendingJoinCode = SanitizeCode(code);
 
         if (string.IsNullOrEmpty(_pendingJoinCode))
@@ -259,20 +299,30 @@ public class SteamLobby : MonoBehaviour
         }
 
         _searchingByCode = true;
+        _operation = LobbyOperation.Joining;
+        ++_operationGeneration;
         JoinByCodeStarted?.Invoke();
 
         SteamMatchmaking.AddRequestLobbyListDistanceFilter(ELobbyDistanceFilter.k_ELobbyDistanceFilterWorldwide);
         SteamMatchmaking.AddRequestLobbyListStringFilter("displayable", "true", ELobbyComparison.k_ELobbyComparisonEqual);
         SteamMatchmaking.AddRequestLobbyListStringFilter(ROOM_CODE_KEY, _pendingJoinCode, ELobbyComparison.k_ELobbyComparisonEqual);
         SteamMatchmaking.AddRequestLobbyListResultCountFilter(10);
-        SteamMatchmaking.RequestLobbyList();
+        RequestLobbyList();
     }
 
 
     private void OnLobbyCreated(LobbyCreated_t callback)
     {
+        _awaitingCreateCallback = false;
+        if (_operation != LobbyOperation.Creating)
+        {
+            if (callback.m_eResult == EResult.k_EResultOK)
+                SteamMatchmaking.LeaveLobby(new CSteamID(callback.m_ulSteamIDLobby));
+            return;
+        }
         if (callback.m_eResult != EResult.k_EResultOK)
         {
+            _operation = LobbyOperation.None;
             Debug.LogError($"[SteamLobby] Criação de lobby falhou: {callback.m_eResult}");
             RoomCreationFailed?.Invoke("Failed to create lobby.");
             return;
@@ -303,6 +353,7 @@ public class SteamLobby : MonoBehaviour
             Debug.Log($"<color=green> [SteamLobby] Lobby criado com código: {_pendingRoomCode}</color>");
         }
         _pendingRoomCode = null;
+        _operation = LobbyOperation.None;
 
         SetLobbyLocation();
     }
@@ -310,24 +361,40 @@ public class SteamLobby : MonoBehaviour
 
     private void OnJoinRequest(GameLobbyJoinRequested_t callback)
     {
+        if (IsOperationActive) return;
+        _operation = LobbyOperation.Joining;
+        int generation = ++_operationGeneration;
         PopupManager.instance.Popup_Show("Entrando na Partida", false, true);
         StartCoroutine(DelayAction(_delaySeconds, () => {
-        SteamMatchmaking.JoinLobby(callback.m_steamIDLobby);
+        if (_operation == LobbyOperation.Joining && generation == _operationGeneration)
+        {
+            _awaitingJoinCallback = true;
+            SteamMatchmaking.JoinLobby(callback.m_steamIDLobby);
+        }
         }));
     }
 
     private void OnLobbyEntered(LobbyEnter_t callback)
     {
-        // Se lobby estiver cheio, sai imediatamente
-        if (callback.m_bLocked)
+        _awaitingJoinCallback = false;
+        if (_operation != LobbyOperation.Joining)
         {
             SteamMatchmaking.LeaveLobby((CSteamID)callback.m_ulSteamIDLobby);
-            PopupManager.instance.Popup_Close();
+            return;
+        }
+        // Locked is a privacy flag, not the result of the join request.
+        if ((EChatRoomEnterResponse)callback.m_EChatRoomEnterResponse != EChatRoomEnterResponse.k_EChatRoomEnterResponseSuccess)
+        {
+            SteamMatchmaking.LeaveLobby((CSteamID)callback.m_ulSteamIDLobby);
+            PopupManager.instance?.Popup_Close();
+            JoinByCodeFailed?.Invoke("Unable to enter the Steam lobby.");
+            _operation = LobbyOperation.None;
             return;
         }
 
         Debug.Log($"Entrou no lobby {LobbyID}");
         LobbyID = new CSteamID(callback.m_ulSteamIDLobby);
+        _operation = LobbyOperation.None;
 
         // Evita iniciar cliente múltiplas vezes
         if (NetworkClient.active)
@@ -375,6 +442,8 @@ public class SteamLobby : MonoBehaviour
     
     private IEnumerator LeaveCoroutine()
     {
+        _operation = LobbyOperation.Leaving;
+        ++_operationGeneration;
         yield return new WaitForSeconds(_delaySeconds);
         
         // Sai do lobby Steam
@@ -387,6 +456,7 @@ public class SteamLobby : MonoBehaviour
         // Limpa os códigos de sala
         _pendingRoomCode = null;
         _pendingJoinCode = null;
+        _searchingByCode = false;
         CurrentRoomCode = null;
         RoomCodeUpdated?.Invoke(CurrentRoomCode);
         
@@ -410,6 +480,7 @@ public class SteamLobby : MonoBehaviour
         // Fecha popup
         if (PopupManager.instance != null)
             PopupManager.instance.Popup_Close();
+        _operation = LobbyOperation.None;
         
         Debug.Log("[SteamLobby] Left lobby successfully");
     }
@@ -447,7 +518,8 @@ public class SteamLobby : MonoBehaviour
 
     public void FindMatch() 
     {
-        StartCoroutine(FindMatchRoutine());
+        if (!SteamManager.Initialized || lobbyListPending || findMatchCoroutine != null) return;
+        findMatchCoroutine = StartCoroutine(FindMatchRoutine());
     }
 
     private void HandleJoinByCodeResult(LobbyMatchList_t param)
@@ -459,6 +531,7 @@ public class SteamLobby : MonoBehaviour
             Debug.LogError($"[SteamLobby] Nenhum lobby encontrado para o código '{_pendingJoinCode}'.");
             JoinByCodeFailed?.Invoke("Room not found or already closed.");
             _pendingJoinCode = null;
+            _operation = LobbyOperation.None;
             return;
         }
 
@@ -490,9 +563,11 @@ public class SteamLobby : MonoBehaviour
         {
             Debug.LogError("[SteamLobby] Lobby encontrado, mas já está cheio ou sem metadata de código.");
             JoinByCodeFailed?.Invoke("Room not found or already closed.");
+            _operation = LobbyOperation.None;
             return;
         }
 
+        _awaitingJoinCallback = true;
         SteamMatchmaking.JoinLobby(targetLobby);
     }
 
@@ -516,41 +591,35 @@ public class SteamLobby : MonoBehaviour
 
     IEnumerator FindMatchRoutine()
     {
-        PopupManager.instance.Popup_Show("Procurando Partida...", false, true);
-        bool foundMatch = false;
-        float elapsedTime = 0f;
-        float maxTime = 3f;
+        PopupManager.instance?.Popup_Show("Procurando Partida...", false, true);
+        ReloadLobbyList();
+        float deadline = Time.realtimeSinceStartup + 10f;
+        while (lobbyListPending && Time.realtimeSinceStartup < deadline)
+            yield return null;
 
-        while (!foundMatch && elapsedTime < maxTime)
+        bool timedOut = lobbyListPending;
+        if (timedOut)
         {
-            ReloadLobbyList();
-            yield return new WaitForSeconds(1f);
-            elapsedTime += 1f;
-
+            lobbyMatchList.Cancel();
+            lobbyListPending = false;
+        }
+        else
+        {
             foreach (var lobby in allLobbies)
             {
-                if (SteamMatchmaking.GetNumLobbyMembers(lobby.lobbyID) < NetworkManager.singleton.maxConnections)
-                {
-                    JoinLobby(lobby.lobbyID);
-                    foundMatch = true;
-                    MainMenu.instance.gameObject.SetActive(false);
-                    break;
-                }
+                if (lobby.memberCount >= lobby.maxMembers) continue;
+                JoinLobby(lobby.lobbyID);
+                if (MainMenu.instance != null) MainMenu.instance.gameObject.SetActive(false);
+                findMatchCoroutine = null;
+                yield break;
             }
         }
-        
-
-        if (!foundMatch)
-        {
-            PopupManager.instance.Popup_Show("Nenhuma partida encontrada.", false, true);
-        }
-        StartCoroutine(DelayAction(1.7f, () => {
-            PopupManager.instance.Popup_Close();
-            
-        }));
+        PopupManager.instance?.Popup_Show("Nenhuma partida encontrada.", false, true);
+        yield return new WaitForSecondsRealtime(1.7f);
+        PopupManager.instance?.Popup_Close();
+        findMatchCoroutine = null;
     }
 
-    
     private IEnumerator DelayAction(float delay, Action action)
     {
         yield return new WaitForSeconds(delay);

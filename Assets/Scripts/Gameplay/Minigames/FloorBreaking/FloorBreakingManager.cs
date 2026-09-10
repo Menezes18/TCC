@@ -33,42 +33,23 @@ public class FloorBreakingManager : NetworkBehaviour
     private List<TileUpdate> updateBuffer = new List<TileUpdate>();
     private float tempoUltimoBatch = 0f;
     
-    private Dictionary<ChaoQuebrandoSimples, int> tileToIdMap = new Dictionary<ChaoQuebrandoSimples, int>();
+    private Coroutine resetCoroutine;
+    private readonly Dictionary<int, double> snapshotRequestTimes = new Dictionary<int, double>();
+    private const double SnapshotRequestCooldown = 5d;
 
-    private void Start()
+    private void Awake()
     {
-        StartCoroutine(InicializarTilesGradualmente());
-    }
+        tiles ??= System.Array.Empty<ChaoQuebrandoSimples>();
+        if (tiles.Length > ushort.MaxValue + 1)
+            throw new System.InvalidOperationException("Floor tile IDs exceed the network format.");
 
-    private System.Collections.IEnumerator InicializarTilesGradualmente()
-    {
-        int lote = 100;
-        
-        if (mostrarLogs)
-            Debug.Log($"[FloorBreakingManager] Inicializando {tiles.Length} tiles...");
-        
+        // Bind before OnStartClient can request a snapshot or any tile can Update.
+        tileStates = new TileState[tiles.Length];
         for (int i = 0; i < tiles.Length; i++)
         {
-            tileToIdMap[tiles[i]] = i;
+            if (tiles[i] == null) continue;
             tiles[i].SetTileId(i);
             tiles[i].SetManager(this);
-
-            if (i % lote == 0 && i > 0)
-            {
-                yield return null;
-            }
-        }
-
-        if (isServer)
-        {
-            tileStates = new TileState[tiles.Length];
-            for (int i = 0; i < tiles.Length; i++)
-            {
-                tileStates[i] = new TileState { indiceEstado = 0, destruido = false };
-            }
-            
-            if (mostrarLogs)
-                Debug.Log($"[FloorBreakingManager] Estados inicializados no servidor");
         }
     }
 
@@ -88,9 +69,10 @@ public class FloorBreakingManager : NetworkBehaviour
     }
 
     [Command(requiresAuthority = false)]
-    public void NotificarTilePisadoPorCliente(int tileId)
+    public void NotificarTilePisadoPorCliente(int tileId, NetworkConnectionToClient sender = null)
     {
-        if (tileId >= 0 && tileId < tiles.Length)
+        if (sender != null && sender.identity != null && tileId >= 0 && tileId < tiles.Length
+            && tiles[tileId] != null && tiles[tileId].IsPlayerInRange(sender.identity))
         {
             if (!tiles[tileId].FoiPisado())
             {
@@ -107,8 +89,9 @@ public class FloorBreakingManager : NetworkBehaviour
     [Server]
     public void NotificarProgressaoTile(int tileId, int novoIndice)
     {
-        if (tileId >= 0 && tileId < tileStates.Length)
+        if (tileId >= 0 && tileId < tileStates.Length && tiles[tileId] != null)
         {
+            if (novoIndice < 0 || novoIndice > byte.MaxValue || tileStates[tileId].destruido) return;
             tileStates[tileId].indiceEstado = (byte)novoIndice;
             
             updateBuffer.Add(new TileUpdate 
@@ -128,12 +111,14 @@ public class FloorBreakingManager : NetworkBehaviour
     [Server]
     public void NotificarDestruicaoTile(int tileId)
     {
-        if (tileId >= 0 && tileId < tileStates.Length)
+        if (tileId >= 0 && tileId < tileStates.Length && tiles[tileId] != null)
         {
             tileStates[tileId].destruido = true;
             
             if (syncInstantaneo)
             {
+                // Flush older progress first so it cannot resurrect a destroyed tile.
+                EnviarBatchDeAtualizacoes();
                 RpcAtualizarTileSingle(tileId, tileStates[tileId].indiceEstado, true);
             }
             else
@@ -158,7 +143,7 @@ public class FloorBreakingManager : NetworkBehaviour
     {
         if (isServer) return;
         
-        if (tileId >= 0 && tileId < tiles.Length)
+        if (tileId >= 0 && tileId < tiles.Length && tiles[tileId] != null)
         {
             tiles[tileId].AtualizarVisualizacaoRemota(indice, destruido);
             
@@ -179,6 +164,7 @@ public class FloorBreakingManager : NetworkBehaviour
         
         RpcAtualizarTilesBatch(updateBuffer.ToArray());
         updateBuffer.Clear();
+        tempoUltimoBatch = 0f;
     }
 
     [ClientRpc]
@@ -190,7 +176,7 @@ public class FloorBreakingManager : NetworkBehaviour
         
         foreach (var update in updates)
         {
-            if (update.tileId < tiles.Length)
+            if (update.tileId < tiles.Length && tiles[update.tileId] != null)
             {
                 tiles[update.tileId].AtualizarVisualizacaoRemota(update.indiceEstado, update.destruido);
             }
@@ -200,7 +186,7 @@ public class FloorBreakingManager : NetworkBehaviour
     [Server]
     public void ResetarTile(int tileId)
     {
-        if (tileId >= 0 && tileId < tileStates.Length)
+        if (tileId >= 0 && tileId < tileStates.Length && tiles[tileId] != null)
         {
             tileStates[tileId] = new TileState { indiceEstado = 0, destruido = false };
             tiles[tileId].ResetarTile();
@@ -220,7 +206,9 @@ public class FloorBreakingManager : NetworkBehaviour
         if (mostrarLogs)
             Debug.Log($"[FloorBreakingManager] Resetando todos os tiles...");
             
-        StartCoroutine(ResetarTilesGradualmente());
+        if (resetCoroutine != null) StopCoroutine(resetCoroutine);
+        EnviarBatchDeAtualizacoes();
+        resetCoroutine = StartCoroutine(ResetarTilesGradualmente());
     }
 
     private System.Collections.IEnumerator ResetarTilesGradualmente()
@@ -230,6 +218,7 @@ public class FloorBreakingManager : NetworkBehaviour
         
         for (int i = 0; i < tileStates.Length; i++)
         {
+            if (tiles[i] == null) continue;
             tileStates[i] = new TileState { indiceEstado = 0, destruido = false };
             tiles[i].ResetarTile();
             
@@ -249,6 +238,12 @@ public class FloorBreakingManager : NetworkBehaviour
             
             if (i % lote == 0 && i > 0)
             {
+                EnviarBatchDeAtualizacoes();
+                if (resetUpdates.Count > 0)
+                {
+                    RpcAtualizarTilesBatch(resetUpdates.ToArray());
+                    resetUpdates.Clear();
+                }
                 yield return null;
             }
         }
@@ -278,10 +273,16 @@ public class FloorBreakingManager : NetworkBehaviour
         if (mostrarLogs)
             Debug.Log($"[FloorBreakingManager] Cliente solicitou estado inicial");
             
-        StartCoroutine(EnviarEstadoInicialParaCliente(sender));
+        if (sender == null || !sender.isReady) return;
+        if (snapshotRequestTimes.TryGetValue(sender.connectionId, out double lastRequest) &&
+            NetworkTime.time - lastRequest < SnapshotRequestCooldown)
+            return;
+        snapshotRequestTimes[sender.connectionId] = NetworkTime.time;
+        EnviarBatchDeAtualizacoes();
+        EnviarEstadoInicialParaCliente(sender);
     }
 
-    private System.Collections.IEnumerator EnviarEstadoInicialParaCliente(NetworkConnectionToClient cliente)
+    private void EnviarEstadoInicialParaCliente(NetworkConnectionToClient cliente)
     {
         int lote = 200;
         List<TileUpdate> updates = new List<TileUpdate>();
@@ -302,7 +303,6 @@ public class FloorBreakingManager : NetworkBehaviour
             {
                 TargetEnviarEstadoInicial(cliente, updates.ToArray());
                 updates.Clear();
-                yield return null;
             }
         }
         
@@ -323,7 +323,7 @@ public class FloorBreakingManager : NetworkBehaviour
         
         foreach (var update in updates)
         {
-            if (update.tileId < tiles.Length)
+            if (update.tileId < tiles.Length && tiles[update.tileId] != null)
             {
                 tiles[update.tileId].AtualizarVisualizacaoRemota(update.indiceEstado, update.destruido);
             }

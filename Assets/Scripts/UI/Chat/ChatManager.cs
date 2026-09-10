@@ -42,6 +42,18 @@ public class ChatManager : MonoBehaviour
     bool _handlersRegistered;
     readonly Queue<string> _lines = new Queue<string>();
     readonly StringBuilder _sb = new StringBuilder(2048);
+    readonly Dictionary<int, ChatRateState> _serverRateByConnection = new Dictionary<int, ChatRateState>();
+    const int ServerMaxMessageLength = 140;
+    const int ServerBurstLimit = 5;
+    const float ServerRateWindowSeconds = 5f;
+    const float ServerMinimumIntervalSeconds = 0.2f;
+
+    struct ChatRateState
+    {
+        public float windowStarted;
+        public float lastMessage;
+        public int count;
+    }
 
     // Toast state
     class Toast
@@ -125,7 +137,7 @@ public class ChatManager : MonoBehaviour
         NetworkClient.RegisterHandler<ChatMessage>(OnClientReceive);
 
         // Server relays messages to everyone
-        NetworkServer.RegisterHandler<ChatMessage>(OnServerReceive, false);
+        NetworkServer.RegisterHandler<ChatMessage>(OnServerReceive, true);
 
         _handlersRegistered = true;
     }
@@ -142,6 +154,22 @@ public class ChatManager : MonoBehaviour
     // Called on server when any client sends a message
     void OnServerReceive(NetworkConnectionToClient conn, ChatMessage msg)
     {
+        if (conn == null || !conn.isAuthenticated || conn.identity == null)
+            return;
+
+        float now = Time.realtimeSinceStartup;
+        _serverRateByConnection.TryGetValue(conn.connectionId, out ChatRateState rate);
+        if (now - rate.windowStarted >= ServerRateWindowSeconds)
+        {
+            rate.windowStarted = now;
+            rate.count = 0;
+        }
+        if ((rate.count > 0 && now - rate.lastMessage < ServerMinimumIntervalSeconds) || rate.count >= ServerBurstLimit)
+            return;
+        rate.lastMessage = now;
+        rate.count++;
+        _serverRateByConnection[conn.connectionId] = rate;
+
         string playerName = "Player";
         try
         {
@@ -156,8 +184,11 @@ public class ChatManager : MonoBehaviour
         }
         catch { /* best effort only */ }
 
-        string raw = (msg.text ?? string.Empty).Replace("\r", string.Empty);
+        string raw = (msg.text ?? string.Empty).Replace('\r', ' ').Replace('\n', ' ').Trim();
         if (string.IsNullOrWhiteSpace(raw)) return;
+        if (raw.Length > ServerMaxMessageLength)
+            raw = raw.Substring(0, ServerMaxMessageLength);
+        raw = raw.Replace("<", "&lt;").Replace(">", "&gt;");
 
         string formatted = $"[{playerName}]: {raw}";
         NetworkServer.SendToAll(new ChatMessage { text = formatted });
@@ -526,7 +557,6 @@ public class ChatManager : MonoBehaviour
             _sb.AppendLine(line);
 
         chatText.text = _sb.ToString();
-        Canvas.ForceUpdateCanvases();
     }
 
     // Public static to show toast from any script (will auto-create if needed)

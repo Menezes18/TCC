@@ -46,13 +46,15 @@ public class ButtonToggle : MonoBehaviour
 
     private void Awake()
     {
-        AnimateToggle();
         button = GetComponent<Button>();
         button.onClick.AddListener(OnButtonClick);
+        backgroundImage.color = _isOn ? onColor : offColor;
+        handleTransform.anchoredPosition = _isOn ? onHandlePos : offHandlePos;
+    }
 
-        backgroundImage.color         = offColor;
-        handleTransform.anchoredPosition = offHandlePos;
-        isOn = _isOn;
+    public void NotifyCurrentState()
+    {
+        if (_isOn) onActivated.Invoke(); else onDeactivated.Invoke();
     }
 
     private void OnButtonClick()

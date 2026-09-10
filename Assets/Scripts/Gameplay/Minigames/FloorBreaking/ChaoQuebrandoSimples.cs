@@ -1,6 +1,5 @@
 using UnityEngine;
 using Mirror;
-using System.Collections.Generic;
 public class ChaoQuebrandoSimples : MonoBehaviour
 {
     [SerializeField] private GameObject[] estadosChao;
@@ -16,6 +15,9 @@ public class ChaoQuebrandoSimples : MonoBehaviour
     private int indiceEstadoAtual = 0;
     private bool chaoDestruido = false;
     private bool foiPisado = false;
+    private Collider[] detectionBuffer = new Collider[16];
+    private float _nextDetectionTime;
+    private const float DetectionInterval = 0.1f;
 
     private void Awake()
     {
@@ -66,16 +68,20 @@ public class ChaoQuebrandoSimples : MonoBehaviour
         // SERVIDOR: processa lógica do tile
         if (NetworkServer.active)
         {
-            if (!chaoDestruido)
+            if (!chaoDestruido && !foiPisado)
             {
-                DetectarJogadores();
+                if (Time.time >= _nextDetectionTime)
+                {
+                    _nextDetectionTime = Time.time + DetectionInterval;
+                    DetectarJogadores();
+                }
             }
 
             if (foiPisado && !chaoDestruido)
             {
                 tempoAcumulado += Time.deltaTime;
                 
-                if (tempoAcumulado >= dataChao.tempo)
+                if (dataChao != null && tempoAcumulado >= dataChao.tempo)
                 {
                     tempoAcumulado = 0;
                     ProgrediEstado();
@@ -87,7 +93,13 @@ public class ChaoQuebrandoSimples : MonoBehaviour
         {
             if (!chaoDestruido && !foiPisado)
             {
-                DetectarJogadorLocal();
+                var localPlayer = NetworkClient.localPlayer;
+                if (Time.time >= _nextDetectionTime && localPlayer != null &&
+                    (localPlayer.transform.position - transform.position).sqrMagnitude <= raioDeteccao * raioDeteccao * 4f)
+                {
+                    _nextDetectionTime = Time.time + DetectionInterval;
+                    DetectarJogadorLocal();
+                }
             }
         }
     }
@@ -95,10 +107,11 @@ public class ChaoQuebrandoSimples : MonoBehaviour
     // Servidor detecta todos os jogadores
     private void DetectarJogadores()
     {
-        Collider[] colliders = Physics.OverlapSphere(transform.position + Vector3.up * 0.5f, raioDeteccao);
+        int count = DetectColliders();
         
-        foreach (Collider col in colliders)
+        for (int i = 0; i < count; i++)
         {
+            Collider col = detectionBuffer[i];
             Transform root = col.transform.root;
             if (root.CompareTag("Player") || col.CompareTag("Player"))
             {
@@ -119,10 +132,11 @@ public class ChaoQuebrandoSimples : MonoBehaviour
     
     private void DetectarJogadorLocal()
     {
-        Collider[] colliders = Physics.OverlapSphere(transform.position + Vector3.up * 0.5f, raioDeteccao);
+        int count = DetectColliders();
         
-        foreach (Collider col in colliders)
+        for (int i = 0; i < count; i++)
         {
+            Collider col = detectionBuffer[i];
             Transform root = col.transform.root;
             
             NetworkIdentity netIdentity = root.GetComponent<NetworkIdentity>();
@@ -130,7 +144,7 @@ public class ChaoQuebrandoSimples : MonoBehaviour
             {
                 if (root.CompareTag("Player") || col.CompareTag("Player"))
                 {
-                    if (manager != null)
+                    if (manager != null && tileId >= 0)
                     {
                         manager.NotificarTilePisadoPorCliente(tileId);
                         
@@ -192,6 +206,12 @@ public class ChaoQuebrandoSimples : MonoBehaviour
 
     public void AtualizarVisualizacaoRemota(int novoIndice, bool destruido)
     {
+        // State zero is an explicit reset, including reactivation of destroyed tiles.
+        if (!destruido && novoIndice == 0)
+        {
+            ResetarTile();
+            return;
+        }
         if (destruido)
         {
             chaoDestruido = true;
@@ -204,6 +224,8 @@ public class ChaoQuebrandoSimples : MonoBehaviour
         }
         else
         {
+            chaoDestruido = false;
+            gameObject.SetActive(true);
             if (!foiPisado && novoIndice > 0)
             {
                 foiPisado = true;
@@ -236,13 +258,12 @@ public class ChaoQuebrandoSimples : MonoBehaviour
         {
             if (estadosChao[i] != null)
             {
-                estadosChao[i].SetActive(false);
+                estadosChao[i].SetActive(i == indice);
             }
         }
 
         if (indice >= 0 && indice < estadosChao.Length && estadosChao[indice] != null)
         {
-            estadosChao[indice].SetActive(true);
             
             if (mostrarLogs)
             {
@@ -265,6 +286,31 @@ public class ChaoQuebrandoSimples : MonoBehaviour
         gameObject.SetActive(true);
         transform.position = posInicial;
         AtualizarVisualizacao(0);
+    }
+
+    private int DetectColliders()
+    {
+        // Grow only when saturated so dense scenes never silently lose player hits.
+        while (true)
+        {
+            int count = Physics.OverlapSphereNonAlloc(transform.position + Vector3.up * 0.5f,
+                raioDeteccao, detectionBuffer);
+            if (count < detectionBuffer.Length) return count;
+            System.Array.Resize(ref detectionBuffer, detectionBuffer.Length * 2);
+        }
+    }
+
+    public bool IsPlayerInRange(NetworkIdentity player)
+    {
+        if (player == null) return false;
+        int count = DetectColliders();
+        for (int i = 0; i < count; i++)
+        {
+            var col = detectionBuffer[i];
+            if (col.transform.root == player.transform.root &&
+                (col.CompareTag("Player") || col.transform.root.CompareTag("Player"))) return true;
+        }
+        return false;
     }
     
     private void OnDrawGizmosSelected()

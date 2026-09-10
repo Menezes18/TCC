@@ -60,4 +60,9 @@ public class FriendItem : MonoBehaviour
             _iconImage.sprite = icon;
         }
     }
+
+    private void OnDestroy()
+    {
+        if (avatarImageLoaded != null) { avatarImageLoaded.Dispose(); avatarImageLoaded = null; }
+    }
 }

@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using Mirror;
 
 public class MovingPlatform : MonoBehaviour
 {
@@ -90,7 +91,9 @@ public class MovingPlatform : MonoBehaviour
             if (IsPlayerValid(playerData.playerTransform))
             {
                 CharacterController controller = playerData.playerTransform.GetComponent<CharacterController>();
-                if (controller != null && controller.enabled)
+                NetworkIdentity identity = playerData.playerTransform.GetComponentInParent<NetworkIdentity>();
+                bool canMove = identity == null || identity.isServer || identity.isOwned;
+                if (controller != null && controller.enabled && canMove)
                 {
                     
 

@@ -7,6 +7,7 @@ using kcp2k;
 using UnityEngine;
 using Mirror.FizzySteam;
 using Random = UnityEngine.Random;
+using UnityEngine.SceneManagement;
 
 
 [System.Serializable]
@@ -41,6 +42,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
 
     [Header("Minigame Flow")]
     [SerializeField] private MinigameCatalog minigameCatalog;
+    public MinigameCatalog MinigameCatalog => minigameCatalog;
 
     [SerializeField, Tooltip("Ordem atual de cenas a serem carregadas pelo fluxo de minigames.")]
     private List<string> _sceneRotation = new List<string>();
@@ -61,6 +63,10 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     // Telemetry: per-client load progress and start times (server-side)
     private readonly Dictionary<ulong, float> _clientLoadProgress = new();
     private readonly Dictionary<ulong, float> _clientLoadStartTs = new();
+    private readonly Dictionary<int, ulong> _boundIdentityByConnection = new();
+    private readonly Dictionary<ulong, int> _connectionByBoundIdentity = new();
+
+    public static event Action<PlayerData> ServerPlayerDisconnected;
 
     static ulong nextFakeId = 1;
     public List<IObserverPontos> _observers = new List<IObserverPontos>();
@@ -148,10 +154,30 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     {
         BriefingManager.singleton.UpdateAllClientsSlots();
     }
-    public void RegisterNewPlayer(PlayerData pd)
+    [Server]
+    public void RegisterNewPlayer(PlayerData pd, string requestedName = null)
     {
-        ulong id = pd.playerInfo.steamId;
-        string name = pd.playerInfo.username;
+        if (pd == null || pd.connectionToClient == null)
+            return;
+
+        NetworkConnectionToClient conn = pd.connectionToClient;
+        if (!TryBindConnectionIdentity(conn, out ulong id))
+        {
+            Debug.LogWarning($"[Identity] Rejecting connection {conn.connectionId}: no valid server identity.");
+            conn.Disconnect();
+            return;
+        }
+
+        if (_connectionByBoundIdentity.TryGetValue(id, out int existingConnection) && existingConnection != conn.connectionId)
+        {
+            Debug.LogWarning($"[Identity] Rejecting duplicate identity {id} on connection {conn.connectionId}.");
+            conn.Disconnect();
+            return;
+        }
+
+        string name = SanitizeDisplayName(requestedName, conn.connectionId);
+        pd.playerInfo = new PlayerInfoData(name, id);
+        pd.alias = name;
 
         if (!pointsBoard.ContainsKey(id))
         {
@@ -179,6 +205,39 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         }
 
         Notifica();
+    }
+
+    [Server]
+    private bool TryBindConnectionIdentity(NetworkConnectionToClient conn, out ulong identity)
+    {
+        if (_boundIdentityByConnection.TryGetValue(conn.connectionId, out identity))
+            return true;
+
+        if (Transport.active is FizzySteamworks)
+        {
+            if (conn == NetworkServer.localConnection && SteamManager.Initialized)
+                identity = SteamUser.GetSteamID().m_SteamID;
+            else if (!ulong.TryParse(conn.address, out identity) || identity == 0)
+                return false;
+        }
+        else
+        {
+            // Development transports never share the Steam identity namespace.
+            identity = 0xF000000000000000UL | (uint)conn.connectionId;
+        }
+
+        _boundIdentityByConnection[conn.connectionId] = identity;
+        _connectionByBoundIdentity[identity] = conn.connectionId;
+        return true;
+    }
+
+    private static string SanitizeDisplayName(string value, int connectionId)
+    {
+        string result = (value ?? string.Empty).Replace('\r', ' ').Replace('\n', ' ').Trim();
+        result = result.Replace("<", "&lt;").Replace(">", "&gt;");
+        if (result.Length > 32)
+            result = result.Substring(0, 32);
+        return string.IsNullOrWhiteSpace(result) ? $"Player {connectionId}" : result;
     }
     [Server]
     public void AddPoints(ulong steamID, int pointsToAdd)
@@ -208,6 +267,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         var client = conn.identity?.GetComponent<PlayerData>();
         if (client != null)
         {
+            ServerPlayerDisconnected?.Invoke(client);
             allClients.Remove(client);
 
             var sid = client.playerInfo.steamId;
@@ -215,12 +275,14 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             {
                 pointsBoard.Remove(sid);
                 onClientsChanged?.Invoke();
-                scoreboard.players.RemoveAll(p => p.steamID == sid);
-                PlayerList.singleton.players.Remove(client);
+                if (scoreboard != null) scoreboard.players.RemoveAll(p => p.steamID == sid);
             }
-            PlayerList.singleton.RemoveFromList(client);
+            if (PlayerList.singleton != null) PlayerList.singleton.RemoveFromList(client);
         }
+        if (_boundIdentityByConnection.Remove(conn.connectionId, out ulong boundIdentity))
+            _connectionByBoundIdentity.Remove(boundIdentity);
         base.OnServerDisconnect(conn);
+        if (BriefingManager.singleton != null) BriefingManager.singleton.OnPlayerDisconnected(conn);
     }
 
     public void StartDevHost()
@@ -378,9 +440,6 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         
         // Reseta flags
         startGame = false;
-        
-        // Limpa eventos dos ScriptableObjects para evitar referências a objetos destruídos
-        ClearAllScriptableObjectEvents();
         
         // Limpa o estado do PlayerList se existir
         if (PlayerList.singleton != null)
@@ -944,8 +1003,41 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         LoadingScreenUI.Instance?.SetMirrorTargetScene(newSceneName);
         LoadingScreenUI.Instance?.ShowForMirror();
 
-        
+        if (customHandling && SceneTransitionManager.singleton != null &&
+            SceneTransitionManager.singleton.TryGetClientPreloadOperation(newSceneName, out AsyncOperation preloadOperation))
+        {
+            loadingSceneAsync = preloadOperation;
+            return;
+        }
+
         base.OnClientChangeScene(newSceneName, sceneOperation, customHandling);
+    }
+
+    [Server]
+    public void ServerCommitPreloadedScene(string sceneName)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName) || NetworkServer.isLoadingScene)
+            return;
+
+        NetworkServer.SetAllClientsNotReady();
+        networkSceneName = sceneName;
+        OnServerChangeScene(sceneName);
+        NetworkServer.isLoadingScene = true;
+        if (NetworkServer.localConnection != null && SceneTransitionManager.singleton != null &&
+            SceneTransitionManager.singleton.TryGetClientPreloadOperation(sceneName, out AsyncOperation hostPreload))
+            loadingSceneAsync = hostPreload;
+        else
+            loadingSceneAsync = SceneManager.LoadSceneAsync(sceneName);
+
+        NetworkServer.SendToAll(new SceneMessage
+        {
+            sceneName = sceneName,
+            sceneOperation = SceneOperation.Normal,
+            customHandling = true
+        });
+
+        startPositionIndex = 0;
+        startPositions.Clear();
     }
 
     public override void OnClientSceneChanged()

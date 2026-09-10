@@ -14,6 +14,7 @@ public class SpecOverlayController : MonoBehaviour
 
     [Header("Alvo Observado (opcional)")]
     [SerializeField] private TextMeshProUGUI observingText;
+    private SpectatorManager _subscribedManager;
 
     private void Awake()
     {
@@ -26,20 +27,32 @@ public class SpecOverlayController : MonoBehaviour
 
     private void OnEnable()
     {
-        if (SpectatorManager.Instance == null) return;
-        SpectatorManager.Instance.OnLocalSpectatorStateChanged += HandleLocalSpecState;
-        SpectatorManager.Instance.OnLocalSpectatorTargetChanged += HandleTargetChanged;
+        TryBindManager();
+    }
 
-        var isSpec = SpectatorManager.Instance.LocalSpectator != null;
+    private void Update()
+    {
+        if (_subscribedManager == null) TryBindManager();
+    }
+
+    private void TryBindManager()
+    {
+        if (_subscribedManager != null || SpectatorManager.Instance == null) return;
+        _subscribedManager = SpectatorManager.Instance;
+        _subscribedManager.OnLocalSpectatorStateChanged += HandleLocalSpecState;
+        _subscribedManager.OnLocalSpectatorTargetChanged += HandleTargetChanged;
+
+        var isSpec = _subscribedManager.LocalSpectator != null;
         HandleLocalSpecState(isSpec);
-        HandleTargetChanged(SpectatorManager.Instance.CurrentTarget);
+        HandleTargetChanged(_subscribedManager.CurrentTarget);
     }
 
     private void OnDisable()
     {
-        if (SpectatorManager.Instance == null) return;
-        SpectatorManager.Instance.OnLocalSpectatorStateChanged -= HandleLocalSpecState;
-        SpectatorManager.Instance.OnLocalSpectatorTargetChanged -= HandleTargetChanged;
+        if (_subscribedManager == null) return;
+        _subscribedManager.OnLocalSpectatorStateChanged -= HandleLocalSpecState;
+        _subscribedManager.OnLocalSpectatorTargetChanged -= HandleTargetChanged;
+        _subscribedManager = null;
     }
 
     private void HandleLocalSpecState(bool isSpectating)

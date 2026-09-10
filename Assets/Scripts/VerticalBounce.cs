@@ -53,6 +53,14 @@ public class VerticalBounce : MonoBehaviour
         transform.localPosition = new Vector3(startPosition.x, startPosition.y + yOffset, startPosition.z);
     }
 
+    public void ConfigureWave(float height, float speed, float offset)
+    {
+        bounceHeight = currentHeight = height;
+        bounceSpeed = currentSpeed = speed;
+        useWaveEffect = true;
+        SetWaveOffset(offset);
+    }
+
     public void SetWaveOffset(float offset)
     {
         waveOffset = offset;

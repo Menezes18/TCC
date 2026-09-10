@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Mirror;
 
 
 public class ResultsUI : MonoBehaviour
@@ -92,6 +93,7 @@ public class ResultsUI : MonoBehaviour
     }
 
     float _showStartTime;
+    private int _showGeneration;
 
     private int[] CalculatePositions(int[] totals)
     {
@@ -118,13 +120,18 @@ public class ResultsUI : MonoBehaviour
 
     public void Show(string[] names, int[] totals, int[] gains, Color32[] colors = null, int[] hatIndices = null, int[] glassesIndices = null, int[] shirtIndices = null)
     {
+        _showGeneration++;
+        _pendingNumberAnims = 0;
         _showStartTime = Time.time;
         StopAllCoroutines();
+        LeanTween.cancel(gameObject);
+        foreach (var row in _spawned) if (row != null) LeanTween.cancel(row);
         StartCoroutine(DoSequence(names, totals, gains, colors, hatIndices, glassesIndices, shirtIndices));
     }
 
     private IEnumerator DoSequence(string[] names, int[] totals, int[] gains, Color32[] colors = null, int[] hatIndices = null, int[] glassesIndices = null, int[] shirtIndices = null)
     {
+        int generation = _showGeneration;
         if (listRoot == null || rowPrefab == null)
         {
             Debug.LogWarning("[ResultsUI] listRoot/rowPrefab não atribuídos. Configure no Inspector.");
@@ -225,8 +232,9 @@ public class ResultsUI : MonoBehaviour
                 .setEaseOutCubic()
                 .setOnComplete(() =>
                 {
+                    if (generation != _showGeneration) return;
                     _pendingNumberAnims++;
-                    StartCoroutine(RunRowNumbers(rowComp));
+                    StartCoroutine(RunRowNumbers(rowComp, generation));
                 });
             LeanTween.scale(animRT, Vector3.one, itemPopDuration).setEaseOutBack().setOvershoot(itemPopOvershoot);
 
@@ -244,9 +252,10 @@ public class ResultsUI : MonoBehaviour
 
     private int _pendingNumberAnims;
 
-    private IEnumerator RunRowNumbers(ResultsRow row)
+    private IEnumerator RunRowNumbers(ResultsRow row, int generation)
     {
         yield return row.PlayNumberSequence(gainCountDuration, delayBetweenGainAndTotal, totalCountDuration);
+        if (generation != _showGeneration) yield break;
         _pendingNumberAnims = Mathf.Max(0, _pendingNumberAnims - 1);
     }
 
@@ -262,7 +271,9 @@ public class ResultsUI : MonoBehaviour
         LeanTween.value(text.gameObject, 0f, 1f, 0.25f).setOnUpdate((float a) => text.alpha = a).setEaseOutQuad();
         LeanTween.scale(rt, Vector3.one, 0.25f).setEaseOutBack();
 
-        float t = Mathf.Max(0f, seconds);
+        float t = MatchManager.singleton != null && MatchManager.singleton.ResultsExitDeadline > 0d
+            ? Mathf.Max(0f, (float)(MatchManager.singleton.ResultsExitDeadline - NetworkTime.time))
+            : Mathf.Max(0f, seconds);
         while (t > 0f)
         {
             int s = Mathf.CeilToInt(t);
@@ -273,7 +284,6 @@ public class ResultsUI : MonoBehaviour
 
         LeanTween.value(text.gameObject, 1f, 0f, 0.2f).setOnUpdate((float a) => text.alpha = a).setEaseInQuad();
         yield return new WaitForSeconds(0.21f);
-        MatchManager.singleton.StartCoroutine(MatchManager.singleton.WaitAndReturnToLobby(1f));
     }
 
     private IEnumerator RunGlobalPhase(string[] names, int[] totals, Color32[] colors)

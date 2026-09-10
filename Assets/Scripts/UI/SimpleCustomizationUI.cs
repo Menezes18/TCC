@@ -121,19 +121,9 @@ public class SimpleCustomizationUI : MonoBehaviour
     
     private void ApplyToPlayer()
     {
-
-        var playerScript = FindAnyObjectByType<PlayerScript>();
-        if (playerScript != null && playerScript.isLocalPlayer)
-        {
-            playerScript.ApplyPlayerCustomization();
-            return;
-        }
-        
-        var appliers = FindObjectsByType<CustomizationApplier>(FindObjectsSortMode.None);
-        foreach (var applier in appliers)
-        {
-            applier.ApplyCurrentCustomization();
-        }
+        var playerScript = Mirror.NetworkClient.localPlayer != null
+            ? Mirror.NetworkClient.localPlayer.GetComponent<PlayerScript>() : null;
+        playerScript?.ApplyPlayerCustomization();
     }
     
     

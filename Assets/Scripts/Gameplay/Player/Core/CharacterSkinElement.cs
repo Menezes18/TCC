@@ -187,6 +187,7 @@ public class CharacterSkinElement : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (avatarImageLoaded != null) { avatarImageLoaded.Dispose(); avatarImageLoaded = null; }
         if (nametagMarker != null)
         {
             nametagMarker.DestroyMarker();

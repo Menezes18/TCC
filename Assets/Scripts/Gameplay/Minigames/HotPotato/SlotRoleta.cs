@@ -1,4 +1,4 @@
-﻿using TMPro;
+using TMPro;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -69,8 +69,9 @@ public class SlotRoleta : NetworkBehaviour
 
     readonly List<RectTransform> _spawned = new();
     readonly List<int> _spawnedCatalogIndex = new();
-    List<int> _perm;
     bool _girando;
+    bool _serverSpinActive;
+    Coroutine _serverSpinRoutine;
     float _ultimoTick;
     System.Random _rng;
     readonly HashSet<ulong> _seen = new();
@@ -92,19 +93,17 @@ public class SlotRoleta : NetworkBehaviour
     public void StartRoletaNetwork()
     {
         if (isServer) ServerStartSpin();
-        else CmdRequestStartSpin();
     }
 
-    [Command(requiresAuthority = false)]
-    void CmdRequestStartSpin() => ServerStartSpin();
 
     [Server]
     void ServerStartSpin()
     {
-        if (_girando) return;
+        if (_serverSpinActive) return;
 
         var steamIds = ColetarSteamIdsValidosServidor();
         if (steamIds.Count == 0) return;
+        _serverSpinActive = true;
 
         int winnerIdx = UnityEngine.Random.Range(0, steamIds.Count);
         ulong winner = steamIds[winnerIdx];
@@ -133,7 +132,7 @@ public class SlotRoleta : NetworkBehaviour
 
         RpcSetOverlayVisible(true);
         RpcPrepareAndSpinSnapshot(sids, aliases, colors, winner, total);
-        StartCoroutine(ServerHideAfter(total));
+        _serverSpinRoutine = StartCoroutine(ServerHideAfter(total));
     }
 
     [ClientRpc]
@@ -181,6 +180,8 @@ public class SlotRoleta : NetworkBehaviour
     {
         yield return new WaitForSeconds(t);
         RpcSetOverlayVisible(false);
+        _serverSpinActive = false;
+        _serverSpinRoutine = null;
     }
 
     [ClientRpc]
@@ -189,29 +190,10 @@ public class SlotRoleta : NetworkBehaviour
         SetOverlayVisible(visible);
     }
 
-    [Command(requiresAuthority = false)]
+    [Server]
     public void CmdSetOverlayVisible(bool visible)
     {
         RpcSetOverlayVisible(visible);
-    }
-
-    [ClientRpc]
-    void RpcPrepareAndSpin(ulong[] steamIds, ulong winner, float totalTime)
-    {
-        SetupWinUI();
-        SetEntriesFromSteamIds(steamIds);
-        SpinToWinner(winner);
-
-        OnWinTextClosed -= HandleClose;
-        OnWinTextClosed += HandleClose;
-
-        void HandleClose()
-        {
-            SetOverlayVisible(false);
-            OnWinTextClosed -= HandleClose;
-        }
-
-        StartCoroutine(HideAfter(totalTime));
     }
 
     System.Collections.IEnumerator HideAfter(float t)
@@ -229,9 +211,11 @@ public class SlotRoleta : NetworkBehaviour
         overlayGroup.blocksRaycasts = visible;
     }
 
-    float TempoTotalUI()
+    float TempoTotalUI() => GetTotalDuration(duracao);
+
+    public float GetTotalDuration(float spinDuration)
     {
-        return Mathf.Max(0.1f, duracao + winShowTime + 0.15f + winStayTime + winHideTime + 0.1f);
+        return Mathf.Max(0.1f, spinDuration + winShowTime + 0.15f + winStayTime + winHideTime + 0.1f);
     }
 
     List<ulong> ColetarSteamIdsValidosServidor()
@@ -468,7 +452,6 @@ public class SlotRoleta : NetworkBehaviour
         foreach (var rt in _spawned) if (rt) Destroy(rt.gameObject);
         _spawned.Clear();
         _spawnedCatalogIndex.Clear();
-        _perm = null;
     }
 
     static void FixAnchors(RectTransform rt, Vector2 min, Vector2 max, Vector2 pivot)

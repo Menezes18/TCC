@@ -38,6 +38,7 @@ public class RoomMenuController : MonoBehaviour
     private void OnEnable()
     {
         SubscribeToLobbyEvents(true);
+        ToggleButtons(steamLobby == null || !steamLobby.IsOperationActive);
     }
 
     private void OnDisable()

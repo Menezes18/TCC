@@ -11,6 +11,8 @@ public class ChaoSumindo : NetworkBehaviour, IObserver
     public Color[] colors;
     private Material cor;
     private bool hasAssignedColor = false;
+    [SyncVar(hook = nameof(OnFloorAvailabilityChanged))]
+    private bool _floorAvailable = true;
 
     void Start()
     {
@@ -85,16 +87,34 @@ public class ChaoSumindo : NetworkBehaviour, IObserver
         }
     }
 
-    [ClientRpc]
+    [Server]
     public void RpcPoeChao()
     {
-        gameObject.SetActive(true);
+        _floorAvailable = true;
+        ApplyFloorAvailability(true);
     }
 
-    [ClientRpc]
+    [Server]
     public void RpcTiraChao()
     {
-        gameObject.SetActive(false);
+        _floorAvailable = false;
+        ApplyFloorAvailability(false);
+    }
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        ApplyFloorAvailability(_floorAvailable);
+    }
+
+    private void OnFloorAvailabilityChanged(bool oldValue, bool newValue) => ApplyFloorAvailability(newValue);
+
+    private void ApplyFloorAvailability(bool available)
+    {
+        foreach (var renderer in GetComponentsInChildren<Renderer>(true))
+            renderer.enabled = available;
+        foreach (var floorCollider in GetComponentsInChildren<Collider>(true))
+            floorCollider.enabled = available;
     }
 
     [ClientRpc]

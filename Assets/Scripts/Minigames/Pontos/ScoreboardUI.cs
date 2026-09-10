@@ -11,6 +11,8 @@ public class ScoreboardUI : NetworkBehaviour, IObserver
     [SerializeField] MinigameController controller;
 
     readonly List<ScoreboardSlot> activeSlots = new();
+    private MinigameController pendingController;
+    private double nextScoreboardUpdate;
 
     void Awake()
     {
@@ -26,9 +28,10 @@ public class ScoreboardUI : NetworkBehaviour, IObserver
         if (isServer)
         {
             Debug.Log("📊 [SCOREBOARD] Inicializando scoreboard no servidor");
-            Dictionary<ulong, int> results = controller != null && controller.GetLiveScores().Count > 0
-                ? controller.GetLiveScores()
-                : MyNetworkManager.manager.lastGameResults;
+            var liveScores = controller != null ? controller.GetLiveScores() : null;
+            var results = liveScores != null && liveScores.Count > 0
+                ? liveScores
+                : MyNetworkManager.manager != null ? MyNetworkManager.manager.lastGameResults : null;
             if (results != null && results.Count > 0)
                 SendResults(results);
         }
@@ -45,65 +48,71 @@ public class ScoreboardUI : NetworkBehaviour, IObserver
     {
         var mc = subject as MinigameController;
         if (mc == null) return;
-        SendResults(mc.GetLiveScores());
+        pendingController = mc;
     }
 
+    [ServerCallback]
+    private void LateUpdate()
+    {
+        if (pendingController == null || NetworkTime.time < nextScoreboardUpdate) return;
+        var source = pendingController;
+        pendingController = null;
+        nextScoreboardUpdate = NetworkTime.time + 0.1;
+        SendResults(source.GetLiveScores());
+    }
+
+    [Server]
     void SendResults(Dictionary<ulong, int> results)
     {
+        if (results == null) return;
         var ordered = results.OrderByDescending(kv => kv.Value).ToList();
         string[] names = new string[ordered.Count];
         int[] pts = new int[ordered.Count];
         int[] colors = new int[ordered.Count];
         bool[] aliveStates = new bool[ordered.Count];
         ulong[] steamIds = new ulong[ordered.Count];
-        bool useTeamColors = controller is SoccerMinigameController;
+        bool useTeamColors = controller != null && controller.UseTeamColorsOnScoreboard;
         int[] teamIds = useTeamColors ? new int[ordered.Count] : null;
 
-        var soccer = FindAnyObjectByType<SoccerMinigameController>();
+        var playersById = new Dictionary<ulong, PlayerData>();
+        if (PlayerList.singleton != null)
+            foreach (var player in PlayerList.singleton.players)
+                if (player != null) playersById[player.playerInfo.steamId] = player;
         for (int i = 0; i < ordered.Count; i++)
         {
             ulong id = ordered[i].Key;
             int score = ordered[i].Value;
-            var pd = PlayerList.singleton.players.FirstOrDefault(p => p.playerInfo.steamId == id);
+            playersById.TryGetValue(id, out var pd);
             names[i] = pd != null ? pd.alias : id.ToString();
             steamIds[i] = id;
             if (teamIds != null) teamIds[i] = -1;
-            if (useTeamColors && soccer != null)
+            if (useTeamColors)
             {
-                int team = soccer.GetTeamOf(id);
+                int team = controller.GetScoreboardTeam(id);
                 if (team == 0) names[i] = $"{names[i]} [Azul]";
                 else if (team == 1) names[i] = $"{names[i]} [Vermelho]";
                 if (teamIds != null) teamIds[i] = team;
             }
             colors[i] = pd != null ? pd.color : -1;
             pts[i] = score;
-            aliveStates[i] = GetAliveStatus(id);
+            var playerScript = pd != null ? pd.GetComponent<PlayerScript>() : null;
+            aliveStates[i] = playerScript == null || !playerScript.IsDead;
         }
 
         // Dispatch the results via the Networked controller (spawned), not from this UI
         controller?.RpcUpdateScoreboard(names, pts, colors, aliveStates, steamIds, teamIds);
     }
 
-    private bool GetAliveStatus(ulong steamId)
-    {
-        var pd = PlayerList.singleton != null
-            ? PlayerList.singleton.players.FirstOrDefault(p => p != null && p.playerInfo.steamId == steamId)
-            : null;
-        if (pd == null) return true;
-        var ps = pd.GetComponent<PlayerScript>();
-        return ps == null || !ps.IsDead;
-    }
-
     public void UpdateUI(string[] names, int[] points, int[] colors, bool[] aliveStates, ulong[] steamIds, int[] teamIds)
     {
         EnsureSlots(names.Length);
 
-        bool useTeamColors = controller is SoccerMinigameController;
+        bool useTeamColors = controller != null && controller.UseTeamColorsOnScoreboard;
         Color teamBlue = new Color(0.1f, 0.3f, 0.9f, 1f);
         Color teamRed = new Color(1.0f, 0.2f, 0.2f, 1f);
-        SoccerMinigameController soccer = null;
-        if (useTeamColors && (teamIds == null || teamIds.All(t => t < 0)))
-            soccer = FindAnyObjectByType<SoccerMinigameController>();
+        bool usePercentage = controller != null && controller.UsePercentageOnScoreboard;
+        float minProgress = usePercentage && points.Length > 0 ? points.Min() : 0;
+        float maxProgress = usePercentage && points.Length > 0 ? points.Max() : 0;
 
         for (int i = 0; i < activeSlots.Count; i++)
         {
@@ -119,9 +128,9 @@ public class ScoreboardUI : NetworkBehaviour, IObserver
                         c = team == 0 ? teamBlue : team == 1 ? teamRed : Color.white;
                         nameColor = c;
                     }
-                    else if (soccer != null)
+                    else if (controller != null)
                     {
-                        int team = soccer.GetTeamOf(steamIds[i]);
+                        int team = controller.GetScoreboardTeam(steamIds[i]);
                         c = team == 0 ? teamBlue : team == 1 ? teamRed : Color.white;
                         nameColor = c;
                     }
@@ -144,14 +153,12 @@ public class ScoreboardUI : NetworkBehaviour, IObserver
                 {
                     label = isAlive ? "Vivo" : "Morto";
                 }
-                else if (controller is RaceMinigameController)
+                else if (usePercentage)
                 {
                     // Mostra porcentagem para Race
                     label = $"{points[i]}%";
                     
                     // Determina cor baseada no progresso relativo
-                    float minProgress = points.Min();
-                    float maxProgress = points.Max();
                     float currentProgress = points[i];
                     
                     if (maxProgress - minProgress > 0)

@@ -125,19 +125,20 @@ public class PlayerList : NetworkBehaviour{
     [Server]
     public int ServerRequestColor(int oldColor, int newColor )
     {
-
-        ReturnColor(oldColor);
+        if (newColor == oldColor) return oldColor;
         
         bool avaiable = ColorsAvailable.Contains(newColor);
         
         
         if (avaiable == true){
-            
+            ReturnColor(oldColor);
             ColorsAvailable.Remove(newColor);
 
             return newColor;
         }
         
+        if (ColorsAvailable.Count == 0) return oldColor;
+        ReturnColor(oldColor);
         int randomIndex = Random.Range(0, ColorsAvailable.Count);
         int randomColor = ColorsAvailable[randomIndex];
 

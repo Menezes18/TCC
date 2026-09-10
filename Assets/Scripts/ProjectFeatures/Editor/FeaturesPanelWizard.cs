@@ -1145,6 +1145,7 @@ namespace ProjectFeatures.Editor
 
             // Salva como prefab
             string path = "Assets/Prefabs/FeatureCard.prefab";
+            path = AssetDatabase.GenerateUniqueAssetPath(path);
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(card, path);
             Object.DestroyImmediate(card);
 

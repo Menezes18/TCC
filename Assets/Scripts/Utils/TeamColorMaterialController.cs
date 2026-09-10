@@ -8,6 +8,7 @@ public class TeamColorMaterialController : MonoBehaviour
     [SerializeField] private Renderer targetRenderer;
     [SerializeField] private bool replaceMaterial = true;
     [SerializeField] private Material materialTemplate;
+    [SerializeField, Min(0)] private int materialIndex = 1;
 
     [Header("Cores do Futebol")] 
     [SerializeField] private Color teamBlue = new Color(0.2f, 0.45f, 1.0f, 1f);
@@ -25,22 +26,17 @@ public class TeamColorMaterialController : MonoBehaviour
         if (targetRenderer == null)
             return null;
 
-        var mats = targetRenderer.materials; 
+        var mats = targetRenderer.sharedMaterials;
         if (mats == null || mats.Length == 0)
             return null;
 
-        int idx = 1;
-        if (replaceMaterial && materialTemplate != null)
-        {
-            var inst = new Material(materialTemplate);
-            mats[idx] = inst;
-            targetRenderer.materials = mats;
-            runtimeMat = inst;
-        }
-        else
-        {
-            runtimeMat = mats[idx];
-        }
+        int idx = materialIndex;
+        if (mats.Length <= idx) return null;
+        Material source = replaceMaterial && materialTemplate != null ? materialTemplate : mats[idx];
+        if (source == null) return null;
+        runtimeMat = new Material(source);
+        mats[idx] = runtimeMat;
+        targetRenderer.sharedMaterials = mats;
         return runtimeMat;
     }
 
@@ -74,6 +70,12 @@ public class TeamColorMaterialController : MonoBehaviour
     {
         if (mat.HasProperty(BaseColorId)) mat.SetColor(BaseColorId, c);
         else mat.color = c;
+    }
+
+    private void OnDestroy()
+    {
+        if (runtimeMat != null) Destroy(runtimeMat);
+        runtimeMat = null;
     }
 }
 

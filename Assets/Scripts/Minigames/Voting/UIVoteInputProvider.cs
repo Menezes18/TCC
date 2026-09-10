@@ -282,17 +282,18 @@ public class UIVoteInputProvider : NetworkBehaviour, IVoteInputProvider
         UpdateCardSelection(optionIndex);
 
         // Send vote to server via Command
-        CmdRegisterVote(playerId, optionIndex);
+        CmdRegisterVote(optionIndex, VotingManager.Instance.RoundId);
 
         Debug.Log($"[UIVoteInputProvider] Local player {playerId} voted for option {optionIndex}");
     }
 
     [Command(requiresAuthority = false)]
-    private void CmdRegisterVote(ulong playerId, int optionIndex)
+    private void CmdRegisterVote(int optionIndex, uint roundId, NetworkConnectionToClient sender = null)
     {
-        if (VotingManager.Instance != null)
+        var player = sender?.identity != null ? sender.identity.GetComponent<PlayerData>() : null;
+        if (player != null && VotingManager.Instance != null)
         {
-            VotingManager.Instance.RegisterVote(playerId, optionIndex);
+            VotingManager.Instance.RegisterVote(player.playerInfo.steamId, optionIndex, roundId);
         }
     }
 

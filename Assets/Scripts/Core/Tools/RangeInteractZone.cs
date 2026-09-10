@@ -46,23 +46,7 @@ public class RangeInteractZone : MonoBehaviour
         float playerDist = Vector3.Distance(_localPlayer.transform.position, origin);
         bool insideByDistance = playerDist <= radius;
 
-        bool insideByCast = false;
-        if (castDistance > 0f)
-        {
-            RaycastHit[] hits = Physics.SphereCastAll(origin, radius, dir, dist, layerMask);
-            if (hits != null)
-            {
-                for (int i = 0; i < hits.Length; i++)
-                {
-                    var col = hits[i].collider;
-                    if (col == null) continue;
-                    var ps = col.GetComponentInParent<PlayerScript>();
-                    if (ps != null && ps.isLocalPlayer) { insideByCast = true; break; }
-                }
-            }
-        }
-
-        bool inside = insideByDistance || insideByCast;
+        bool inside = insideByDistance;
 
         if (debugDraw)
         {
@@ -105,13 +89,6 @@ public class RangeInteractZone : MonoBehaviour
             var ps = NetworkClient.localPlayer.GetComponent<PlayerScript>();
             if (ps != null) return ps;
         }
-        var players = FindObjectsOfType<PlayerScript>();
-        foreach (var p in players)
-        {
-            if (p != null && p.isLocalPlayer) return p;
-            Debug.LogWarning($"[RangeInteractZone] PlayerScript sem isLocalPlayer em {p.name}");
-        }
-
         return null;
     }
 

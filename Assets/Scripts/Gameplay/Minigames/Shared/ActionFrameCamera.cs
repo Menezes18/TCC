@@ -12,13 +12,9 @@ public class ActionFrameCamera : MonoBehaviour
         if (MatchManager.singleton == null)
             return;
 
-        if (NetworkServer.active)
+        if (NetworkClient.active)
         {
-            MatchManager.singleton.StartMatch();
-        }
-        else if (NetworkClient.active)
-        {
-            MatchManager.singleton.CmdStartMatchAfterCamera();
+            MatchManager.singleton.CmdStartMatchAfterCamera(MatchManager.singleton.CameraPhaseGeneration);
         }
     }
 }

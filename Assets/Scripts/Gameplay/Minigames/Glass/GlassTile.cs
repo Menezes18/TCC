@@ -11,8 +11,8 @@ public class GlassTile : NetworkBehaviour
     [SerializeField] private SkinnedMeshRenderer[] renderers;
     [SerializeField] private Collider[] colliders;
 
-    [SyncVar] private bool _isSafe;
-    [SyncVar] private bool _isBroken;
+    private bool _isSafe;
+    [SyncVar(hook = nameof(OnBrokenChanged))] private bool _isBroken;
     private float _restoreDelay = 2.0f;
     private GlassMinigameController _controller;
 
@@ -27,29 +27,15 @@ public class GlassTile : NetworkBehaviour
         if (c != null) c.isTrigger = true;
     }
 
+    [ServerCallback]
     private void OnTriggerEnter(Collider other)
     {
         var pd = other.transform.root.GetComponent<PlayerData>();
         if (pd == null) return;
-
-        if (NetworkServer.active)
-        {
-            if (_isSafe)
-            {
-                _controller?.ServerOnSafeTileStepped(pd, rowIndex);
-            }
-            else if (!_isBroken)
-            {
-                StartCoroutine(ServerBreakAndRestore());
-            }
-            return;
-        }
-
-        var ni = pd.GetComponent<NetworkIdentity>();
-        if (ni != null)
-        {
-            CmdClientTouchedTile(ni.netId);
-        }
+        if (_isSafe)
+            _controller?.ServerOnSafeTileStepped(pd, rowIndex);
+        else if (!_isBroken)
+            StartCoroutine(ServerBreakAndRestore());
     }
 
     [Server]
@@ -57,43 +43,20 @@ public class GlassTile : NetworkBehaviour
     {
         _isBroken = true;
         SetTileEnabled(false);
-        RpcSetTileEnabled(false);
         yield return new WaitForSeconds(_restoreDelay);
         SetTileEnabled(true);
-        RpcSetTileEnabled(true);
         _isBroken = false;
     }
 
-    [Command(requiresAuthority = false)]
-    private void CmdClientTouchedTile(uint playerNetId)
+    public override void OnStartClient()
     {
-        if (!NetworkServer.active) return;
-
-        if (!NetworkServer.spawned.TryGetValue(playerNetId, out var id)) return;
-        var pd = id != null ? id.GetComponent<PlayerData>() : null;
-        if (pd == null) return;
-
-        if (_isSafe)
-        {
-            _controller?.ServerOnSafeTileStepped(pd, rowIndex);
-            return;
-        }
-
-        if (_isBroken) return;
-        StartCoroutine(ServerBreakAndRestore());
+        base.OnStartClient();
+        SetTileEnabled(!_isBroken);
     }
 
-    [Server]
+    private void OnBrokenChanged(bool oldValue, bool newValue) => SetTileEnabled(!newValue);
+
     private void SetTileEnabled(bool enabled)
-    {
-        if (renderers != null)
-            foreach (var r in renderers) if (r != null) r.enabled = enabled;
-        if (colliders != null)
-            foreach (var c in colliders) if (c != null) c.enabled = enabled;
-    }
-
-    [ClientRpc]
-    private void RpcSetTileEnabled(bool enabled)
     {
         if (renderers != null)
             foreach (var r in renderers) if (r != null) r.enabled = enabled;

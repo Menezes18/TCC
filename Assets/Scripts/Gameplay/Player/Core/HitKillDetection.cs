@@ -69,12 +69,10 @@ public class HitKillDetection : MonoBehaviour
         var pd = other.transform.root.GetComponent<PlayerData>();
         if (player != null)
         {
-            player.OnContextualHit(cause, permanent);
-
-            if (NetworkServer.active && pd != null)
-            {
-                onDeath?.Invoke(pd);
-            }
+            if (!NetworkServer.active)
+                return;
+            player.ServerHandleContextualHit(cause, permanent);
+            if (pd != null) onDeath?.Invoke(pd);
             return;
         }
 

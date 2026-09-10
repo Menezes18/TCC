@@ -29,8 +29,8 @@ public class FallGuysDoor : NetworkBehaviour
     [SerializeField] private float liftStrength = 1.0f;
     [SerializeField] private float stunDuration = 0.1f;
 
-    [SyncVar(hook = nameof(OnIsRealChanged))] private bool isReal = false;   
-    [SyncVar] private bool opened = false;
+    private bool isReal = false;
+    [SyncVar(hook = nameof(OnOpenedChanged))] private bool opened = false;
 
     private Quaternion _initialRot;
     private Vector3 _initialScale;
@@ -66,13 +66,15 @@ public class FallGuysDoor : NetworkBehaviour
         }
         opened = false;
         _hideRoutineStarted = false;
+        ApplyAuthoritativeCollisionState(false);
         RpcResetDoor();
     }
 
     public override void OnStartClient()
     {
         base.OnStartClient();
-        ApplyRealMode(isReal);
+        if (opened)
+            ApplyOpenedPresentation();
     }
 
     [Server]
@@ -106,6 +108,10 @@ public class FallGuysDoor : NetworkBehaviour
             
             Vector3 hitDir = ps.transform.forward; hitDir.y = 0f; if (hitDir == Vector3.zero) hitDir = (ps.transform.position - transform.position).normalized;
             Vector3 hitPoint = other.ClosestPoint(doorVisual != null ? doorVisual.position : transform.position);
+            ApplyDoorPhysics(hitPoint, hitDir, physicsPushForce);
+            if (hitTrigger != null) hitTrigger.enabled = false;
+            if (disableSolidOnOpen)
+                StartCoroutine(ServerDisableSolidAfterDelay());
             RpcOpenDoor(hitPoint, hitDir, physicsPushForce);
             if (!_hideRoutineStarted)
                 _serverHideCoroutine = StartCoroutine(ServerHideDoorRoutine());
@@ -148,9 +154,10 @@ public class FallGuysDoor : NetworkBehaviour
         }
     }
 
-    private void OnIsRealChanged(bool oldValue, bool newValue)
+    private void OnOpenedChanged(bool oldValue, bool newValue)
     {
-        ApplyRealMode(newValue);
+        if (newValue && !isServer)
+            ApplyOpenedPresentation();
     }
 
     private void ApplyRealMode(bool real)
@@ -171,6 +178,12 @@ public class FallGuysDoor : NetworkBehaviour
     [ClientRpc]
     private void RpcOpenDoor(Vector3 hitPoint, Vector3 hitDir, float forceScale)
     {
+        if (!isServer)
+            ApplyDoorPhysics(hitPoint, hitDir, forceScale);
+    }
+
+    private void ApplyDoorPhysics(Vector3 hitPoint, Vector3 hitDir, float forceScale)
+    {
         if (doorRb != null)
         {
             doorRb.isKinematic = false;
@@ -182,7 +195,28 @@ public class FallGuysDoor : NetworkBehaviour
                 doorRb.AddTorque(worldAxis * physicsAngularImpulse, ForceMode.Impulse);
             }
         }
-    
+    }
+
+    private void ApplyAuthoritativeCollisionState(bool isOpen)
+    {
+        if (hitTrigger != null) hitTrigger.enabled = !isOpen;
+        if (solidCollider != null && (isOpen && disableSolidOnOpen || !isOpen))
+            solidCollider.enabled = !isOpen;
+    }
+
+    [Server]
+    private IEnumerator ServerDisableSolidAfterDelay()
+    {
+        if (disableSolidDelay > 0f)
+            yield return new WaitForSeconds(disableSolidDelay);
+        if (solidCollider != null)
+            solidCollider.enabled = false;
+    }
+
+    private void ApplyOpenedPresentation()
+    {
+        if (hitTrigger != null) hitTrigger.enabled = false;
+        if (solidCollider != null && disableSolidOnOpen) solidCollider.enabled = false;
     }
 
     [Server]
@@ -190,6 +224,7 @@ public class FallGuysDoor : NetworkBehaviour
     {
         _hideRoutineStarted = true;
         yield return new WaitForSeconds(hideDelaySeconds);
+        ApplyAuthoritativeCollisionState(true);
         RpcShrinkAndDisable();
         _serverHideCoroutine = null;
     }

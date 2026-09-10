@@ -5,7 +5,7 @@ using Mirror;
 using UnityEngine;
 #endregion
 
-public class BatataQuenteMinigameController : MinigameController, IObserver
+public class BatataQuenteMinigameController : MinigameController
 {
 
     public enum GameMode
@@ -41,6 +41,7 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     [SerializeField] private List<PlayerData> alivePlayers = new List<PlayerData>();
     [SerializeField] private List<PlayerData> eliminationOrder = new List<PlayerData>();
     private readonly Dictionary<ulong, int> finalScores = new Dictionary<ulong, int>();
+    private readonly HashSet<ulong> disconnectedPlayers = new HashSet<ulong>();
 
     private PlayerList playerList => PlayerList.singleton;
     private bool matchActive;
@@ -50,7 +51,6 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
 
     private Phase phase = Phase.Idle;
     private double selectionEndTime = -1; // NetworkTime.time alvo p/ terminar seleção
-    private bool selectionEndedSignal = false; // true quando um cliente reporta fim da roleta
 
     [SyncVar(hook = nameof(OnHolderChanged))]
     private ulong potatoHolderId;
@@ -66,8 +66,14 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     public override void OnStartServer()
     {
         base.OnStartServer();
+        MyNetworkManager.ServerPlayerDisconnected += OnServerPlayerDisconnected;
         Notifica();
-        Adicionar(this);
+    }
+
+    public override void OnStopServer()
+    {
+        MyNetworkManager.ServerPlayerDisconnected -= OnServerPlayerDisconnected;
+        base.OnStopServer();
     }
 
     [Server]
@@ -84,6 +90,7 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         alivePlayers.Clear();
         eliminationOrder.Clear();
         finalScores.Clear();
+        disconnectedPlayers.Clear();
         alivePlayers.AddRange(playerList.players.Where(p => p != null));
 
         StartSelection();
@@ -105,8 +112,8 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         switch (phase)
         {
             case Phase.Selecting:
-                // Inicia a rodada apenas quando algum cliente reportar o fim da roleta
-                if (selectionEndedSignal)
+                // The server owns the deadline; missing or early UI callbacks cannot affect the round.
+                if (NetworkTime.time >= selectionEndTime)
                 {
                     SafeUnfreeze();
                     BeginRoundTimer();
@@ -159,7 +166,6 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     }
 
     phase = Phase.Selecting;
-    selectionEndedSignal = false;
 
     FreezeAll(true);
 
@@ -185,7 +191,10 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
 
     RpcShowRoulette(order, names, colors, potatoHolderId, selectionFreezeSeconds);
 
-    selectionEndTime = NetworkTime.time + selectionFreezeSeconds;
+    float selectionDuration = roletaUI != null
+        ? roletaUI.GetTotalDuration(selectionFreezeSeconds)
+        : Mathf.Max(0.1f, selectionFreezeSeconds);
+    selectionEndTime = NetworkTime.time + selectionDuration;
     }
     [ClientRpc]
     private void RpcShowRoulette(
@@ -203,15 +212,6 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         roletaUI.OnWinTextClosed -= HandleClose;
         roletaUI.OnWinTextClosed += HandleClose;
 
-        // quando a UI terminar no cliente, notifica o servidor para iniciar imediatamente
-        void NotifyServer()
-        {
-            CmdNotifyRouletteEnded();
-            roletaUI.OnWinTextClosed -= NotifyServer; // evita múltiplos envios
-        }
-        roletaUI.OnWinTextClosed -= NotifyServer;
-        roletaUI.OnWinTextClosed += NotifyServer;
-
         roletaUI.PrepareEntriesSnapshot(order, aliases, colors);
 
         roletaUI.SpinToWinner(winnerSteamId);
@@ -222,48 +222,6 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
             roletaUI.OnWinTextClosed -= HandleClose;
         }
     }
-    [ClientRpc]
-    private void RpcShowRoulette(ulong[] order, ulong winnerSteamId, float freezeSeconds)
-    {
-        if (roletaUI == null) return;
-
-        roletaUI.duracao = freezeSeconds;
-
-        roletaUI.ShowOverlay(true);
-
-        roletaUI.OnWinTextClosed -= HandleClose;
-        roletaUI.OnWinTextClosed += HandleClose;
-
-        void NotifyServer()
-        {
-            CmdNotifyRouletteEnded();
-            roletaUI.OnWinTextClosed -= NotifyServer;
-        }
-        roletaUI.OnWinTextClosed -= NotifyServer;
-        roletaUI.OnWinTextClosed += NotifyServer;
-
-        roletaUI.SetEntriesFromSteamIds(order);
-        roletaUI.SpinToWinner(winnerSteamId);
-
-        void HandleClose()
-        {
-            roletaUI.ShowOverlay(false);
-            roletaUI.OnWinTextClosed -= HandleClose;
-        }
-    }
-
-    // cliente informa que a animação da roleta terminou
-    [Command(requiresAuthority = false)]
-    private void CmdNotifyRouletteEnded()
-    {
-        if (!matchActive) return;
-        if (phase != Phase.Selecting) return;
-        selectionEndedSignal = true;
-    }
-
-
-
-
     #region Rodada / Timeout / Eliminação
     [Server]
     private void BeginRoundTimer()
@@ -375,14 +333,31 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
         if (attacker.playerInfo.steamId != potatoHolderId) return;
         if (!alivePlayers.Contains(target)) return;
 
-        // float distSqr = (attacker.transform.position - target.transform.position).sqrMagnitude;
-        // if (distSqr > passDistance * passDistance) return;
+        float distSqr = (attacker.transform.position - target.transform.position).sqrMagnitude;
+        if (distSqr > passDistance * passDistance) return;
 
         potatoHolderId = target.playerInfo.steamId;
         // roundTimer = timeLimit;
         // _lastWholeSecondLogged = Mathf.CeilToInt(roundTimer);
 
         Debug.Log($"[BatataQuente] {attacker.playerInfo.username} passou para {target.playerInfo.username}. Tempo resetado para {timeLimit:0.#}s.");
+    }
+
+    [Server]
+    private void OnServerPlayerDisconnected(PlayerData player)
+    {
+        if (player == null || !alivePlayers.Remove(player)) return;
+        ulong id = player.playerInfo.steamId;
+        if (!disconnectedPlayers.Add(id)) return;
+
+        bool wasHolder = potatoHolderId == id;
+        if (wasHolder) potatoHolderId = 0;
+        Notifica();
+
+        if (matchActive && alivePlayers.Count <= 1)
+            EndMatch();
+        else if (matchActive && wasHolder)
+            StartSelection();
     }
 
 
@@ -466,6 +441,8 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
             finalScores[pd.playerInfo.steamId] = pts;
             posIndex++;
         }
+        foreach (ulong id in disconnectedPlayers)
+            finalScores[id] = 0;
     }
 
     public override Dictionary<ulong, int> GetResults() => finalScores;
@@ -473,7 +450,7 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
     public override Dictionary<ulong, int> GetLiveScores()
     {
         var live = new Dictionary<ulong, int>();
-        int baseScore = alivePlayers.Count + eliminationOrder.Count;
+        int baseScore = alivePlayers.Count + eliminationOrder.Count + disconnectedPlayers.Count;
 
         foreach (var pd in alivePlayers)
             live[pd.playerInfo.steamId] = baseScore;
@@ -483,6 +460,8 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
             var pd = eliminationOrder[i];
             live[pd.playerInfo.steamId] = baseScore - (i + 1);
         }
+        foreach (ulong id in disconnectedPlayers)
+            live[id] = 0;
 
         return live;
     }
@@ -533,6 +512,5 @@ public class BatataQuenteMinigameController : MinigameController, IObserver
             hudso.MatchTimerUpdate(timeLeft);
     }
 
-    public new void Atualizacao(ISubject subject) { }
     #endregion
 }

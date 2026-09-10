@@ -2380,11 +2380,10 @@ namespace Smooth
             // Ignore all messages that do not match the server determined authority.
             if (networkState.smoothSync == null || networkState.smoothSync.netID.connectionToClient != conn) return;
 
-            // Always accept the first State so we have something to compare to. (if latestValidatedState == null)
-            // Check each other State to make sure it passes the validation method. By default all States are accepted.
+            // Validate every owner state, including the first one. Custom validators may
+            // compare the initial state against the current authoritative transform.
             // To tie in your own validation method, see the SmoothSyncMirrorExample scene and SmoothSyncMirrorExamplePlayerController.cs. 
-            if (networkState.smoothSync.latestValidatedState == null ||
-                networkState.smoothSync.validateStateMethod(networkState.state, networkState.smoothSync.latestValidatedState))
+            if (networkState.smoothSync.validateStateMethod(networkState.state, networkState.smoothSync.latestValidatedState))
             {
                 networkState.smoothSync.latestValidatedState = networkState.state;
                 networkState.smoothSync.latestValidatedState.receivedOnServerTimestamp = networkState.smoothSync.localTime;

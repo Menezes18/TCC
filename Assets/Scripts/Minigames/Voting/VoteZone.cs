@@ -11,7 +11,10 @@ using TMPro;
 public class VoteZone : NetworkBehaviour
 {
     [Header("Configuration")]
-    [SerializeField] private int optionIndex = -1;
+    [SyncVar] [SerializeField] private int optionIndex = -1;
+    [SyncVar(hook = nameof(OnOptionIdChanged))] private string optionId;
+    [SyncVar(hook = nameof(OnOptionNameChanged))] private string optionDisplayName;
+    [SyncVar(hook = nameof(OnVoteCountChanged))] private int syncedVoteCount;
     
     [Header("Visual Feedback")]
     [SerializeField] private TMP_Text voteCountText;
@@ -28,6 +31,7 @@ public class VoteZone : NetworkBehaviour
 
     // Reference to the provider that manages this zone
     private ZoneVoteInputProvider _provider;
+    private VotingManager _presentationManager;
 
     public int OptionIndex => optionIndex;
 
@@ -49,22 +53,16 @@ public class VoteZone : NetworkBehaviour
         _option = option;
         optionIndex = index;
         _provider = provider;
+        optionId = option.id;
+        optionDisplayName = option.displayName ?? option.id;
 
         if (minigameNameText != null)
         {
-            minigameNameText.text = option.displayName ?? option.id;
+            minigameNameText.text = optionDisplayName;
         }
 
         // Apply icon if available
-        if (iconRenderer != null && option.icon != null)
-        {
-            if (iconMaterial == null)
-            {
-                iconMaterial = iconRenderer.material;
-            }
-            iconMaterial.mainTexture = option.icon.texture;
-            iconRenderer.material = iconMaterial;
-        }
+        ApplyIcon(option);
 
         UpdateVoteCount(0);
     }
@@ -74,12 +72,83 @@ public class VoteZone : NetworkBehaviour
     /// </summary>
     public void UpdateVoteCount(int count)
     {
+        if (isServer) syncedVoteCount = count;
         _currentVoteCount = count;
         
         if (voteCountText != null)
         {
             voteCountText.text = count == 1 ? "1 jogador" : $"{count} jogadores";
         }
+    }
+
+    private void OnOptionNameChanged(string _, string value)
+    {
+        optionDisplayName = value;
+        if (minigameNameText != null) minigameNameText.text = value;
+    }
+
+    private void OnOptionIdChanged(string _, string __) => ApplyAvailableOptions();
+
+    private void OnVoteCountChanged(int _, int value) => ApplyVoteCount(value);
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        VotingManager.OnInstanceChanged += BindVotingManager;
+        BindVotingManager(VotingManager.Instance);
+        OnOptionNameChanged(null, optionDisplayName);
+        ApplyVoteCount(syncedVoteCount);
+    }
+
+    public override void OnStopClient()
+    {
+        VotingManager.OnInstanceChanged -= BindVotingManager;
+        BindVotingManager(null);
+        base.OnStopClient();
+    }
+
+    private void BindVotingManager(VotingManager manager)
+    {
+        if (_presentationManager == manager) return;
+        if (_presentationManager != null) _presentationManager.OnVotingStarted -= ApplyOptions;
+        _presentationManager = manager;
+        if (_presentationManager == null) return;
+        _presentationManager.OnVotingStarted += ApplyOptions;
+        ApplyOptions(_presentationManager.GetCurrentOptions());
+    }
+
+    private void ApplyAvailableOptions()
+    {
+        if (_presentationManager != null) ApplyOptions(_presentationManager.GetCurrentOptions());
+    }
+
+    private void ApplyOptions(List<MinigameOptionRuntime> options)
+    {
+        if (options == null) return;
+        foreach (var option in options)
+        {
+            if (option != null && option.id == optionId)
+            {
+                _option = option;
+                ApplyIcon(option);
+                return;
+            }
+        }
+    }
+
+    private void ApplyIcon(MinigameOptionRuntime option)
+    {
+        if (iconRenderer == null || option?.icon == null) return;
+        if (iconMaterial == null) iconMaterial = iconRenderer.material;
+        iconMaterial.mainTexture = option.icon.texture;
+        iconRenderer.material = iconMaterial;
+    }
+
+    private void ApplyVoteCount(int count)
+    {
+        _currentVoteCount = count;
+        if (voteCountText != null)
+            voteCountText.text = count == 1 ? "1 jogador" : $"{count} jogadores";
     }
 
     private void OnTriggerEnter(Collider other)

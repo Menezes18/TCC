@@ -1,6 +1,7 @@
 using Mirror;
 using Steamworks;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class CharacterSkinHandler : MonoBehaviour
@@ -17,6 +18,7 @@ public class CharacterSkinHandler : MonoBehaviour
     // Arrays internos para controlar instâncias
     private CharacterSkinElement[] clientsCharacters;
     private GameObject[] spawnGameObjects;
+    private readonly Dictionary<ulong, int> _slotByPlayerId = new Dictionary<ulong, int>();
     private void Awake()
     {
         instance = this;
@@ -57,26 +59,26 @@ public class CharacterSkinHandler : MonoBehaviour
             return;
         }
 
-        int index = GetNextPlatformIndex(client);
-     //   Debug.Log($"[SpawnCharacterMesh] Cliente '{client.name}' vai usar slot #{index}");
-
-        if (client.isLocalPlayer)
+        ulong playerId = GetStablePlayerId(client);
+        if (_slotByPlayerId.TryGetValue(playerId, out int existingIndex))
         {
-            if (clientsCharacters[0] == null)
+            if (existingIndex >= 0 && existingIndex < clientsCharacters.Length && clientsCharacters[existingIndex] != null)
             {
-//                Debug.LogError("[SpawnCharacterMesh] Slot 0 vazio para local player!");
+                clientsCharacters[existingIndex].Initialize(client, client.IsReady);
                 return;
             }
-            clientsCharacters[0].Initialize(client, client.IsReady);
-            return;
+            _slotByPlayerId.Remove(playerId);
         }
+
+        int index = GetNextPlatformIndex(client);
+     //   Debug.Log($"[SpawnCharacterMesh] Cliente '{client.name}' vai usar slot #{index}");
 
         if (characterSkinPrefab == null)
         {
             Debug.LogError("[SpawnCharacterMesh] characterSkinPrefab NÃO está setado!");
             return;
         }
-        if (index >= spawnPositions.Length || spawnPositions[index] == null)
+        if (spawnPositions == null || index >= spawnPositions.Length || spawnPositions[index] == null)
         {
           // Debug.LogError($"[SpawnCharacterMesh] spawnPositions[{index}] inválido ou null!");
             return;
@@ -84,13 +86,31 @@ public class CharacterSkinHandler : MonoBehaviour
 
         
 
+        for (int i = 0; i < clientsCharacters.Length; i++)
+            if (clientsCharacters[i] != null && clientsCharacters[i].client == client) return;
+
         if (clientsCharacters[index] == null)
         {
-            Debug.LogError("[SpawnCharacterMesh] Prefab não tem CharacterSkinElement!");
-            return;
+            spawnGameObjects[index] = Instantiate(characterSkinPrefab, spawnPositions[index].position,
+                spawnPositions[index].rotation, spawnPositions[index]);
+            clientsCharacters[index] = spawnGameObjects[index].GetComponent<CharacterSkinElement>();
+            if (clientsCharacters[index] == null)
+            {
+                Debug.LogError("[SpawnCharacterMesh] Prefab não tem CharacterSkinElement!");
+                Destroy(spawnGameObjects[index]);
+                spawnGameObjects[index] = null;
+                return;
+            }
         }
 
+        _slotByPlayerId[playerId] = index;
         clientsCharacters[index].Initialize(client, client.IsReady);
+    }
+
+    private static ulong GetStablePlayerId(PlayerData client)
+    {
+        ulong steamId = client.playerInfo.steamId;
+        return steamId != 0 ? steamId : ulong.MaxValue - client.netId;
     }
 
     /// <summary>
@@ -118,6 +138,9 @@ public class CharacterSkinHandler : MonoBehaviour
             if (character != null)
                 Destroy(character.gameObject);
         }
+        System.Array.Clear(clientsCharacters, 0, clientsCharacters.Length);
+        System.Array.Clear(spawnGameObjects, 0, spawnGameObjects.Length);
+        _slotByPlayerId.Clear();
     }
 
     [Server]
@@ -130,6 +153,8 @@ public class CharacterSkinHandler : MonoBehaviour
             {
                 NetworkServer.Destroy(ch.gameObject);
                 clientsCharacters[i] = null;
+                spawnGameObjects[i] = null;
+                _slotByPlayerId.Remove(GetStablePlayerId(client));
                 Debug.Log($"[DestroyCharacterMesh] Slot {i} limpo para client {client.name}");
                 break;
             }

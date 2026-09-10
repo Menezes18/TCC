@@ -38,6 +38,7 @@ public class BriefingManager : NetworkBehaviour
     [SyncVar] private string syncTip;
     [SyncVar] private int tipIndex;
     [SyncVar] private bool briefingStarted = false;
+    public bool HasFinishedBriefing => briefingStarted;
 
     // Client-side gate: allow pressing Ready only when server permits interaction
     [SerializeField]
@@ -79,6 +80,8 @@ public class BriefingManager : NetworkBehaviour
     {
         if (!isServer) { Debug.Log("[Briefing] CheckAllReady called on client, ignoring"); return; }
         if (briefingStarted) { Debug.Log("[Briefing] Already started, ignoring"); return; }
+        if (expectedBriefingAcks == 0 || _briefingAcks.Count < expectedBriefingAcks)
+            return;
 
         var (ready, total) = MyNetworkManager.manager.GetReadyCounts();
         bool allReady = ready == total && total > 0;
@@ -138,7 +141,7 @@ public class BriefingManager : NetworkBehaviour
         onBriefingEnded?.Invoke();
     }
 
-    [Command(requiresAuthority = false)]
+    [Server]
     private void CmdFinishBriefing()
     {
         if (!briefingStarted)
@@ -146,10 +149,27 @@ public class BriefingManager : NetworkBehaviour
     }
 
     #region Server && Command
-    [Command(requiresAuthority = false)]
+    [ServerCallback]
     public void CmdSetAllPlayersFrozensNoServer(bool ativar)
     {
-        PlayerList.singleton.SetAllPlayersFrozen(ativar);
+        if (briefingStarted && PlayerList.singleton != null)
+            PlayerList.singleton.SetAllPlayersFrozen(ativar);
+    }
+
+    // Existing scene UnityEvents still use this name.
+    [ServerCallback]
+    public void CmdAtivarPlayersNoServer(bool ativar) => CmdSetAllPlayersFrozensNoServer(ativar);
+
+    [Server]
+    public void OnPlayerDisconnected(NetworkConnectionToClient connection)
+    {
+        _briefingAcks.Remove(connection.connectionId);
+        expectedBriefingAcks = MyNetworkManager.manager.allClients.Count;
+        receivedBriefingAcks = _briefingAcks.Count;
+        if (briefingStarted) return;
+        RpcSetReadyInteractable(expectedBriefingAcks > 0 && receivedBriefingAcks >= expectedBriefingAcks);
+        UpdateAllClientsSlots();
+        CheckAllReady();
     }
 
     [Server]
@@ -176,6 +196,7 @@ public class BriefingManager : NetworkBehaviour
     [Server]
     public void TriggerBriefing()
     {
+        briefingStarted = false;
         // Reset readiness e reconstrói UI antes de mostrar briefing
         MyNetworkManager.manager.ResetAllPlayersReady();
         UpdateAllClientsSlots();
@@ -269,7 +290,7 @@ public class BriefingManager : NetworkBehaviour
     [Command(requiresAuthority = false)]
     private void CmdAckBriefingShown(NetworkConnectionToClient sender = null)
     {
-        if (!isServer || sender == null) return;
+        if (!isServer || sender == null || sender.identity == null || briefingStarted) return;
         if (_briefingAcks.Add(sender.connectionId))
         {
             receivedBriefingAcks = _briefingAcks.Count;
@@ -302,6 +323,18 @@ public class BriefingManager : NetworkBehaviour
         pd.IsReady = true;
         UpdateAllClientsSlots();
         CheckAllReady();
+    }
+
+    [Server]
+    public bool ServerTryToggleReady(PlayerData player)
+    {
+        if (player == null || briefingStarted || expectedBriefingAcks == 0 ||
+            _briefingAcks.Count < expectedBriefingAcks)
+            return false;
+        player.IsReady = !player.IsReady;
+        UpdateAllClientsSlots();
+        CheckAllReady();
+        return true;
     }
 
     private void OnSlotsChanged(SyncListSlotData.Operation op, int index, SlotData oldData, SlotData newData)

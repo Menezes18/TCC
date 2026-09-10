@@ -21,6 +21,8 @@ public class AtribuiEventos : MonoBehaviour
         _toggle.onDeactivated.AddListener(OnDeactivated);
     }
 
+    private void Start() => _toggle?.NotifyCurrentState();
+
     private void OnDestroy()
     {
         if (_toggle == null)

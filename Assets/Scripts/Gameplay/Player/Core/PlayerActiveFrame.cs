@@ -16,6 +16,10 @@ public class PlayerActiveFrame : NetworkBehaviour
 
     [SerializeField] List<Collider> _affectedPlayer;
 
+    private readonly HashSet<uint> _serverVictimsThisAttack = new HashSet<uint>();
+    private double _serverAttackWindowUntil;
+    private double _serverNextAttackTime;
+
 
     public void SphereFront()
     {
@@ -54,18 +58,51 @@ public class PlayerActiveFrame : NetworkBehaviour
 
             Vector3 final = (destination - origin).normalized;
 
-            CmdRequestPush(identity, dmgType, final);
+            CmdRequestPush(identity);
 
         }
     }
     
 
     [Command]
-    private void CmdRequestPush(NetworkIdentity identity, DamageType dmgType, Vector3 dir)
+    private void CmdRequestPush(NetworkIdentity identity)
     {
-        Debug.Log($"[Server] CmdRequestPush from {connectionToClient?.identity?.netId} -> target {identity?.netId}, type {dmgType}");
+        if (identity == null || db == null || !NetworkServer.spawned.TryGetValue(identity.netId, out var serverIdentity) || serverIdentity != identity)
+            return;
+
+        var attackerScript = transform.root.GetComponent<PlayerScript>();
+        if (attackerScript == null || !attackerScript.ServerCanPush)
+            return;
+
+        double now = NetworkTime.time;
+        if (now >= _serverNextAttackTime)
+        {
+            _serverVictimsThisAttack.Clear();
+            _serverAttackWindowUntil = now + 0.25d;
+            _serverNextAttackTime = now + Mathf.Max(0.05f, db.playerPushCooldownTimer);
+        }
+        else if (now > _serverAttackWindowUntil)
+        {
+            return;
+        }
+
+        if (!_serverVictimsThisAttack.Add(identity.netId))
+            return;
+
+        Vector3 delta = identity.transform.position - transform.root.position;
+        delta.y = 0f;
+        float maxRange = Mathf.Max(0.1f, db.playerPushRadius) + 0.75f;
+        if (!float.IsFinite(delta.x) || !float.IsFinite(delta.y) || !float.IsFinite(delta.z) || delta.sqrMagnitude > maxRange * maxRange)
+            return;
+
+        Vector3 dir = delta.sqrMagnitude > 0.0001f ? delta.normalized : transform.root.forward;
+        dir.y = 0f;
+
+        Debug.Log($"[Server] Validated push from {connectionToClient?.identity?.netId} -> target {identity.netId}");
 
         IDamageable damage = identity.GetComponent<IDamageable>();
+        if (damage == null)
+            return;
 
         var ball = identity.GetComponent<BallPhysics>();
         if (ball != null)
@@ -74,7 +111,7 @@ public class PlayerActiveFrame : NetworkBehaviour
             if (attacker != null)
                 ball.ServerRegisterTouch(attacker.playerInfo.steamId);
         }
-        if (dmgType == DamageType.Push)
+        if (identity.GetComponent<PlayerScript>() != null)
         {
             var controller = FindObjectOfType<BatataQuenteMinigameController>();
             if (controller != null)
@@ -85,6 +122,6 @@ public class PlayerActiveFrame : NetworkBehaviour
                     controller.OnPlayerPush(attacker, target);
             }
         }
-        damage.ReceiveDamage(dmgType, dir);
+        damage.ReceiveDamage(DamageType.Push, dir);
     }
 }

@@ -72,7 +72,8 @@ public class PlayerCustomizationSync : NetworkBehaviour
         {
             cachedCustomization = null;
             
-            if (!isLocalPlayer && !customizationApplied)
+            customizationApplied = false;
+            if (!isLocalPlayer)
             {
                 ApplyReceivedCustomization();
             }
@@ -81,8 +82,6 @@ public class PlayerCustomizationSync : NetworkBehaviour
 
     private void ApplyReceivedCustomization()
     {
-        if (customizationApplied) return;
-
         var customization = GetCustomization();
         if (customization != null)
         {

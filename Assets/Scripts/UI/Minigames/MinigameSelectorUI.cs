@@ -112,20 +112,7 @@ partial class MinigameSelectorUI
         if (catalog != null) return true;
         var mgr = MyNetworkManager.manager;
         if (mgr == null) return false;
-        try
-        {
-            var fi = typeof(MyNetworkManager).GetField("minigameCatalog", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            if (fi != null)
-            {
-                var val = fi.GetValue(mgr) as MinigameCatalog;
-                if (val != null)
-                {
-                    catalog = val;
-                    return true;
-                }
-            }
-        }
-        catch { }
-        return false;
+        catalog = mgr.MinigameCatalog;
+        return catalog != null;
     }
 }

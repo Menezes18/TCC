@@ -74,6 +74,7 @@ public class CinematicCameraController : NetworkBehaviour
     [Server]
     private void ServerActivateCameraInternal(float delay)
     {
+        if (_deactivationCoroutine != null) { StopCoroutine(_deactivationCoroutine); _deactivationCoroutine = null; }
         if (isCameraActive)
         {
             Debug.LogWarning("[CinematicCamera] Câmera já está ativa");
@@ -117,7 +118,6 @@ public class CinematicCameraController : NetworkBehaviour
             PlayerList.singleton.SetAllPlayersFrozen(true);
         }
 
-        RpcActivateCamera();
     }
 
 
@@ -144,6 +144,7 @@ public class CinematicCameraController : NetworkBehaviour
     [Server]
     private void ServerDeactivateCameraInternal(float delay)
     {
+        if (_activationCoroutine != null) { StopCoroutine(_activationCoroutine); _activationCoroutine = null; }
         if (!isCameraActive)
         {
             Debug.LogWarning("[CinematicCamera] Câmera já está desativada");
@@ -186,7 +187,6 @@ public class CinematicCameraController : NetworkBehaviour
             PlayerList.singleton.SetAllPlayersFrozen(false);
         }
 
-        RpcDeactivateCamera();
     }
 
 

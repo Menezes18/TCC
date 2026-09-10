@@ -30,6 +30,7 @@ public class DeathZoneTrigger : NetworkBehaviour
         onDeath?.Invoke(pd);
         
         
-        pds.InternalDeath(spectate);
+        if (pds != null)
+            pds.ServerHandleContextualHit(DeathCause.Default, spectate);
     }
 }

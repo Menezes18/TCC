@@ -152,7 +152,7 @@ public class ZoneVoteInputProvider : NetworkBehaviour, IVoteInputProvider
         // Register vote
         if (VotingManager.Instance != null)
         {
-            VotingManager.Instance.RegisterVote(playerId, zoneIndex);
+            VotingManager.Instance.RegisterVote(playerId, zoneIndex, VotingManager.Instance.RoundId);
         }
     }
 

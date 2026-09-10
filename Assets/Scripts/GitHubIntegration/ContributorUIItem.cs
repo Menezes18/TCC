@@ -16,6 +16,8 @@ namespace GitHubIntegration
     /// </summary>
     public class ContributorUIItem : MonoBehaviour
     {
+        private Sprite _ownedAvatarSprite;
+        private Texture2D _ownedAvatarTexture;
         [Header("Referências da UI")]
         [Tooltip("Imagem para o avatar do contribuidor")]
         [SerializeField] private Image avatarImage;
@@ -78,14 +80,27 @@ namespace GitHubIntegration
         {
             if (texture != null)
             {
+                ReleaseOwnedAvatar();
                 // Converte a textura em sprite
                 Sprite sprite = Sprite.Create(
                     texture,
                     new Rect(0, 0, texture.width, texture.height),
                     new Vector2(0.5f, 0.5f)
                 );
+                _ownedAvatarTexture = texture;
+                _ownedAvatarSprite = sprite;
                 SetAvatar(sprite);
             }
+        }
+
+        private void OnDestroy() => ReleaseOwnedAvatar();
+
+        private void ReleaseOwnedAvatar()
+        {
+            if (_ownedAvatarSprite != null) Destroy(_ownedAvatarSprite);
+            if (_ownedAvatarTexture != null) Destroy(_ownedAvatarTexture);
+            _ownedAvatarSprite = null;
+            _ownedAvatarTexture = null;
         }
     }
 }

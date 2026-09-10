@@ -10,6 +10,7 @@ public class SoccerMinigameController : MinigameController
 {
     public override bool HandlesInitialSpawns => true;
     public override bool UseTeamColorsOnScoreboard => true;
+    public override int GetScoreboardTeam(ulong playerId) => GetTeamOf(playerId);
     [Header("Settings")]
     [SerializeField] private SettingsMiniGameData settingsData;
 
@@ -266,7 +267,7 @@ public class SoccerMinigameController : MinigameController
             if (force || !already)
             {
                 Debug.Log($"[Soccer] Teleport {pd.alias} (sid={sid}, nid={nid}) team={(team==0?"Azul":team==1?"Vermelho":"?")} to '{spawn.name}' pos={spawn.position}");
-                ps.TargetRpcTeleport(conn, spawn.position, spawn.rotation);
+                ps.ServerTeleport(spawn.position, spawn.rotation);
                 if (sid != 0) _teleportedSids.Add(sid);
                 if (nid != 0) _teleportedNids.Add(nid);
             }

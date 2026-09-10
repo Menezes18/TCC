@@ -21,6 +21,7 @@ public class ContadorTempo : NetworkBehaviour, ISubject
     private float tempoPrincipalAtual;
 
     private bool contadorIniciado = false;
+    private bool _serverCompleted;
 
     // Efeitos visuais
     private Tween shakeTween;
@@ -90,6 +91,17 @@ public class ContadorTempo : NetworkBehaviour, ISubject
             yield return new WaitForSeconds(1);
             tempoPrincipalAtual -= 1;
         }
+        ServerCompleteTimer();
+    }
+
+    [Server]
+    private void ServerCompleteTimer()
+    {
+        if (_serverCompleted) return;
+        _serverCompleted = true;
+        Notifica();
+        MyNetworkManager.manager.ReiniciarJogo();
+        MyNetworkManager.manager.ServerChangeSceneSynchronized(nomeCena);
     }
 
     private void OnTempoInicialChanged(float oldValue, float newValue)
@@ -128,20 +140,6 @@ public class ContadorTempo : NetworkBehaviour, ISubject
             colorTween?.Kill();
             uiTempoPrincipal.color = corOriginal;
             efeitoFinalAtivado = false;
-            Notifica();
-
-            MyNetworkManager.manager.ReiniciarJogo();
-
-            if (NetworkServer.active)
-            {
-                // Centralized scene change via Mirror with synchronization
-                MyNetworkManager.manager.ServerChangeSceneSynchronized(nomeCena);
-            }
-            else
-            {
-                // Fallback: local load (shouldn't normally happen in network game)
-                LoadingScreenUI.Instance?.Show(nomeCena);
-            }
         }
     }
 

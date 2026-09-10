@@ -73,21 +73,7 @@ public class StadiumWaveManager : MonoBehaviour
                 bounce = orderedChildren[i].gameObject.AddComponent<VerticalBounce>();
             }
 
-            // Configurar via reflection para acessar campos privados
-            var type = typeof(VerticalBounce);
-            
-            type.GetField("bounceHeight", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?.SetValue(bounce, bounceHeight);
-            
-            type.GetField("bounceSpeed", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?.SetValue(bounce, bounceSpeed);
-            
-            type.GetField("useWaveEffect", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?.SetValue(bounce, true);
-
-            // Calcular offset baseado na posição na sequência
-            float offset = i * waveDelay;
-            bounce.SetWaveOffset(offset);
+            bounce.ConfigureWave(bounceHeight, bounceSpeed, i * waveDelay);
         }
 
         Debug.Log($"Efeito de onda configurado em {orderedChildren.Length} objetos!");

@@ -25,9 +25,6 @@ public class PartyMenuUIManager : MonoBehaviour{
                 Debug.Log("input");
             }
         }
-        else{
-            Debug.Log("Erro localLobbyPlayer");
-        }
     }
 
     public void SetLobbyPlayer(PlayerData player)

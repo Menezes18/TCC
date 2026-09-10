@@ -18,6 +18,11 @@ public struct PlayerScoreEntry
 
 public class MatchManager : NetworkBehaviour
 {
+    private readonly HashSet<int> _cameraReadyConnections = new HashSet<int>();
+    [SyncVar] private uint _cameraPhaseGeneration = 1;
+    [SerializeField, Min(1f)] private float cameraReadyTimeout = 10f;
+    private double _cameraReadyDeadline = double.PositiveInfinity;
+    public uint CameraPhaseGeneration => _cameraPhaseGeneration;
     
     #region Singleton Setup
 
@@ -129,12 +134,17 @@ public class MatchManager : NetworkBehaviour
     [SerializeField] SettingsMiniGameData settingsMiniGameData; 
     [SerializeField] HUDSO HUDSO;
     [SerializeField, Min(0f)] private float resultsOverlayDelaySeconds = 5f;
+    [SerializeField, Min(0f)] private float resultsPresentationSeconds = 8f;
+    [SerializeField, Min(0f)] private float resultsExitCountdownSeconds = 10f;
     private List<PlayerScoreEntry> _temporaryRanking = new List<PlayerScoreEntry>();
     private HashSet<NetworkConnectionToClient> _readyConnections = new();
     
     private IScoreRule scoreRule;
     // Evita processar o fim de partida mais de uma vez
     private bool _resultsFinalized;
+    private bool _resultsExitStarted;
+    [SyncVar] private double _resultsExitDeadline;
+    public double ResultsExitDeadline => _resultsExitDeadline;
 
     
     [SyncVar (hook = nameof(HookOnFreezeTimerUpdated))] float _freezeTimer;
@@ -195,12 +205,11 @@ public class MatchManager : NetworkBehaviour
     private void Update()
     {
         if(base.isServer == false) return;
-        
-        
-        
+
+        EvaluateCameraReady();
         if(_matchHasStarted == false) return;
         scoreRule.UpdateScores();
-        UpdateTemporaryRanking();
+        // Final ranking is consumed only by InternalEndMatch, which rebuilds it there.
         
         if(_freezeTimer > 0)
             _freezeTimer -= Time.deltaTime;
@@ -235,8 +244,10 @@ public class MatchManager : NetworkBehaviour
         
     }
 
-    [Command(requiresAuthority = false)]
+    [ServerCallback]
     public void CmdPrepareMath() {
+        if (_matchHasStarted || _resultsFinalized) return;
+        if (BriefingManager.singleton != null && !BriefingManager.singleton.HasFinishedBriefing) return;
         
         if(_matchTimer > 0) return;
         
@@ -263,9 +274,13 @@ public class MatchManager : NetworkBehaviour
     [Server]
     public void StartMatch()
     {
+        if (_matchHasStarted || _resultsFinalized) return;
+        if (BriefingManager.singleton != null && !BriefingManager.singleton.HasFinishedBriefing) return;
         PlayerList.singleton.SetAllPlayersFrozen(false);
         _freezeTimer = db.serverFreezeDuration;
         _matchHasStarted = true;
+        _cameraReadyConnections.Clear();
+        _cameraReadyDeadline = double.PositiveInfinity;
         
         // Mostra PlayerHUD quando o match começar
         RpcShowPlayerHUD();
@@ -273,9 +288,27 @@ public class MatchManager : NetworkBehaviour
 
 
     [Command(requiresAuthority = false)]
-    public void CmdStartMatchAfterCamera()
+    public void CmdStartMatchAfterCamera(uint phaseGeneration, NetworkConnectionToClient sender = null)
     {
-        StartMatch();
+        if (_matchHasStarted || sender == null || sender.identity == null || !sender.isReady ||
+            phaseGeneration != _cameraPhaseGeneration) return;
+        if (BriefingManager.singleton != null && !BriefingManager.singleton.HasFinishedBriefing) return;
+        _cameraReadyConnections.Add(sender.connectionId);
+        if (double.IsPositiveInfinity(_cameraReadyDeadline))
+            _cameraReadyDeadline = NetworkTime.time + cameraReadyTimeout;
+        EvaluateCameraReady();
+    }
+
+    [Server]
+    private void EvaluateCameraReady()
+    {
+        if (_matchHasStarted || _cameraReadyConnections.Count == 0) return;
+        _cameraReadyConnections.RemoveWhere(connectionId => !NetworkServer.connections.ContainsKey(connectionId));
+        int expected = NetworkServer.connections.Values.Count(connection =>
+            connection != null && connection.isReady && connection.identity != null);
+        if (expected == 0) return;
+        if (_cameraReadyConnections.Count >= expected || NetworkTime.time >= _cameraReadyDeadline)
+            StartMatch();
     }
     private void TeleportPlayer()
     {
@@ -287,16 +320,15 @@ public class MatchManager : NetworkBehaviour
         }
         foreach (PlayerData pd in PlayerList.singleton.players)
         {
-            if (_activePlayers.Contains(pd)) return;
+            if (pd == null || _activePlayers.Contains(pd)) continue;
 
             PlayerScript ps = pd.transform.GetComponent<PlayerScript>();
-            ps = pd.transform.GetComponent<PlayerScript>();
             NetworkConnection conn = pd.transform.GetComponent<NetworkIdentity>().connectionToClient;
             Transform randomSpawn = InternalGetRandomSpawnPoint();
 
             Debug.DrawRay(randomSpawn.position,Vector3.up * 100, Color.green, 10);
             
-            ps.TargetRpcTeleport(conn, randomSpawn.position, randomSpawn.rotation);
+            ps.ServerTeleport(randomSpawn.position, randomSpawn.rotation);
 
             _activePlayers.Add(pd);
 
@@ -514,8 +546,21 @@ public class MatchManager : NetworkBehaviour
 
         RpcShowSimpleResults(names, totals, gains, colors, hatIndices, glassesIndices, shirtIndices);
 
-        float exitTimer = ResultsUI.singleton != null ? ResultsUI.singleton.exitTimerSeconds : 10f;
-        // StartCoroutine(WaitAndReturnToLobby(exitTimer));
+        if (!_resultsExitStarted)
+        {
+            _resultsExitStarted = true;
+            float presentation = Mathf.Max(0f, resultsPresentationSeconds) + names.Length * 0.35f;
+            _resultsExitDeadline = NetworkTime.time + presentation + Mathf.Max(0f, resultsExitCountdownSeconds);
+            StartCoroutine(ServerWaitForResultsDeadline());
+        }
+    }
+
+    [Server]
+    private IEnumerator ServerWaitForResultsDeadline()
+    {
+        while (NetworkTime.time < _resultsExitDeadline)
+            yield return null;
+        yield return WaitAndReturnToLobby(0f);
     }
     
     [Server]

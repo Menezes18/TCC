@@ -42,14 +42,14 @@ public class PlayerRespawn : NetworkBehaviour
             {
                 if (street.TryGetDropoffSpawn(pd.playerInfo.steamId, out var spawn))
                 {
-                    ps.TargetRpcTeleport(conn, spawn.position, spawn.rotation);
+                    ps.ServerTeleport(spawn.position, spawn.rotation);
                     usedStreetSpawn = true;
                 }
             }
             if (!usedStreetSpawn)
             {
                 Transform random = MatchManager.singleton.GetRandomSpawnPoint();
-                ps.TargetRpcTeleport(conn, random.position, random.rotation);
+                ps.ServerTeleport(random.position, random.rotation);
             }
         }
         

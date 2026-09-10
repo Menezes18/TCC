@@ -86,6 +86,7 @@ public class HUDManager : MonoBehaviour
         HUDSO.EventOnFreezeTimerUpdated -= HUDSOOnEventOnFreezeTimerUpdated;
         HUDSO.EventOnRespawnTimerUpdated -= HUDSOOnEventOnRespawnTimerUpdated;
         HUDSO.EventOnGameOver -= HUDSOOnEventOnGameOver;
+        HUDSO.EventOnPotatoHolderUpdated -= OnPotatoHolderUpdated;
         
         // Spectator mode
         HUDSO.EventOnSpectatorModeChanged -= OnSpectatorModeChanged;

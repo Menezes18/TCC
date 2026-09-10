@@ -20,6 +20,7 @@ public class SpectatorManager : MonoBehaviour
 
     // Removido estado complexo, usando abordagem simples igual ResultsOverlay
     private bool _isLoading = false;
+    private int _spectatorGeneration;
 
     // Lista de espectadores desativada (sem snapshot)
 
@@ -50,8 +51,9 @@ public class SpectatorManager : MonoBehaviour
     {
     
         LocalSpectator = local;
+        int generation = ++_spectatorGeneration;
         OnLocalSpectatorStateChanged?.Invoke(true);
-        StartCoroutine(LoadOverlayRoutine());
+        StartCoroutine(LoadOverlayRoutine(generation));
     }
 
     public void OnLocalSpectatorExit(PlayerScript local)
@@ -59,10 +61,11 @@ public class SpectatorManager : MonoBehaviour
         if (LocalSpectator == local)
         {
             LocalSpectator = null;
+            ++_spectatorGeneration;
             CurrentTarget = null;
             OnLocalSpectatorStateChanged?.Invoke(false);
-            // Não descarregamos mais manualmente, confiamos na troca de cena
-            // EnsureOverlayUnloaded();
+            var overlay = SceneManager.GetSceneByName(overlaySceneName);
+            if (overlay.isLoaded) SceneManager.UnloadSceneAsync(overlay);
         }
     }
 
@@ -72,7 +75,7 @@ public class SpectatorManager : MonoBehaviour
         OnLocalSpectatorTargetChanged?.Invoke(newTarget);
     }
 
-    private System.Collections.IEnumerator LoadOverlayRoutine()
+    private System.Collections.IEnumerator LoadOverlayRoutine(int generation)
     {
         if (_isLoading) yield break;
 
@@ -89,6 +92,12 @@ public class SpectatorManager : MonoBehaviour
             }
             
             _isLoading = false;
+            if (generation != _spectatorGeneration || LocalSpectator == null)
+            {
+                var loaded = SceneManager.GetSceneByName(overlaySceneName);
+                if (loaded.isLoaded) SceneManager.UnloadSceneAsync(loaded);
+                yield break;
+            }
             Debug.Log($"✅ [SpectatorManager] Overlay carregado.");
         }
         else

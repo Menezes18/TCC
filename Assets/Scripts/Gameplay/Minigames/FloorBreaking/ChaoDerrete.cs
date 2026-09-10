@@ -1,207 +1,127 @@
-using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using Mirror;
 
 public class ChaoDerrete : ChaoMae
 {
-    [SerializeField]
-    private Renderer chaoRenderer; // Referência ao Renderer do objeto que tem o material com Alpha Clip
-    [SerializeField]
-    private string alphaCutoffPropertyName = "_AlphaClip"; // Nome da propriedade do shader que controla o Alpha Clip
-    [SerializeField]
-    [Range(0.01f, 1f)]
-    private float taxaDerretimento = 0.1f; // Velocidade com que o chão "derrete" (altera o cutoff)
-    [SerializeField]
-    private float tempoAteComecarDerreter = 1.0f; // Tempo que o jogador precisa ficar no chão para começar a derreter
-    [SerializeField]
-    private float tempoParaSumirTotalmente = 2.0f; // Tempo que leva para o chão sumir completamente após iniciar o derretimento
+    [SerializeField] private Renderer chaoRenderer;
+    [SerializeField] private string alphaCutoffPropertyName = "_AlphaClip";
+    [SerializeField] private float tempoAteComecarDerreter = 1f;
+    [SerializeField] private float tempoParaSumirTotalmente = 2f;
 
-    private Material instancedMaterial; // Instância do material para evitar modificar o asset original
-    private float tempoAcumuladoNoChao = 0f;
-    private float tempoDerretendo = 0f;
-    private bool jogadorNoTile = false;
-    private bool estaDerretendo = false;
+    // A timestamp replaces one alpha-cutoff RPC per frame per melting tile.
+    [SyncVar] private double meltStartedAt = -1;
+    private readonly HashSet<Collider> occupants = new();
+    private float occupiedTime;
+    private Material instancedMaterial;
+    private Collider[] tileColliders;
+    private bool[] initialColliderStates;
+    private bool initiallyVisible;
+    private int cutoffProperty;
+    private float lastProgress = -1;
+    private bool? lastRemoved;
+    private static readonly System.Predicate<Collider> MissingOccupant = IsMissingOccupant;
 
-    // Constante para o valor inicial do cutoff (totalmente visível)
-    private const float FULLY_VISIBLE_CUTOFF = 0f;
-    // Constante para o valor final do cutoff (totalmente invisível)
-    private const float FULLY_INVISIBLE_CUTOFF = 1f;
-
-    void Awake()
+    protected override void Awake()
     {
-        if (chaoRenderer == null)
+        base.Awake();
+        if (chaoRenderer == null) chaoRenderer = GetComponent<Renderer>();
+        if (chaoRenderer == null || chaoRenderer.sharedMaterial == null)
         {
-            chaoRenderer = GetComponent<Renderer>();
+            Debug.LogError("Melting floor requires a renderer and material.", this);
+            enabled = false;
+            return;
         }
-
-        if (chaoRenderer != null && chaoRenderer.material != null)
-        {
-            // Cria uma instância do material para que as mudanças não afetem outros objetos
-            instancedMaterial = new Material(chaoRenderer.material);
-            chaoRenderer.material = instancedMaterial;
-        }
-        else
-        {
-            Debug.LogError("ChaoDerreteAlpha: Renderer ou Material não encontrado! Certifique-se de que o objeto tem um Renderer com um material que suporte Alpha Clip.");
-            enabled = false; // Desativa o script se não houver renderer/material
-        }
+        instancedMaterial = new Material(chaoRenderer.sharedMaterial);
+        chaoRenderer.sharedMaterial = instancedMaterial;
+        cutoffProperty = Shader.PropertyToID(alphaCutoffPropertyName);
+        initiallyVisible = chaoRenderer.enabled;
+        tileColliders = GetComponentsInChildren<Collider>(true);
+        initialColliderStates = new bool[tileColliders.Length];
+        for (int i = 0; i < tileColliders.Length; i++)
+            initialColliderStates[i] = tileColliders[i].enabled;
+        ApplyVisualState();
     }
 
-    private void Start()
-    {
-        // Garante que o chão esteja visível no início
-        if (instancedMaterial != null)
-        {
-            instancedMaterial.SetFloat(alphaCutoffPropertyName, FULLY_VISIBLE_CUTOFF);
-        }
-    }
-
+    [ServerCallback]
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
-        {
-            jogadorNoTile = true;
-            // Só inicia o derretimento se o chão ainda não estiver tirado
-            if (!chaoTirado && !estaDerretendo)
-            {
-                RpcIniciarContagemDerretimento();
-            }
-        }
+        if (other.CompareTag("Player") || other.transform.root.CompareTag("Player"))
+            occupants.Add(other);
     }
 
+    [ServerCallback]
     private void OnTriggerExit(Collider other)
     {
-        if (other.CompareTag("Player"))
-        {
-            jogadorNoTile = false;
-            // Reseta a contagem se o jogador sair antes de começar a derreter
-            if (!estaDerretendo)
-            {
-                RpcPararContagemDerretimento();
-            }
-        }
+        occupants.Remove(other);
+        if (occupants.Count == 0 && meltStartedAt < 0) occupiedTime = 0;
     }
 
     private void Update()
     {
-        if (!isServer) return; // A lógica de derretimento será gerenciada pelo servidor
-
-        if (jogadorNoTile && !chaoTirado && !estaDerretendo)
+        if (isServer && !chaoTirado)
         {
-            tempoAcumuladoNoChao += Time.deltaTime;
-            if (tempoAcumuladoNoChao >= tempoAteComecarDerreter)
+            occupants.RemoveWhere(MissingOccupant);
+            if (meltStartedAt < 0)
             {
-                estaDerretendo = true;
-                RpcIniciarDerretimento();
+                if (occupants.Count == 0) occupiedTime = 0;
+                else occupiedTime += Time.deltaTime;
+                if (occupants.Count > 0 && occupiedTime >= tempoAteComecarDerreter)
+                    meltStartedAt = NetworkTime.time;
             }
+            if (meltStartedAt >= 0 && NetworkTime.time - meltStartedAt >= tempoParaSumirTotalmente)
+                tiraChao();
         }
-
-        if (estaDerretendo && !chaoTirado)
-        {
-            tempoDerretendo += Time.deltaTime;
-            float progressoDerretimento = Mathf.Clamp01(tempoDerretendo / tempoParaSumirTotalmente);
-            float novoCutoff = Mathf.Lerp(FULLY_VISIBLE_CUTOFF, FULLY_INVISIBLE_CUTOFF, progressoDerretimento);
-
-            RpcAtualizarAlphaCutoff(novoCutoff);
-
-            if (progressoDerretimento >= 1f)
-            {
-                tiraChao(); // O chão sumiu completamente
-            }
-        }
+        ApplyVisualState();
     }
 
-    [ClientRpc]
-    private void RpcIniciarContagemDerretimento()
+    private static bool IsMissingOccupant(Collider occupant) =>
+        occupant == null || !occupant.enabled || !occupant.gameObject.activeInHierarchy;
+
+    private void ApplyVisualState()
     {
-        if (!isServer)
+        if (instancedMaterial == null) return;
+        float progress = meltStartedAt < 0 ? 0f : Mathf.Clamp01(
+            (float)(NetworkTime.time - meltStartedAt) / Mathf.Max(0.001f, tempoParaSumirTotalmente));
+        if (progress != lastProgress)
         {
-            // O cliente também precisa controlar o tempo acumulado para feedback visual imediato
-            // Embora o servidor seja o autoritário, o cliente pode pré-visualizar
-            tempoAcumuladoNoChao = 0f;
-            Debug.Log("Cliente: Contagem de derretimento iniciada.");
+            instancedMaterial.SetFloat(cutoffProperty, progress);
+            lastProgress = progress;
         }
+        if (lastRemoved == chaoTirado) return;
+        lastRemoved = chaoTirado;
+        chaoRenderer.enabled = initiallyVisible && !chaoTirado;
+        for (int i = 0; i < tileColliders.Length; i++)
+            if (tileColliders[i] != null)
+                tileColliders[i].enabled = initialColliderStates[i] && !chaoTirado;
     }
 
-    [ClientRpc]
-    private void RpcPararContagemDerretimento()
+    public override void OnStartClient()
     {
-        if (!isServer)
-        {
-            // O cliente também precisa parar e resetar a contagem
-            tempoAcumuladoNoChao = 0f;
-            Debug.Log("Cliente: Contagem de derretimento parada.");
-        }
-    }
-
-    [ClientRpc]
-    private void RpcIniciarDerretimento()
-    {
-        if (!isServer)
-        {
-            estaDerretendo = true;
-            tempoDerretendo = 0f;
-            Debug.Log("Cliente: Derretimento iniciado!");
-        }
-    }
-
-    [ClientRpc]
-    private void RpcAtualizarAlphaCutoff(float novoCutoff)
-    {
-        if (instancedMaterial != null)
-        {
-            instancedMaterial.SetFloat(alphaCutoffPropertyName, novoCutoff);
-        }
+        base.OnStartClient();
+        ApplyVisualState();
     }
 
     [Server]
     public override void tiraChao()
     {
-        if (chaoTirado) return; // Evita múltiplas chamadas
         chaoTirado = true;
-        RpcDesativarOuDestruir();
-    }
-
-    [ClientRpc]
-    private void RpcDesativarOuDestruir()
-    {
-        // Decida se quer desativar ou destruir.
-        // Se for um objeto que será reaparecido, desativar é melhor.
-        // Se for um objeto que não será reaparecido, destruir pode ser melhor para liberar memória.
-        // Neste exemplo, vamos desativar para possibilitar o reaparecimento.
-        gameObject.SetActive(false);
-        Debug.Log("Chão desativado em todos os clientes.");
+        ApplyVisualState();
     }
 
     [Server]
     public override void poeChao()
     {
-        if (!chaoTirado) return; // Evita múltiplas chamadas
         transform.position = posIncial;
-        tempoAcumuladoNoChao = 0f;
-        tempoDerretendo = 0f;
-        jogadorNoTile = false;
-        estaDerretendo = false;
+        occupiedTime = 0;
+        occupants.Clear();
+        meltStartedAt = -1;
         chaoTirado = false;
-        RpcResetarChao();
+        ApplyVisualState();
     }
 
-    [ClientRpc]
-    private void RpcResetarChao()
+    private void OnDestroy()
     {
-        if (isServer) return; // O servidor já executou sua parte
-
-        transform.position = posIncial;
-        tempoAcumuladoNoChao = 0f;
-        tempoDerretendo = 0f;
-        jogadorNoTile = false;
-        estaDerretendo = false;
-        chaoTirado = false;
-        gameObject.SetActive(true);
-        if (instancedMaterial != null)
-        {
-            instancedMaterial.SetFloat(alphaCutoffPropertyName, FULLY_VISIBLE_CUTOFF);
-        }
-        Debug.Log("Chão resetado em todos os clientes.");
+        if (instancedMaterial != null) Destroy(instancedMaterial);
     }
 }

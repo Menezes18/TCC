@@ -7,6 +7,7 @@ using UnityEngine.Events;
 
 public class RaceMinigameController : MinigameController
 {
+    public override bool UsePercentageOnScoreboard => true;
     public static RaceMinigameController singleton;
 
     [SerializeField] private SettingsMiniGameData settingsData;
@@ -31,6 +32,8 @@ public class RaceMinigameController : MinigameController
     private readonly HashSet<ulong> _finished = new();
     private readonly List<ulong> _finishOrder = new();
     private readonly Dictionary<ulong, UnityAction> _deathHandlerByPlayer = new();
+    private readonly Dictionary<ulong, Coroutine> _respawnByPlayer = new();
+    private int _roundGeneration;
 
     private void Awake()
     {
@@ -64,6 +67,8 @@ public class RaceMinigameController : MinigameController
         base.StartMatch();
 
         _matchActive = true;
+        _roundGeneration++;
+        CancelPendingRespawns();
         _lastCheckpointIndex.Clear();
         _respawnPos.Clear();
         _respawnRot.Clear();
@@ -98,6 +103,8 @@ public class RaceMinigameController : MinigameController
     public override void EndMatch()
     {
         _matchActive = false;
+        _roundGeneration++;
+        CancelPendingRespawns();
 
         // limpar listeners de morte
         foreach (var pd in PlayerList.players)
@@ -221,24 +228,35 @@ public class RaceMinigameController : MinigameController
     {
         if (!_matchActive || pd == null) return;
         float delay = database != null ? database.playerRespawnDuration : 2.0f;
-        StartCoroutine(ServerRespawnAfter(pd, delay));
+        ulong id = pd.playerInfo.steamId;
+        if (_respawnByPlayer.TryGetValue(id, out var pending) && pending != null) StopCoroutine(pending);
+        _respawnByPlayer[id] = StartCoroutine(ServerRespawnAfter(pd, delay, _roundGeneration));
     }
 
     [Server]
-    private System.Collections.IEnumerator ServerRespawnAfter(PlayerData pd, float delay)
+    private System.Collections.IEnumerator ServerRespawnAfter(PlayerData pd, float delay, int generation)
     {
         yield return new WaitForSeconds(delay);
-
+        if (!_matchActive || generation != _roundGeneration || pd == null || pd.connectionToClient == null) yield break;
         ulong id = pd.playerInfo.steamId;
+        _respawnByPlayer.Remove(id);
         var ps = pd.GetComponent<PlayerScript>();
         var conn = pd.GetComponent<NetworkIdentity>()?.connectionToClient;
         if (ps != null && conn != null)
         {
             Vector3 pos = _respawnPos.TryGetValue(id, out var p) ? p : pd.transform.position;
             Quaternion rot = _respawnRot.TryGetValue(id, out var r) ? r : pd.transform.rotation;
-            ps.TargetRpcTeleport(conn, pos, rot);
+            ps.ServerTeleport(pos, rot);
             ps.RpcOnRespawn();
         }
+    }
+
+    [Server]
+    private void CancelPendingRespawns()
+    {
+        foreach (var routine in _respawnByPlayer.Values)
+            if (routine != null) StopCoroutine(routine);
+        _respawnByPlayer.Clear();
     }
 
     private float GetNormalizedProgress(PlayerData pd)

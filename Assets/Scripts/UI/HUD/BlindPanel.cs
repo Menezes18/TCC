@@ -8,9 +8,14 @@ public class BlindPanel : MonoBehaviour
 
     public UnityEvent<float> OnBlindAlphaChanged;
 
-    void Start()
+    void OnEnable()
     {
-        HUDSO.EventOnSetBlindAlpha += HUDSOOnEventOnSetBlindAlpha;
+        if (HUDSO != null) HUDSO.EventOnSetBlindAlpha += HUDSOOnEventOnSetBlindAlpha;
+    }
+
+    void OnDisable()
+    {
+        if (HUDSO != null) HUDSO.EventOnSetBlindAlpha -= HUDSOOnEventOnSetBlindAlpha;
     }
     
     //

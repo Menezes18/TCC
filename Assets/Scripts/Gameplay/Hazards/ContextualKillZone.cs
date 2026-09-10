@@ -1,4 +1,5 @@
 using UnityEngine;
+using Mirror;
 
 
 public class ContextualKillZone : MonoBehaviour
@@ -9,11 +10,13 @@ public class ContextualKillZone : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        if (!NetworkServer.active)
+            return;
+
         var player = other.transform.root.GetComponent<PlayerScript>();
         if (player == null) return;
 
-        // Dispara morte contextual. O PlayerScript (owner) cuidará de replicar na rede.
-        player.OnContextualHit(cause, permanent);
+        player.ServerHandleContextualHit(cause, permanent);
     }
 }
 

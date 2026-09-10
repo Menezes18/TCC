@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using System.Linq;
 
-public class StreetMinigameController : MinigameController, IObserver
+public class StreetMinigameController : MinigameController
 {
     [SerializeField] SettingsMiniGameData settingsData;
     [SerializeField] Database database;
@@ -29,7 +29,6 @@ public class StreetMinigameController : MinigameController, IObserver
     }
     public override void OnStartServer()
     {
-        Adicionar(this);
         Notifica();
     }
 
@@ -210,6 +209,8 @@ public class StreetMinigameController : MinigameController, IObserver
         foreach (var pd in playerList.players)
         {
             ulong playerId = pd.playerInfo.steamId;
+            if (_dropoffZoneByPlayer.TryGetValue(playerId, out var existing) && existing != null && existing.HasOwner)
+                continue;
             Vector3 ppos = pd.transform.position;
 
             StreetCourierZone best = null;
@@ -272,7 +273,7 @@ public class StreetMinigameController : MinigameController, IObserver
             var conn = pd.GetComponent<NetworkIdentity>()?.connectionToClient;
             if (ps != null && conn != null && spawnT != null)
             {
-                ps.TargetRpcTeleport(conn, spawnT.position, spawnT.rotation);
+                ps.ServerTeleport(spawnT.position, spawnT.rotation);
             }
         }
     }

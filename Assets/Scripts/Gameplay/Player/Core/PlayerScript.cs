@@ -97,7 +97,15 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
         }
     }
-    public bool IsDead => State == PlayerState.Death;
+    [SyncVar] private bool _serverIsDead;
+    private double _serverStaggerUntil;
+    private double _serverBlindUntil;
+    private Vector3 _serverAllowedTeleportPosition;
+    private double _serverAllowedTeleportUntil;
+    private int _serverMovementViolations;
+
+    public bool IsDead => _serverIsDead || State == PlayerState.Death;
+    public bool ServerCanPush => isServer && !_serverIsDead && !isFrozen && !isStaggered;
 
     public Transform _cam;
 
@@ -251,6 +259,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private int _currentSpectatorIndex = 0;
     public bool IsSpectating => _isSpectating;
     public PlayerScript CurrentSpectatedTarget { get; private set; }
+    private Coroutine _delayedSpectatorCoroutine;
+    private readonly List<Coroutine> _hideModelCoroutines = new List<Coroutine>();
+    private int _lifeGeneration;
 
     // Event
     public UnityEvent EventOnDeath;
@@ -264,6 +275,66 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (cameraTarget == null)
             cameraTarget = transform;
     }
+
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        _serverIsDead = false;
+        if (_smoothSyncMirror != null)
+            _smoothSyncMirror.validateStateMethod = ValidateOwnerMovementState;
+    }
+
+    [Server]
+    private bool ValidateOwnerMovementState(StateMirror received, StateMirror latest)
+    {
+        if (received == null || !IsFinite(received.position) || !IsFinite(received.velocity) ||
+            !IsFinite(received.angularVelocity) || !IsFinite(received.rotation) || !IsFinite(received.scale))
+            return RejectMovementState("non-finite transform state");
+
+        if ((received.scale - Vector3.one).sqrMagnitude > 0.01f)
+            return RejectMovementState("client scale change");
+
+        if (received.teleport)
+        {
+            bool allowed = NetworkTime.time <= _serverAllowedTeleportUntil &&
+                           (received.position - _serverAllowedTeleportPosition).sqrMagnitude <= 1f;
+            _serverAllowedTeleportUntil = 0d;
+            return allowed || RejectMovementState("unapproved teleport");
+        }
+
+        Vector3 previousPosition = latest != null ? latest.position : transform.position;
+        float deltaTime = latest != null ? received.ownerTimestamp - latest.ownerTimestamp : Time.fixedDeltaTime;
+        if (deltaTime <= 0f || deltaTime > 1f)
+            return RejectMovementState("invalid movement timestamp");
+
+        float configuredSpeed = db != null ? Mathf.Max(db.playerSpeed, db.playerMaxAirSpeed) : 8f;
+        float allowedSpeed = Mathf.Max(8f, configuredSpeed * 2.5f);
+        float allowedDistance = allowedSpeed * deltaTime + 1.25f;
+        if ((received.position - previousPosition).sqrMagnitude > allowedDistance * allowedDistance ||
+            received.velocity.sqrMagnitude > allowedSpeed * allowedSpeed * 2.25f)
+            return RejectMovementState("movement exceeded server bounds");
+
+        _serverMovementViolations = Mathf.Max(0, _serverMovementViolations - 1);
+        return true;
+    }
+
+    [Server]
+    private bool RejectMovementState(string reason)
+    {
+        _serverMovementViolations++;
+        Debug.LogWarning($"[MovementValidation] Rejected state for netId={netId}: {reason} ({_serverMovementViolations}/8)");
+        if (_serverMovementViolations >= 8)
+            connectionToClient?.Disconnect();
+        return false;
+    }
+
+    private static bool IsFinite(Vector3 value) =>
+        IsFinite(value.x) && IsFinite(value.y) && IsFinite(value.z);
+
+    private static bool IsFinite(Quaternion value) =>
+        IsFinite(value.x) && IsFinite(value.y) && IsFinite(value.z) && IsFinite(value.w);
+
+    private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 
     private void Start()
     {
@@ -351,6 +422,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public override void OnStopLocalPlayer()
     {
         base.OnStopLocalPlayer();
+        CancelDelayedDeathWork();
 
         PlayerControlsSO.OnMenu -= EventOnCelularMenu;
        
@@ -388,6 +460,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
     private void OnDestroy()
     {
+        CancelDelayedDeathWork();
         if (!this.isOwned) return;
         
         // Limpa a banana se existir
@@ -659,7 +732,10 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if (hit.gameObject.CompareTag("KillPlane"))
         {
-            OnContextualHit(DeathCause.Default, false);
+            if (isServer)
+                ServerHandleContextualHit(DeathCause.Default, false);
+            else
+                OnContextualHit(DeathCause.Default, false);
         }
     }
 
@@ -1140,9 +1216,15 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         NetworkConnection coon = transform.GetComponent<NetworkIdentity>().connectionToClient;
         // Only flag stagger when the incoming damage will actually stagger the player
         if (dmgType == DamageType.Push)
+        {
             isStaggered = true;
+            _serverStaggerUntil = NetworkTime.time + (db != null ? Mathf.Max(0f, db.playerStaggerStunDuration) : 0f);
+        }
         if (dmgType == DamageType.Poop)
+        {
             isBlinded = true;
+            _serverBlindUntil = NetworkTime.time + (db != null ? Mathf.Max(0f, db.playerBlindDuration) : 0f);
+        }
         TargetRpcReceiveDamage(coon, dmgType, dir);
     }
 
@@ -1193,7 +1275,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     public void ServerApplyImpulse(Vector3 horizontalDir, float horizontalStrength, float verticalStrength, float stunDuration = 0f, bool setStagger = true)
     {
         NetworkConnection coon = transform.GetComponent<NetworkIdentity>().connectionToClient;
-        if (setStagger) isStaggered = true;
+        if (setStagger)
+        {
+            isStaggered = true;
+            _serverStaggerUntil = NetworkTime.time + Mathf.Max(0f, stunDuration);
+        }
         TargetRpcApplyImpulse(coon, horizontalDir, horizontalStrength, verticalStrength, stunDuration, setStagger);
     }
 
@@ -1327,13 +1413,15 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [Command]
     private void CmdSetStaggered(bool active)
     {
-        isStaggered = active;
+        if (!active && !_serverIsDead && NetworkTime.time >= _serverStaggerUntil)
+            isStaggered = false;
     }
     
     [Command]
     private void CmdSetBlinded(bool active)
     {
-        isBlinded = active;
+        if (!active && !_serverIsDead && NetworkTime.time >= _serverBlindUntil)
+            isBlinded = false;
     }
 
     public void OnHitKill()
@@ -1357,7 +1445,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         Debug.Log($"💀 [SERVER] Forçando espectador para {gameObject.name}");
         
         // Atualiza o estado no servidor
-        isStaggered = false;
+        ServerSetDeathState(true, true);
         
         // Envia RPC para o cliente dono do PlayerScript
         var conn = connectionToClient;
@@ -1475,7 +1563,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         SpectatorManager.Instance?.OnLocalSpectatorEnter(this);
         // Replica estado de espectador para os demais clientes (apenas booleano)
         var pd = GetComponent<PlayerData>();
-        pd?.CmdSetSpectating(true);
 
         // Disable player input for movement
         if (_playerInput != null)
@@ -1485,7 +1572,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (shouldHideModel)
         {
             if (hideDelay > 0f)
-                StartCoroutine(HideModelAfterDelay(hideDelay));
+                _hideModelCoroutines.Add(StartCoroutine(HideModelAfterDelay(hideDelay, _lifeGeneration)));
             else
                 HidePlayerModel();
         }
@@ -1612,6 +1699,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [TargetRpc]
     private void RpcRespawn(Vector3 position)
     {
+        CancelDelayedDeathWork();
         if (_controller != null && isLocalPlayer)
         {
             _controller.enabled = false;
@@ -1632,9 +1720,21 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     // isso
 
     [TargetRpc]
-    public void TargetRpcTeleport(NetworkConnection conn, Vector3 pos, Quaternion rot)
+    private void TargetRpcTeleport(NetworkConnection conn, Vector3 pos, Quaternion rot)
     {
         InternalTeleport(pos, rot);
+    }
+
+    [Server]
+    public void ServerTeleport(Vector3 pos, Quaternion rot)
+    {
+        if (!IsFinite(pos) || !IsFinite(rot))
+            return;
+        _serverAllowedTeleportPosition = pos;
+        _serverAllowedTeleportUntil = NetworkTime.time + 2d;
+        _serverIsDead = false;
+        GetComponent<PlayerData>()?.ServerSetSpectating(false);
+        TargetRpcTeleport(connectionToClient, pos, rot);
     }
 
 
@@ -1668,7 +1768,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             Debug.Log($"💀 [DEATH] Morte permanente - aguardando {spectatorDelay}s antes de entrar em modo espectador");
             
             // Delay para entrar em modo espectador (permite ver animação)
-            StartCoroutine(DelayedSpectatorMode(spectatorDelay, shouldHideModel));
+            if (_delayedSpectatorCoroutine != null) StopCoroutine(_delayedSpectatorCoroutine);
+            _delayedSpectatorCoroutine = StartCoroutine(DelayedSpectatorMode(spectatorDelay, shouldHideModel, _lifeGeneration));
         }
         else
         {
@@ -1678,17 +1779,23 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         }
     }
     
-    private IEnumerator DelayedSpectatorMode(float delay, bool shouldHideModel)
+    private IEnumerator DelayedSpectatorMode(float delay, bool shouldHideModel, int generation)
     {
         yield return new WaitForSeconds(delay);
+        _delayedSpectatorCoroutine = null;
+        if (generation != _lifeGeneration || State != PlayerState.Death) yield break;
         CmdRequestSpectate(0f, shouldHideModel); // Já esperamos o delay, passa 0 para o RPC
     }
 
     [Command]
     private void CmdRequestSpectate(float hideDelay, bool shouldHideModel)
     {
-        isStaggered = false;
-        RpcSpectate(hideDelay, shouldHideModel);
+        if (_serverIsDead)
+        {
+            isStaggered = false;
+            GetComponent<PlayerData>()?.ServerSetSpectating(true);
+            RpcSpectate(hideDelay, shouldHideModel);
+        }
     }
 
     public void OnContextualHit(DeathCause cause, bool perma)
@@ -1715,8 +1822,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [Command]
     private void CmdDeathWithCause(DeathCause cause, bool perma, Vector3 pos, Quaternion rot)
     {
-        isStaggered = false;
-        RpcOnDeathWithCause(cause, perma, pos, rot);
+        ServerSetDeathState(true, perma);
+        RpcOnDeathWithCause(cause, perma, transform.position, transform.rotation);
     }
 
     [ClientRpc]
@@ -1754,17 +1861,28 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
                     // No owner: aplica normalmente; owner perma usa RpcSpectate (para respeitar delay)
                     bool handledBySpectatorFlow = perma && base.isOwned;
                     if (!handledBySpectatorFlow)
-                        StartCoroutine(HideModelAfterDelay(delay));
+                        _hideModelCoroutines.Add(StartCoroutine(HideModelAfterDelay(delay, _lifeGeneration)));
                 }
                 return;
             }
         }
     }
 
-    private IEnumerator HideModelAfterDelay(float delay)
+    private IEnumerator HideModelAfterDelay(float delay, int generation)
     {
         yield return new WaitForSeconds(delay);
+        if (generation != _lifeGeneration || State != PlayerState.Death) yield break;
         HidePlayerModel();
+    }
+
+    private void CancelDelayedDeathWork()
+    {
+        _lifeGeneration++;
+        if (_delayedSpectatorCoroutine != null) StopCoroutine(_delayedSpectatorCoroutine);
+        _delayedSpectatorCoroutine = null;
+        foreach (Coroutine routine in _hideModelCoroutines)
+            if (routine != null) StopCoroutine(routine);
+        _hideModelCoroutines.Clear();
     }
 
     void InternalResetProperties()
@@ -1796,14 +1914,37 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     void CmdDeath()
     {
         Debug.LogWarning("⚠️ [CMD] Death");
+        ServerSetDeathState(true, false);
         this.EventOnDeathServerSide?.Invoke();
     }
 
     [Command]
     void CmdEventOnDeath()
     {
-        isStaggered = false;
+        ServerSetDeathState(true, false);
         RpcOnDeath();
+    }
+
+    [Server]
+    public void ServerHandleContextualHit(DeathCause cause, bool permanent)
+    {
+        if (_serverIsDead)
+            return;
+        ServerSetDeathState(true, permanent);
+        if (permanent && connectionToClient != null)
+            TargetForceSpectate(connectionToClient, cause);
+        RpcOnDeathWithCause(cause, permanent, transform.position, transform.rotation);
+        if (!permanent)
+            EventOnDeathServerSide?.Invoke();
+    }
+
+    [Server]
+    private void ServerSetDeathState(bool dead, bool spectating)
+    {
+        _serverIsDead = dead;
+        isStaggered = false;
+        isBlinded = false;
+        GetComponent<PlayerData>()?.ServerSetSpectating(dead && spectating);
     }
 
     [ClientRpc]
@@ -1817,6 +1958,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [ClientRpc]
     public void RpcOnRespawn()
     {
+        CancelDelayedDeathWork();
         Debug.Log("📡 [RPC] OnRespawn()");
         this.EventOnRespawn?.Invoke();
 

@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using Mirror;
+using System.Collections.Generic;
 
 public class ChaoQuebrando : ChaoMae
 {
@@ -11,33 +12,15 @@ public class ChaoQuebrando : ChaoMae
     private int indiceEstadoAtual = 0;
     
     private float tempoAcumulado = 0f;
-    private bool jogadorNoTile = false;
+    private readonly HashSet<Collider> collidersDeJogadoresNoTile = new HashSet<Collider>();
     private int ultimoIndiceVisual = 0;
     
-    // Para uso com FloorBreakingManager (opcional)
-    private int tileId = -1;
-    private FloorBreakingManager manager;
-    
-    public void SetTileId(int id) => tileId = id;
-    public void SetManager(FloorBreakingManager mgr) => manager = mgr;
-    public void AtualizarVisualizacaoRemota(int novoIndice, bool destruido)
-    {
-        if (destruido)
-        {
-            chaoTirado = true;
-            DesativaTile();
-        }
-        else
-        {
-            indiceEstadoAtual = novoIndice;
-        }
-    }
-
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
         {
-            jogadorNoTile = true;
+            var identity = other.GetComponentInParent<NetworkIdentity>();
+            if (identity != null) collidersDeJogadoresNoTile.Add(other);
         }
     }
 
@@ -45,14 +28,15 @@ public class ChaoQuebrando : ChaoMae
     {
         if (other.CompareTag("Player"))
         {
-            jogadorNoTile = false;
+            collidersDeJogadoresNoTile.Remove(other);
         }
     }
 
     private void Update()
     {
         // Apenas o servidor processa a lógica de progressão
-        if (isServer && jogadorNoTile && !chaoTirado)
+        collidersDeJogadoresNoTile.RemoveWhere(playerCollider => playerCollider == null);
+        if (isServer && collidersDeJogadoresNoTile.Count > 0 && !chaoTirado)
         {
             tempoAcumulado += Time.deltaTime;
             if (tempoAcumulado >= dataChao.tempo)
@@ -67,6 +51,7 @@ public class ChaoQuebrando : ChaoMae
     private void AtualizaEstado()
     {
         indiceEstadoAtual++;
+        AtualizaVisualizacao(indiceEstadoAtual);
 
         if (indiceEstadoAtual >= estadosChao.Length)
         {
@@ -83,6 +68,7 @@ public class ChaoQuebrando : ChaoMae
 
     private void AtualizaVisualizacao(int novoIndice)
     {
+        if (novoIndice == 0) gameObject.SetActive(true);
         // Desativa o estado anterior
         if (ultimoIndiceVisual >= 0 && ultimoIndiceVisual < estadosChao.Length)
         {
@@ -106,6 +92,7 @@ public class ChaoQuebrando : ChaoMae
     public override void tiraChao()
     {
         chaoTirado = true;
+        indiceEstadoAtual = estadosChao.Length;
         DesativaTile();
     }
 
@@ -124,7 +111,8 @@ public class ChaoQuebrando : ChaoMae
         gameObject.SetActive(true);
         transform.position = posIncial;
         
-        // O hook OnIndiceChanged vai atualizar a visualização automaticamente
+        collidersDeJogadoresNoTile.Clear();
+        AtualizaVisualizacao(0);
     }
 
     public override void OnStartClient()

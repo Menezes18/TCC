@@ -15,6 +15,7 @@ public class RecordeDistanciaEndpoint : NetworkBehaviour
     private float posicaoInicial = -205.5f;
     private float maxDistancia = 0;
     private float distanciaAtual = 0f;
+    private Transform _localPlayer;
     
     private void Start()
     {
@@ -28,20 +29,13 @@ public class RecordeDistanciaEndpoint : NetworkBehaviour
     
     private void Update()
     {
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player == null)
+        if (_localPlayer == null)
         {
             FindAndInitPlayer();
             return;
         }
         
-        NetworkIdentity netId = player.GetComponent<NetworkIdentity>();
-        if (netId != null && !netId.isLocalPlayer)
-        {
-            return;
-        }
-        
-        float posicaoAtual = player.transform.position.x;
+        float posicaoAtual = _localPlayer.position.x;
         
         distanciaAtual = posicaoAtual - posicaoInicial;
         
@@ -60,14 +54,10 @@ public class RecordeDistanciaEndpoint : NetworkBehaviour
     
     private void FindAndInitPlayer()
     {
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
+        var localIdentity = NetworkClient.localPlayer;
+        if (localIdentity != null)
         {
-            NetworkIdentity netId = player.GetComponent<NetworkIdentity>();
-            if (netId != null && !netId.isLocalPlayer)
-            {
-                return;
-            }
+            _localPlayer = localIdentity.transform;
             
             posicaoInicial = gameObject.transform.position.x;
             maxDistancia = 0f;

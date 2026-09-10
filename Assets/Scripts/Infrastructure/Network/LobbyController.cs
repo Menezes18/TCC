@@ -34,9 +34,10 @@ public class LobbyController : NetworkBehaviour
 
     // TODO:
     //Melhor chamar quando a pessoa da pronto, arrumar para depos 
-    private bool startgame = true;
+    private bool _waitingToStartVoting;
     private void Start()
     {
+        if (!isServer) return;
         _prepareTimer = -1;
         _startTimer = -1;
         _votingTimer = -1;
@@ -63,6 +64,8 @@ public class LobbyController : NetworkBehaviour
         {
             return;
         }
+
+        if (_waitingToStartVoting || _votingInProgress) return;
 
         // If game already started and we're back in lobby, continue the flow
         if (MyNetworkManager.manager.startGame)
@@ -114,7 +117,11 @@ public class LobbyController : NetworkBehaviour
             // Delay voting start to allow "GO!" animation to complete
             if (enableVoting)
             {
-                StartCoroutine(DelayedVotingStart());
+                if (!_waitingToStartVoting)
+                {
+                    _waitingToStartVoting = true;
+                    StartCoroutine(DelayedVotingStart());
+                }
             }
             else
             {
@@ -127,7 +134,11 @@ public class LobbyController : NetworkBehaviour
             // Delay voting start to allow "GO!" animation to complete
             if (enableVoting)
             {
-                StartCoroutine(DelayedVotingStart());
+                if (!_waitingToStartVoting)
+                {
+                    _waitingToStartVoting = true;
+                    StartCoroutine(DelayedVotingStart());
+                }
             }
             else
             {
@@ -158,16 +169,18 @@ public class LobbyController : NetworkBehaviour
         }
     }
 
-    [Command(requiresAuthority = false)]
+    [Server]
     public void CmdPrepareMath() {
         
+        if (_waitingToStartVoting || _votingInProgress) return;
         if(_prepareTimer > 0) return;
         if(_startTimer > 0) return;
         
         InternalPrepareMath();
     }
-    [Command(requiresAuthority = false)]
+    [Server]
     public void CmdStartMath() {
+        if (_waitingToStartVoting || _votingInProgress || _prepareTimer > 0) return;
         
         if(_startTimer > 0) return;
         
@@ -194,8 +207,14 @@ public class LobbyController : NetworkBehaviour
     {
         NetworkManager.singleton.StartHost();
 
-        while(NetworkClient.localPlayer == null)
-            yield return new WaitForEndOfFrame();
+        float deadline = Time.realtimeSinceStartup + 30f;
+        while (NetworkClient.localPlayer == null && NetworkClient.active && Time.realtimeSinceStartup < deadline)
+            yield return null;
+        if (NetworkClient.localPlayer == null)
+        {
+            Debug.LogError("Solo host did not create a local player within 30 seconds.");
+            yield break;
+        }
 
         ((MyNetworkManager)NetworkManager.singleton).SetMultiplayer(false);
     }
@@ -250,6 +269,7 @@ public class LobbyController : NetworkBehaviour
         yield return new WaitForSeconds(1.0f);
         
         Debug.Log("🗳️ [LOBBY] Starting voting after countdown complete");
+        _waitingToStartVoting = false;
         StartVotingPhase();
     }
 
@@ -394,52 +414,17 @@ public class LobbyController : NetworkBehaviour
             go.AddComponent<MinigameRotationState>();
         }
 
-        // Set catalog reference
+        if (minigameCatalog == null && MyNetworkManager.manager != null)
+            minigameCatalog = MyNetworkManager.manager.MinigameCatalog;
+
         if (minigameCatalog != null)
         {
-            if (MinigameRotationState.Instance != null)
-            {
-                MinigameRotationState.Instance.SetCatalog(minigameCatalog);
-            }
-
+            MinigameRotationState.Instance.SetCatalog(minigameCatalog);
             if (VotingManager.Instance != null)
-            {
                 VotingManager.Instance.SetCatalog(minigameCatalog);
-            }
         }
-        else
-        {
-            // Try to get catalog from NetworkManager
-            var manager = MyNetworkManager.manager;
-            if (manager != null)
-            {
-                var catalogField = manager.GetType().GetField("minigameCatalog",
-                    System.Reflection.BindingFlags.NonPublic |
-                    System.Reflection.BindingFlags.Instance);
-                
-                if (catalogField != null)
-                {
-                    minigameCatalog = catalogField.GetValue(manager) as MinigameCatalog;
-                    
-                    if (minigameCatalog != null)
-                    {
-                        if (MinigameRotationState.Instance != null)
-                            MinigameRotationState.Instance.SetCatalog(minigameCatalog);
-                        
-                        if (VotingManager.Instance != null)
-                            VotingManager.Instance.SetCatalog(minigameCatalog);
-                    }
-                }
-            }
-        }
-
-        // Ensure VotingManager exists
-        if (VotingManager.Instance == null)
-        {
-            var go = new GameObject("VotingManager");
-            go.AddComponent<VotingManager>();
-            NetworkServer.Spawn(go);
-        }
+        // A network behaviour must come from a scene object or registered prefab.
+        // StartVotingPhase already falls back to random selection if it is absent.
     }
 
     void ChangeToRandomMinigame()

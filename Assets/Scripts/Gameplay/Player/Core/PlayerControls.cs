@@ -26,6 +26,13 @@ using UnityEngine.InputSystem;
             
             SubscribeToInputEvents();
         }
+
+        private void OnEnable()
+        {
+            if (playerScript == null) playerScript = GetComponent<PlayerScript>();
+            if (playerScript != null && playerScript.isLocalPlayer)
+                SubscribeToInputEvents();
+        }
         
         /// <summary>
         /// Inscreve nos eventos de input.
@@ -76,17 +83,13 @@ using UnityEngine.InputSystem;
         }
 
         private void OnDestroy(){
-            if (playerScript != null && playerScript.isLocalPlayer) {
-                UnsubscribeFromInputEvents();
-            }
+            UnsubscribeFromInputEvents();
         }
         
         private void OnDisable()
         {
             // Também limpa quando desabilitado para evitar problemas
-            if (playerScript != null && playerScript.isLocalPlayer) {
-                UnsubscribeFromInputEvents();
-            }
+            UnsubscribeFromInputEvents();
         }
         
         

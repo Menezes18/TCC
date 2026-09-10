@@ -126,8 +126,8 @@ public class SceneTransitionManager : MonoBehaviour
     {
         if (_serverHandlersRegistered) return;
         
-        NetworkServer.RegisterHandler<ScenePreloadAckMessage>(OnServerReceivePreloadAck, false);
-        NetworkServer.RegisterHandler<SceneActivationAckMessage>(OnServerReceiveActivationAck, false);
+        NetworkServer.RegisterHandler<ScenePreloadAckMessage>(OnServerReceivePreloadAck, true);
+        NetworkServer.RegisterHandler<SceneActivationAckMessage>(OnServerReceiveActivationAck, true);
         _serverHandlersRegistered = true;
         Debug.Log("[SceneTransitionManager] Server handlers registered");
     }
@@ -168,6 +168,9 @@ public class SceneTransitionManager : MonoBehaviour
     {
         if (singleton == this)
         {
+            if (_preloadOperation != null && !_preloadOperation.isDone)
+                _preloadOperation.allowSceneActivation = true;
+            StopAllCoroutines();
             UnregisterServerHandlers();
             UnregisterClientHandlers();
             singleton = null;
@@ -228,21 +231,21 @@ public class SceneTransitionManager : MonoBehaviour
         }
     }
 
-    private void SendPreloadAck()
+    private void SendPreloadAck(int transitionId)
     {
         if (!NetworkClient.active || NetworkClient.connection == null || _preloadAckSent)
             return;
 
-        NetworkClient.Send(new ScenePreloadAckMessage());
+        NetworkClient.Send(new ScenePreloadAckMessage { TransitionId = transitionId });
         _preloadAckSent = true;
     }
 
-    private void SendActivationAck()
+    private void SendActivationAck(int transitionId)
     {
         if (!NetworkClient.active || NetworkClient.connection == null || _activationAckSent)
             return;
 
-        NetworkClient.Send(new SceneActivationAckMessage());
+        NetworkClient.Send(new SceneActivationAckMessage { TransitionId = transitionId });
         _activationAckSent = true;
     }
 
@@ -332,6 +335,8 @@ public class SceneTransitionManager : MonoBehaviour
     private readonly HashSet<int> _activationAcks = new HashSet<int>();
     private string _targetSceneName;
     private bool _isTransitioning = false;
+    private int _transitionId;
+    private TransitionPhase _transitionPhase = TransitionPhase.Idle;
     private Coroutine _transitionCoroutine;
     private float _transitionStartTime;
     
@@ -339,6 +344,14 @@ public class SceneTransitionManager : MonoBehaviour
     private AsyncOperation _preloadOperation;
     private bool _isPreloading = false;
     private bool _waitingForActivation = false;
+    private int _clientTransitionId;
+
+    private enum TransitionPhase
+    {
+        Idle,
+        Preloading,
+        Activating
+    }
 
     private static bool _serverHandlersRegistered = false;
     private static bool _clientHandlersRegistered = false;
@@ -349,13 +362,14 @@ public class SceneTransitionManager : MonoBehaviour
     {
         public string SceneName;
         public int ExpectedPlayers;
+        public int TransitionId;
     }
 
-    private struct SceneActivationMessage : NetworkMessage { }
+    private struct SceneActivationMessage : NetworkMessage { public int TransitionId; }
 
-    private struct ScenePreloadAckMessage : NetworkMessage { }
+    private struct ScenePreloadAckMessage : NetworkMessage { public int TransitionId; }
 
-    private struct SceneActivationAckMessage : NetworkMessage { }
+    private struct SceneActivationAckMessage : NetworkMessage { public int TransitionId; }
     
     /// <summary>
     /// Message sent from server to clients to update loading progress UI
@@ -409,6 +423,8 @@ public class SceneTransitionManager : MonoBehaviour
         Debug.Log($"[SceneTransition] SERVER: Initiating synchronized transition to '{sceneName}'");
         _targetSceneName = sceneName;
         _isTransitioning = true;
+        _transitionId = _transitionId == int.MaxValue ? 1 : _transitionId + 1;
+        _transitionPhase = TransitionPhase.Preloading;
         _transitionStartTime = Time.realtimeSinceStartup;
 
         // Reset tracking
@@ -443,7 +459,7 @@ public class SceneTransitionManager : MonoBehaviour
         }
 
         // Tell all clients to preload via network message
-        BroadcastToAll(new ScenePreloadMessage { SceneName = sceneName, ExpectedPlayers = expectedClients });
+        BroadcastToAll(new ScenePreloadMessage { SceneName = sceneName, ExpectedPlayers = expectedClients, TransitionId = _transitionId });
         
         // Send initial loading progress
         BroadcastLoadingProgress("Carregando...");
@@ -735,8 +751,10 @@ public class SceneTransitionManager : MonoBehaviour
             }
         }
         
+        _transitionPhase = TransitionPhase.Activating;
+
         // Tell clients to activate their preloaded scenes
-        BroadcastToAll(new SceneActivationMessage());
+        BroadcastToAll(new SceneActivationMessage { TransitionId = _transitionId });
         BroadcastLoadingProgress("Iniciando partida...");
 
         // Server also needs to load the scene
@@ -747,8 +765,11 @@ public class SceneTransitionManager : MonoBehaviour
     {
         Debug.Log($"[SceneTransition] SERVER: Loading scene '{_targetSceneName}'");
         
-        // Use Mirror's standard scene change mechanism for the server
-        NetworkManager.singleton.ServerChangeScene(_targetSceneName);
+        // Commit the already-preloaded client operation into Mirror's lifecycle.
+        if (NetworkManager.singleton is MyNetworkManager manager)
+            manager.ServerCommitPreloadedScene(_targetSceneName);
+        else
+            NetworkManager.singleton.ServerChangeScene(_targetSceneName);
 
         // Wait for activation acknowledgments from clients
         float startTime = Time.time;
@@ -787,6 +808,7 @@ public class SceneTransitionManager : MonoBehaviour
             additionalInfo: $"Players loaded: {_preloadAcks.Count}/{expectedClients}");
         
         _isTransitioning = false;
+        _transitionPhase = TransitionPhase.Idle;
         _transitionCoroutine = null;
 
         // The standard Mirror flow will handle the rest via OnServerSceneChanged
@@ -849,9 +871,21 @@ public class SceneTransitionManager : MonoBehaviour
             return;
         }
 
+        // A second blocked load would stall Unity's async scene queue.
+        if (_isPreloading || _waitingForActivation)
+        {
+            Debug.LogWarning("[SceneTransition] Ignoring duplicate preload while a transition is active.");
+            return;
+        }
+
+        if (message.TransitionId <= 0)
+            return;
+
         Debug.Log($"[SceneTransition] CLIENT: Starting preload of '{message.SceneName}' (IsHost: {NetworkServer.active && NetworkClient.active})");
+        _targetSceneName = message.SceneName;
         _isPreloading = true;
         _waitingForActivation = true;
+        _clientTransitionId = message.TransitionId;
         _preloadAckSent = false;
         _activationAckSent = false;
         _clientTotalPlayers = message.ExpectedPlayers;
@@ -863,10 +897,10 @@ public class SceneTransitionManager : MonoBehaviour
         LoadingScreenUI.Instance?.ShowForMirror();
 
         // Start preload
-        StartCoroutine(ClientPreloadSceneCoroutine(message.SceneName));
+        StartCoroutine(ClientPreloadSceneCoroutine(message.SceneName, message.TransitionId));
     }
 
-    private void OnClientReceiveActivationMessage(SceneActivationMessage _)
+    private void OnClientReceiveActivationMessage(SceneActivationMessage message)
     {
         if (NetworkServer.active && !NetworkClient.active)
         {
@@ -875,7 +909,7 @@ public class SceneTransitionManager : MonoBehaviour
 
         Debug.Log("[SceneTransition] CLIENT: Received activation signal");
 
-        if (!_waitingForActivation)
+        if (!_waitingForActivation || message.TransitionId != _clientTransitionId)
         {
             Debug.LogWarning("[SceneTransition] CLIENT: Received activation but not waiting for it!");
             return;
@@ -909,13 +943,14 @@ public class SceneTransitionManager : MonoBehaviour
 
     #region Client Methods
 
-    private IEnumerator ClientPreloadSceneCoroutine(string sceneName)
+    private IEnumerator ClientPreloadSceneCoroutine(string sceneName, int transitionId)
     {
         // Start async load but don't activate yet
         _preloadOperation = SceneManager.LoadSceneAsync(sceneName);
         if (_preloadOperation == null)
         {
             Debug.LogError($"[SceneTransition] CLIENT: Failed to start loading scene '{sceneName}'");
+            HandleClientDisconnectedDuringLoad();
             yield break;
         }
 
@@ -944,7 +979,7 @@ public class SceneTransitionManager : MonoBehaviour
         
         // CRITICAL: Only send ACK AFTER scene is fully preloaded
         // This ensures the server knows the client has truly finished loading
-        SendPreloadAck();
+        SendPreloadAck(transitionId);
 
         // Wait for server to signal activation
         Debug.Log("[SceneTransition] CLIENT: Waiting for server activation signal...");
@@ -1000,10 +1035,10 @@ public class SceneTransitionManager : MonoBehaviour
 
         // CRITICAL: Send activation ACK only after scene is fully activated and ready
         // Add a small delay to ensure all scene objects are initialized
-        yield return new WaitForEndOfFrame();
-        yield return null; // Extra frame for safety
+        yield return null;
+        yield return null; // Extra frame for scene initialization, also works headless
         
-        SendActivationAck();
+        SendActivationAck(transitionId);
 
         Debug.Log("[SceneTransition] CLIENT: Scene ready, waiting for briefing to hide loading screen");
     }
@@ -1040,9 +1075,12 @@ public class SceneTransitionManager : MonoBehaviour
 
     #region Server Handlers for Client Messages
 
-    private void OnServerReceivePreloadAck(NetworkConnectionToClient sender, ScenePreloadAckMessage _)
+    private void OnServerReceivePreloadAck(NetworkConnectionToClient sender, ScenePreloadAckMessage message)
     {
-        if (!_isTransitioning || sender == null)
+        if (!_isTransitioning || _transitionPhase != TransitionPhase.Preloading || sender == null ||
+            !sender.isAuthenticated || message.TransitionId != _transitionId ||
+            !_playerLoadStates.TryGetValue(sender.connectionId, out var eligibleState) ||
+            eligibleState.disconnected || eligibleState.timedOut)
             return;
 
         if (_preloadAcks.Add(sender.connectionId))
@@ -1052,14 +1090,11 @@ public class SceneTransitionManager : MonoBehaviour
             string clientName = ResolveClientName(sender);
             
             // Update player state
-            if (_playerLoadStates.TryGetValue(sender.connectionId, out var state))
-            {
-                state.hasPreloaded = true;
-                state.loadEndTime = Time.realtimeSinceStartup;
-                
-                LogTelemetry(TelemetryEventType.SceneLoadACKReceived, sender.connectionId, clientName,
-                    loadDuration: state.LoadDuration);
-            }
+            eligibleState.hasPreloaded = true;
+            eligibleState.loadEndTime = Time.realtimeSinceStartup;
+
+            LogTelemetry(TelemetryEventType.SceneLoadACKReceived, sender.connectionId, clientName,
+                loadDuration: eligibleState.LoadDuration);
 
             Debug.Log($"[SceneTransition] SERVER: Client '{clientName}' preloaded ({preloadedClients}/{GetActiveExpectedClients()})");
             
@@ -1080,9 +1115,12 @@ public class SceneTransitionManager : MonoBehaviour
         }
     }
 
-    private void OnServerReceiveActivationAck(NetworkConnectionToClient sender, SceneActivationAckMessage _)
+    private void OnServerReceiveActivationAck(NetworkConnectionToClient sender, SceneActivationAckMessage message)
     {
-        if (!_isTransitioning || sender == null)
+        if (!_isTransitioning || _transitionPhase != TransitionPhase.Activating || sender == null ||
+            !sender.isAuthenticated || message.TransitionId != _transitionId ||
+            !_playerLoadStates.TryGetValue(sender.connectionId, out var eligibleState) ||
+            eligibleState.disconnected || eligibleState.timedOut || !eligibleState.hasPreloaded)
             return;
 
         if (_activationAcks.Add(sender.connectionId))
@@ -1092,12 +1130,9 @@ public class SceneTransitionManager : MonoBehaviour
             string clientName = ResolveClientName(sender);
             
             // Update player state
-            if (_playerLoadStates.TryGetValue(sender.connectionId, out var state))
-            {
-                state.hasActivated = true;
-                
-                LogTelemetry(TelemetryEventType.SceneActivationACKReceived, sender.connectionId, clientName);
-            }
+            eligibleState.hasActivated = true;
+
+            LogTelemetry(TelemetryEventType.SceneActivationACKReceived, sender.connectionId, clientName);
 
             Debug.Log($"[SceneTransition] SERVER: Client '{clientName}' activated scene ({activatedClients}/{GetActiveExpectedClients()})");
         }
@@ -1108,6 +1143,12 @@ public class SceneTransitionManager : MonoBehaviour
     #region Public Utility
 
     public bool IsTransitioning => _isTransitioning;
+
+    public bool TryGetClientPreloadOperation(string sceneName, out AsyncOperation operation)
+    {
+        operation = _preloadOperation;
+        return operation != null && string.Equals(sceneName, _targetSceneName, StringComparison.Ordinal);
+    }
     
     /// <summary>
     /// Gets the current loading status as a formatted string for debugging
@@ -1190,6 +1231,7 @@ public class SceneTransitionManager : MonoBehaviour
         if (NetworkServer.active)
         {
             _isTransitioning = false;
+            _transitionPhase = TransitionPhase.Idle;
             _transitionCoroutine = null;
             _preloadAcks.Clear();
             _activationAcks.Clear();

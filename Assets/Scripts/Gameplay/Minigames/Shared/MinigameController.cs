@@ -13,6 +13,8 @@ public abstract class MinigameController : NetworkBehaviour, IScoreRule, ISubjec
     
     public virtual bool UseAliveStatusOnScoreboard => false;
     public virtual bool UseTeamColorsOnScoreboard => false;
+    public virtual bool UsePercentageOnScoreboard => false;
+    public virtual int GetScoreboardTeam(ulong playerId) => -1;
     // Quando true, o MatchManager não fará teleporte inicial; o minigame cuidará do spawn
     public virtual bool HandlesInitialSpawns => false;
     
@@ -36,18 +38,6 @@ public abstract class MinigameController : NetworkBehaviour, IScoreRule, ISubjec
         OnMatchEnded?.Invoke();
         Debug.LogWarning("[MinigameController] EndMatch chamado – delegando resultados ao MatchManager");
     }
-    [Server]
-    protected void DispatchPoints()
-    {
-        foreach (var kv in GetResults())
-        {
-            ulong playerId = kv.Key;
-            int pontos = kv.Value;
-            MyNetworkManager.manager.AddPoints(playerId, pontos);
-            Debug.Log($"[MinigameController] Enviado {pontos} pontos para {playerId}");
-        }
-    }
-
     [ClientRpc]
     public void RpcUpdateScoreboard(string[] names, int[] points, int[] colors, bool[] aliveStates, ulong[] steamIds, int[] teamIds)
     {
@@ -62,7 +52,6 @@ public abstract class MinigameController : NetworkBehaviour, IScoreRule, ISubjec
     public abstract void AssignFinalPoints();
     public abstract Dictionary<ulong, int> GetResults();
     public abstract Dictionary<ulong, int> GetLiveScores();
-    public void Atualizacao(ISubject subject){}
     
     public void Adicionar(IObserver observer) => _observers.Add(observer);
     public void Retira(IObserver observer)    => _observers.Remove(observer);
@@ -71,5 +60,4 @@ public abstract class MinigameController : NetworkBehaviour, IScoreRule, ISubjec
         foreach (var obs in _observers) 
             obs.Atualizacao(this);
     }
-    protected T FindController<T>() where T : MinigameController => FindAnyObjectByType<T>();
 }

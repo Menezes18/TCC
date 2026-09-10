@@ -12,7 +12,7 @@ public class HideStep
     public GameObject[] disableTargets;
 }
 
-public class SumoMinigameController : MinigameController, IObserver
+public class SumoMinigameController : MinigameController
 {
     public UnityEvent finalizar;
     public SettingsMiniGameData gameData;
@@ -20,6 +20,7 @@ public class SumoMinigameController : MinigameController, IObserver
     [SerializeField] private List<PlayerData> alivePlayers = new List<PlayerData>();
     [SerializeField] private List<PlayerData> eliminationOrder = new List<PlayerData>();
     private Dictionary<ulong,int> finalScores = new Dictionary<ulong,int>();
+    private readonly HashSet<ulong> disconnectedPlayers = new HashSet<ulong>();
     private bool _matchEnded;
     
     private PlayerList playerList => PlayerList.singleton;
@@ -32,7 +33,7 @@ public class SumoMinigameController : MinigameController, IObserver
 
     public enum HideState { Waiting, Blinking, Done }
     private HideState state;
-    [SyncVar] int currentIndex;
+    [SyncVar(hook = nameof(OnCurrentIndexChanged))] int currentIndex;
     [SyncVar] float timer = 5f;
     [SyncVar] float nextBlink;
 
@@ -51,6 +52,7 @@ public class SumoMinigameController : MinigameController, IObserver
         alivePlayers = playerList.players.Where(p => p != null).ToList();
         eliminationOrder.Clear();
         finalScores.Clear();
+        disconnectedPlayers.Clear();
         
         Debug.Log($"[Sumo] StartMatch iniciado com {alivePlayers.Count} jogadores.");
 
@@ -65,8 +67,28 @@ public class SumoMinigameController : MinigameController, IObserver
     public override void OnStartServer()
     {
         base.OnStartServer();
-        Adicionar(this);
+        MyNetworkManager.ServerPlayerDisconnected += OnServerPlayerDisconnected;
         Notifica();
+    }
+
+    public override void OnStopServer()
+    {
+        MyNetworkManager.ServerPlayerDisconnected -= OnServerPlayerDisconnected;
+        base.OnStopServer();
+    }
+
+    [Server]
+    private void OnServerPlayerDisconnected(PlayerData player)
+    {
+        if (player == null || !alivePlayers.Remove(player)) return;
+        disconnectedPlayers.Add(player.playerInfo.steamId);
+        Notifica();
+        if (!_matchEnded && alivePlayers.Count <= 1)
+        {
+            _matchEnded = true;
+            AssignFinalPoints();
+            finalizar?.Invoke();
+        }
     }
 
     public override void UpdateScores()
@@ -101,6 +123,8 @@ public class SumoMinigameController : MinigameController, IObserver
 
                 if (timer <= 0f)
                 {
+                    ApplyStepVisible(currentIndex);
+                    ApplyStepDisabled(currentIndex);
                     RpcEnsureVisible(currentIndex);
                     RpcDisableStep(currentIndex);
 
@@ -189,6 +213,8 @@ public class SumoMinigameController : MinigameController, IObserver
             finalScores[pd.playerInfo.steamId] = pts;
             posIndex++;
         }
+        foreach (ulong id in disconnectedPlayers)
+            finalScores[id] = 0;
         
         Debug.Log($"[Sumo] Pontos atribuídos. Vivos: {alivePlayers.Count}, Eliminados: {eliminationOrder.Count}");
     }
@@ -200,15 +226,41 @@ public class SumoMinigameController : MinigameController, IObserver
         foreach (var mr in hideSequence[step].blinkTargets)
             mr.enabled = !mr.enabled;
     }
+    [ClientRpc]
     void RpcEnsureVisible(int step)
     {
-        foreach (var mr in hideSequence[step].blinkTargets)
-            mr.enabled = true;
+        ApplyStepVisible(step);
     }
 
     [ClientRpc]
     void RpcDisableStep(int step)
     {
+        ApplyStepDisabled(step);
+    }
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        for (int i = 0; i < currentIndex && i < hideSequence.Length; i++)
+            ApplyStepDisabled(i);
+    }
+
+    private void OnCurrentIndexChanged(int oldValue, int newValue)
+    {
+        for (int i = Mathf.Max(0, oldValue); i < newValue && i < hideSequence.Length; i++)
+            ApplyStepDisabled(i);
+    }
+
+    private void ApplyStepVisible(int step)
+    {
+        if (step < 0 || step >= hideSequence.Length) return;
+        foreach (var mr in hideSequence[step].blinkTargets)
+            if (mr != null) mr.enabled = true;
+    }
+
+    private void ApplyStepDisabled(int step)
+    {
+        if (step < 0 || step >= hideSequence.Length) return;
         foreach (var go in hideSequence[step].disableTargets)
             if (go != null) go.SetActive(false);
     }
@@ -223,6 +275,8 @@ public class SumoMinigameController : MinigameController, IObserver
 
         foreach (var pd in eliminationOrder)
             live[pd.playerInfo.steamId] = 0;
+        foreach (ulong id in disconnectedPlayers)
+            live[id] = 0;
 
         return live;
     }

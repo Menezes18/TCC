@@ -44,6 +44,7 @@ public class PlayerData : NetworkBehaviour{
    
    public UnityEvent<string> OnAliasUpdated;
    public UnityEvent<int> OnColorUpdated;
+   public event Action<PlayerData> LobbyDataChanged;
 
    // Steam e lobby
    [SyncVar(hook = nameof(IsReadyUpdate))]
@@ -103,11 +104,9 @@ public class PlayerData : NetworkBehaviour{
    [Command]
    void CmdSetPlayerInfo(string steamName, ulong steamIdValue)
    {
-
-      alias = steamName;
-      playerInfo = new PlayerInfoData(steamName, steamIdValue);
-      MyNetworkManager.manager.RegisterNewPlayer(this);
-
+      // The submitted Steam ID is intentionally ignored. The server binds identity
+      // to the authenticated transport connection (or an isolated development ID).
+      MyNetworkManager.manager?.RegisterNewPlayer(this, steamName);
    }
    private void Start()
    {
@@ -192,13 +191,18 @@ public class PlayerData : NetworkBehaviour{
 
      
       var playerData = GetComponent<PlayerData>();
-      MyNetworkManager.manager.pointsBoard[playerData.playerInfo.steamId].color = value;
+      if (MyNetworkManager.manager.pointsBoard.TryGetValue(playerData.playerInfo.steamId, out var record))
+      {
+         record.color = color;
+         MyNetworkManager.manager.pointsBoard[playerData.playerInfo.steamId] = record;
+      }
    }
    
    //
    void HookOnAliasUpdated(string oldVal, string newVal)
    {
       this.OnAliasUpdated?.Invoke(newVal);
+      LobbyDataChanged?.Invoke(this);
    }
    void HookOnScoreUpdated(int oldVal, int newVal)
    {
@@ -211,6 +215,7 @@ public class PlayerData : NetworkBehaviour{
    void HookOnColorUpdated(int oldVal, int newVal)
    {
       OnColorUpdated?.Invoke(newVal);
+      LobbyDataChanged?.Invoke(this);
 
       if (isServer)
       {
@@ -332,6 +337,7 @@ public class PlayerData : NetworkBehaviour{
       {
          SetIcon(new CSteamID(data.steamId));
       }
+      LobbyDataChanged?.Invoke(this);
    }
    public void IsReadyUpdate(bool _, bool value) 
    {
@@ -339,6 +345,7 @@ public class PlayerData : NetworkBehaviour{
       {
          MainMenu.instance.UpdateReadyButton(value);
       }
+      LobbyDataChanged?.Invoke(this);
    }
    private void OnAvatarImageLoaded(AvatarImageLoaded_t callback)
    {
@@ -363,17 +370,20 @@ public class PlayerData : NetworkBehaviour{
     [Command]
     private void Cmd_ToggleReady() 
     {
-        IsReady = !IsReady;
-        
-        BriefingManager.singleton?.CheckAllReady();
-        BriefingManager.singleton?.UpdateAllClientsSlots();
+        BriefingManager.singleton?.ServerTryToggleReady(this);
     }
 
     [Command]
     public void CmdSetSpectating(bool value)
     {
-        isSpectating = value;
+        var player = GetComponent<PlayerScript>();
+        if (player != null && player.IsDead)
+            return;
+        isSpectating = false;
     }
+
+    [Server]
+    public void ServerSetSpectating(bool value) => isSpectating = value;
 
     private void OnSpectatingChanged(bool _, bool newVal)
     {

@@ -42,6 +42,7 @@ namespace ProjectFeatures.Editor
             
             // Salva como prefab
             string prefabPath = "Assets/Prefabs/FeatureCard.prefab";
+            prefabPath = AssetDatabase.GenerateUniqueAssetPath(prefabPath);
             
             // Garante que a pasta existe
             if (!AssetDatabase.IsValidFolder("Assets/Prefabs"))

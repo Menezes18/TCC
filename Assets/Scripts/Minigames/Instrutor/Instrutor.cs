@@ -64,13 +64,25 @@ public class Instrutor : NetworkBehaviour, ISubject
     }
 
     private bool _isRunning = false;
+    private Coroutine _memoryCycle;
 
     [Server]
     public void StartMemoryCycle()
     {
         if (_isRunning) return;
         _isRunning = true;
-        StartCoroutine(CicloMemoria());
+        _memoryCycle = StartCoroutine(CicloMemoria());
+    }
+
+    [Server]
+    public void StopMemoryCycle()
+    {
+        if (_memoryCycle != null) StopCoroutine(_memoryCycle);
+        _memoryCycle = null;
+        _isRunning = false;
+        currentPhase = MemoryPhase.Idle;
+        currentTimerText = string.Empty;
+        SetCanvasesActive(false);
     }
 
     IEnumerator CicloMemoria()

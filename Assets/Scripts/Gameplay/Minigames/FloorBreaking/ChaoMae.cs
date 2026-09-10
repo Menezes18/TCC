@@ -9,7 +9,7 @@ public abstract class ChaoMae : NetworkBehaviour
     public ChaoMaeSo dataChao;
     public Vector3 posIncial;
     
-    void Awake()
+    protected virtual void Awake()
     {
         posIncial = transform.position;
     }

@@ -9,6 +9,7 @@ public class ChegadaPodio : MonoBehaviour, IObserver
     [SerializeField] private SettingsMiniGameData settingsData;
     public int pontosBase = 4; // legado; mantenho para compatibilidade mas não usamos mais
     public bool isKillGame = false;
+    private bool _scoringFinalized;
     
     private void Awake()
     {
@@ -50,6 +51,8 @@ public class ChegadaPodio : MonoBehaviour, IObserver
     [ServerCallback]
     private void DistribuirPontos()
     {
+        if (_scoringFinalized) return;
+        _scoringFinalized = true;
         // Monta ranking conforme tipo:
         // - Corrida (isKillGame == false): ordem de chegada = podio
         // - Sobrevivência (isKillGame == true): todos eliminados em 'podio' (ordem de morte) recebem do último ao primeiro
@@ -79,6 +82,8 @@ public class ChegadaPodio : MonoBehaviour, IObserver
     {
         if (isKillGame && subject is ContadorTempo)
         {
+            if (_scoringFinalized) return;
+            _scoringFinalized = true;
             Debug.Log("Tempo esgotado! Distribuindo pontos por ranking de sobrevivência...");
 
             // Ranking: sobreviventes primeiro (empatados em ordem de iteração), depois eliminados do último para o primeiro

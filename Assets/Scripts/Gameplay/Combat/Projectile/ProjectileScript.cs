@@ -30,22 +30,30 @@ public class ProjectileScript : NetworkBehaviour
     }
 
     [ServerCallback]
-    private void Update()
+    private void FixedUpdate()
     {
         if (!_launched) return;
 
-        _velocity += Physics.gravity * db.projectileGravityScale * Time.deltaTime;
-        transform.position += _velocity * Time.deltaTime;
+        float step = Time.fixedDeltaTime;
+        _velocity += Physics.gravity * db.projectileGravityScale * step;
+        Vector3 start = transform.position;
+        Vector3 displacement = _velocity * step;
+        Vector3 end = start + displacement;
 
         // Se já acertou, não processa mais colisões
         if (_hasHit) return; //Phelipe
 
         // Colisão
-        var hits = Physics.OverlapSphere(transform.position, db.projectileRadius, db.projectileMask);
+        var hits = Physics.SphereCastAll(start, db.projectileRadius,
+            displacement.sqrMagnitude > 0f ? displacement.normalized : Vector3.forward,
+            displacement.magnitude, db.projectileMask, QueryTriggerInteraction.Collide);
+        transform.position = end;
         if (hits.Length > 0)
         {
-            foreach (Collider c in hits)
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            foreach (RaycastHit hit in hits)
             {
+                Collider c = hit.collider;
                 if (c.transform.root == _owner) continue;
 
                 var dmg = c.transform.root.GetComponent<IDamageable>();
@@ -56,6 +64,8 @@ public class ProjectileScript : NetworkBehaviour
 
                     _hasHit = true; //Phelipe
                     VFXActivator(); //Phelipe
+                    _launched = false;
+                    break;
                 }
             }
 
