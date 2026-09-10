@@ -228,6 +228,9 @@ public class RaceMinigameController : MinigameController
     {
         if (!_matchActive || pd == null) return;
         float delay = database != null ? database.playerRespawnDuration : 2.0f;
+        var playerScript = pd.GetComponent<PlayerScript>();
+        if (playerScript != null)
+            delay = Mathf.Max(delay, playerScript.ServerGetRemainingDeathPresentationTime());
         ulong id = pd.playerInfo.steamId;
         if (_respawnByPlayer.TryGetValue(id, out var pending) && pending != null) StopCoroutine(pending);
         _respawnByPlayer[id] = StartCoroutine(ServerRespawnAfter(pd, delay, _roundGeneration));

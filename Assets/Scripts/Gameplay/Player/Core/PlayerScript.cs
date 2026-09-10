@@ -98,6 +98,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         }
     }
     [SyncVar] private bool _serverIsDead;
+    private double _serverDeathPresentationUntil;
     private double _serverStaggerUntil;
     private double _serverBlindUntil;
     private Vector3 _serverAllowedTeleportPosition;
@@ -1445,7 +1446,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         Debug.Log($"💀 [SERVER] Forçando espectador para {gameObject.name}");
         
         // Atualiza o estado no servidor
-        ServerSetDeathState(true, true);
+        ServerSetDeathState(true, true, cause);
         
         // Envia RPC para o cliente dono do PlayerScript
         var conn = connectionToClient;
@@ -1732,8 +1733,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
             return;
         _serverAllowedTeleportPosition = pos;
         _serverAllowedTeleportUntil = NetworkTime.time + 2d;
-        _serverIsDead = false;
-        GetComponent<PlayerData>()?.ServerSetSpectating(false);
+        ServerSetDeathState(false, false);
         TargetRpcTeleport(connectionToClient, pos, rot);
     }
 
@@ -1775,7 +1775,6 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         {
             _controller.enabled = false;
             InternalResetProperties();
-            CmdDeath();
         }
     }
     
@@ -1822,8 +1821,13 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [Command]
     private void CmdDeathWithCause(DeathCause cause, bool perma, Vector3 pos, Quaternion rot)
     {
-        ServerSetDeathState(true, perma);
+        if (_serverIsDead)
+            return;
+
+        ServerSetDeathState(true, perma, cause);
         RpcOnDeathWithCause(cause, perma, transform.position, transform.rotation);
+        if (!perma)
+            EventOnDeathServerSide?.Invoke();
     }
 
     [ClientRpc]
@@ -1925,7 +1929,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [Command]
     void CmdEventOnDeath()
     {
-        ServerSetDeathState(true, false);
+        // This command is presentation-only. The authoritative death/spectator
+        // state was already chosen before the animation began.
         RpcOnDeath();
     }
 
@@ -1934,7 +1939,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     {
         if (_serverIsDead)
             return;
-        ServerSetDeathState(true, permanent);
+        ServerSetDeathState(true, permanent, cause);
         if (connectionToClient != null)
         {
             if (permanent)
@@ -1958,12 +1963,33 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     }
 
     [Server]
-    private void ServerSetDeathState(bool dead, bool spectating)
+    private void ServerSetDeathState(bool dead, bool spectating, DeathCause cause = DeathCause.Default)
     {
         _serverIsDead = dead;
+        if (dead)
+        {
+            double presentationEnd = NetworkTime.time + GetDeathPresentationDuration(cause);
+            _serverDeathPresentationUntil = Math.Max(_serverDeathPresentationUntil, presentationEnd);
+        }
+        else
+        {
+            _serverDeathPresentationUntil = 0d;
+        }
         isStaggered = false;
         isBlinded = false;
         GetComponent<PlayerData>()?.ServerSetSpectating(dead && spectating);
+    }
+
+    public float GetDeathPresentationDuration(DeathCause cause)
+    {
+        var entry = deathEffects != null ? deathEffects.Get(cause) : null;
+        return entry != null ? Mathf.Max(0f, entry.hideModelDelay) : 0f;
+    }
+
+    [Server]
+    public float ServerGetRemainingDeathPresentationTime()
+    {
+        return Mathf.Max(0f, (float)(_serverDeathPresentationUntil - NetworkTime.time));
     }
 
     [ClientRpc]
@@ -1977,9 +2003,8 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     [ClientRpc]
     public void RpcOnRespawn()
     {
-        CancelDelayedDeathWork();
         Debug.Log("📡 [RPC] OnRespawn()");
-        this.EventOnRespawn?.Invoke();
+        RestoreRespawnPresentation();
 
         if (base.isOwned == false) return;
 
@@ -2004,6 +2029,12 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         cameraTarget = transform;
 
         InternalResetProperties();
+    }
+
+    private void RestoreRespawnPresentation()
+    {
+        CancelDelayedDeathWork();
+        EventOnRespawn?.Invoke();
         State = PlayerState.Default;
     }
 

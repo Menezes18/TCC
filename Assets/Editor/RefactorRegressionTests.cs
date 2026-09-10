@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Collections.Generic;
 using Mirror;
 using NUnit.Framework;
 using UnityEngine;
@@ -151,6 +152,51 @@ public class RefactorRegressionTests
 
         Set(briefing, "readyInteractableClient", true);
         Assert.That(briefing.IsReadyInputBlocked, Is.False);
+    }
+
+    [Test]
+    public void RespawnRestoresDeathPresentationForObserverCopies()
+    {
+        root.AddComponent<NetworkIdentity>();
+        var animator = root.AddComponent<Animator>();
+        var player = root.AddComponent<PlayerScript>();
+        Set(player, "_animator", animator);
+        Set(player, "_state", PlayerState.Death);
+        player.EventOnRespawn = new UnityEngine.Events.UnityEvent();
+
+        bool respawnPresentationInvoked = false;
+        player.EventOnRespawn.AddListener(() => respawnPresentationInvoked = true);
+
+        Invoke(player, "RestoreRespawnPresentation");
+
+        Assert.That(player.State, Is.EqualTo(PlayerState.Default));
+        Assert.That(respawnPresentationInvoked, Is.True);
+    }
+
+    [Test]
+    public void DeathPresentationDurationIsKeptWhenModelStaysVisible()
+    {
+        var effects = ScriptableObject.CreateInstance<DeathEffectsSO>();
+        try
+        {
+            var entry = new DeathEffectsSO.Entry
+            {
+                cause = DeathCause.Default,
+                hideModelDelay = 3.5f,
+                hideModelAfterDelay = false
+            };
+            Set(effects, "entries", new List<DeathEffectsSO.Entry> { entry });
+
+            root.AddComponent<NetworkIdentity>();
+            var player = root.AddComponent<PlayerScript>();
+            Set(player, "deathEffects", effects);
+
+            Assert.That(player.GetDeathPresentationDuration(DeathCause.Explosion), Is.EqualTo(3.5f));
+        }
+        finally
+        {
+            Object.DestroyImmediate(effects);
+        }
     }
 
     private GameObject Child(string name)

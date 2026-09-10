@@ -58,7 +58,10 @@ public class PlayerRespawn : NetworkBehaviour
     [Server]
     public void ServerSetRespawnTimer()
     {
-        timer = db.playerRespawnDuration;
+        float configuredDelay = db != null ? db.playerRespawnDuration : 0f;
+        var player = GetComponent<PlayerScript>();
+        float presentationDelay = player != null ? player.ServerGetRemainingDeathPresentationTime() : 0f;
+        timer = Mathf.Max(configuredDelay, presentationDelay);
     }
 
     void HookOnTimerUpdate(float oldVal, float newVal)
