@@ -107,6 +107,52 @@ public class RefactorRegressionTests
         Assert.That(collider.enabled, Is.True);
     }
 
+    [Test]
+    public void PushRangeUsesTargetColliderSurfaceInsteadOfItsCenter()
+    {
+        var database = ScriptableObject.CreateInstance<Database>();
+        var target = new GameObject("Large push target");
+        try
+        {
+            database.playerPushRadius = 1.3f;
+            root.AddComponent<NetworkIdentity>();
+            var activeFrame = root.AddComponent<PlayerActiveFrame>();
+            Set(activeFrame, "db", database);
+
+            target.transform.position = new Vector3(0f, 0f, 3f);
+            var identity = target.AddComponent<NetworkIdentity>();
+            target.AddComponent<SphereCollider>().radius = 1f;
+            Physics.SyncTransforms();
+
+            Assert.That((bool)Invoke(activeFrame, "ServerIsTargetInPushRange", identity), Is.True);
+
+            target.transform.position = new Vector3(0f, 0f, 5f);
+            Physics.SyncTransforms();
+            Assert.That((bool)Invoke(activeFrame, "ServerIsTargetInPushRange", identity), Is.False);
+        }
+        finally
+        {
+            Object.DestroyImmediate(target);
+            Object.DestroyImmediate(database);
+        }
+    }
+
+    [Test]
+    public void LobbyReadyIsNotBlockedWhenNoBriefingIsVisible()
+    {
+        BriefingManager.singleton = null;
+        root.AddComponent<NetworkIdentity>();
+        var briefing = root.AddComponent<BriefingManager>();
+
+        Assert.That(briefing.IsReadyInputBlocked, Is.False);
+
+        Set(briefing, "_briefingVisibleClient", true);
+        Assert.That(briefing.IsReadyInputBlocked, Is.True);
+
+        Set(briefing, "readyInteractableClient", true);
+        Assert.That(briefing.IsReadyInputBlocked, Is.False);
+    }
+
     private GameObject Child(string name)
     {
         var child = new GameObject(name);

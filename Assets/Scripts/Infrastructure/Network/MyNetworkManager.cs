@@ -65,6 +65,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     private readonly Dictionary<ulong, float> _clientLoadStartTs = new();
     private readonly Dictionary<int, ulong> _boundIdentityByConnection = new();
     private readonly Dictionary<ulong, int> _connectionByBoundIdentity = new();
+    private PlayerData _partyOwner;
 
     public static event Action<PlayerData> ServerPlayerDisconnected;
 
@@ -141,6 +142,11 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             return;
 
         base.OnServerAddPlayer(conn);
+        PlayerData addedPlayer = conn.identity != null ? conn.identity.GetComponent<PlayerData>() : null;
+        bool isLocalHostPlayer = NetworkServer.localConnection != null && conn == NetworkServer.localConnection;
+        if (addedPlayer != null && (_partyOwner == null || isLocalHostPlayer))
+            ServerAssignPartyOwner(addedPlayer);
+
         if (BriefingManager.singleton != null)
         {
             Debug.Log($"🧭 [BRIEFING] Singleton = {BriefingManager.singleton}");
@@ -208,6 +214,39 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     }
 
     [Server]
+    private void ServerAssignPartyOwner(PlayerData player)
+    {
+        if (_partyOwner == player)
+        {
+            if (player != null) player.isPartyOwner = true;
+            return;
+        }
+
+        if (_partyOwner != null)
+            _partyOwner.isPartyOwner = false;
+
+        _partyOwner = player;
+        if (_partyOwner != null)
+            _partyOwner.isPartyOwner = true;
+    }
+
+    [Server]
+    private void ServerPromoteNextPartyOwner(PlayerData disconnectedPlayer)
+    {
+        PlayerData replacement = null;
+        for (int i = 0; i < allClients.Count; i++)
+        {
+            PlayerData candidate = allClients[i];
+            if (candidate != null && candidate != disconnectedPlayer && candidate.connectionToClient != null)
+            {
+                replacement = candidate;
+                break;
+            }
+        }
+        ServerAssignPartyOwner(replacement);
+    }
+
+    [Server]
     private bool TryBindConnectionIdentity(NetworkConnectionToClient conn, out ulong identity)
     {
         if (_boundIdentityByConnection.TryGetValue(conn.connectionId, out identity))
@@ -265,6 +304,7 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
     public override void OnServerDisconnect(NetworkConnectionToClient conn)
     {
         var client = conn.identity?.GetComponent<PlayerData>();
+        bool ownerDisconnected = client != null && client == _partyOwner;
         if (client != null)
         {
             ServerPlayerDisconnected?.Invoke(client);
@@ -279,6 +319,8 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
             }
             if (PlayerList.singleton != null) PlayerList.singleton.RemoveFromList(client);
         }
+        if (ownerDisconnected)
+            ServerPromoteNextPartyOwner(client);
         if (_boundIdentityByConnection.Remove(conn.connectionId, out ulong boundIdentity))
             _connectionByBoundIdentity.Remove(boundIdentity);
         base.OnServerDisconnect(conn);
@@ -532,6 +574,9 @@ public class MyNetworkManager : NetworkManager, ISubjectPontos
         
         // Limpa a lista de clientes
         allClients.Clear();
+        _partyOwner = null;
+        _boundIdentityByConnection.Clear();
+        _connectionByBoundIdentity.Clear();
         
         // Limpa o scoreboard e pointsBoard
         scoreboard.players.Clear();

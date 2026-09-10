@@ -71,6 +71,7 @@ public class PlayerData : NetworkBehaviour{
    public override void OnStartLocalPlayer()
    {
       base.OnStartLocalPlayer();
+      PartyMenuUIManager.Manager?.SetLobbyPlayer(this);
       StartCoroutine(InitializePlayerInfo());
       
       StartCoroutine(InitializeCustomization());
@@ -378,7 +379,16 @@ public class PlayerData : NetworkBehaviour{
     [Command]
     private void Cmd_ToggleReady() 
     {
-        BriefingManager.singleton?.ServerTryToggleReady(this);
+        var briefing = BriefingManager.singleton;
+        if (briefing != null)
+        {
+            briefing.ServerTryToggleReady(this);
+            return;
+        }
+
+        // The lobby scene has no BriefingManager. Ready is still changed on the
+        // server so the SyncVar remains authoritative and replicates to clients.
+        IsReady = !IsReady;
     }
 
     [Command]

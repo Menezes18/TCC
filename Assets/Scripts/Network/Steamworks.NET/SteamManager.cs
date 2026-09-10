@@ -37,9 +37,10 @@ public class SteamManager : MonoBehaviour {
 	}
 
 	protected bool m_bInitialized = false;
+	private bool m_callbackDispatcherFailureLogged;
 	public static bool Initialized {
 		get {
-			return Instance.m_bInitialized;
+			return Instance.m_bInitialized && CallbackDispatcher.IsInitialized;
 		}
 	}
 
@@ -161,11 +162,26 @@ public class SteamManager : MonoBehaviour {
 			return;
 		}
 
-		SteamAPI.Shutdown();
+		// Assembly/play-mode reloads can reset the managed dispatcher before this
+		// object is destroyed. Calling Shutdown in that state would decrement the
+		// dispatcher's init count below zero.
+		if (CallbackDispatcher.IsInitialized) {
+			SteamAPI.Shutdown();
+		}
+		m_bInitialized = false;
 	}
 
 	protected virtual void Update() {
 		if (!m_bInitialized) {
+			return;
+		}
+
+		if (!CallbackDispatcher.IsInitialized) {
+			if (!m_callbackDispatcherFailureLogged) {
+				m_callbackDispatcherFailureLogged = true;
+				Debug.LogError("[Steamworks.NET] Callback dispatcher was reset after Steam initialization. Steam callbacks were disabled for this play session; restart Play Mode to initialize a clean session.", this);
+			}
+			m_bInitialized = false;
 			return;
 		}
 

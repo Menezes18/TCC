@@ -86,13 +86,15 @@ public class PlayerActiveFrame : NetworkBehaviour
             return;
         }
 
+        if (!ServerIsTargetInPushRange(identity))
+            return;
+
         if (!_serverVictimsThisAttack.Add(identity.netId))
             return;
 
         Vector3 delta = identity.transform.position - transform.root.position;
         delta.y = 0f;
-        float maxRange = Mathf.Max(0.1f, db.playerPushRadius) + 0.75f;
-        if (!float.IsFinite(delta.x) || !float.IsFinite(delta.y) || !float.IsFinite(delta.z) || delta.sqrMagnitude > maxRange * maxRange)
+        if (!float.IsFinite(delta.x) || !float.IsFinite(delta.y) || !float.IsFinite(delta.z))
             return;
 
         Vector3 dir = delta.sqrMagnitude > 0.0001f ? delta.normalized : transform.root.forward;
@@ -123,5 +125,36 @@ public class PlayerActiveFrame : NetworkBehaviour
             }
         }
         damage.ReceiveDamage(DamageType.Push, dir);
+    }
+
+    private bool ServerIsTargetInPushRange(NetworkIdentity identity)
+    {
+        Vector3 attackerPosition = transform.root.position;
+        Vector3 attackerForward = transform.root.forward;
+        attackerForward.y = 0f;
+        if (attackerForward.sqrMagnitude < 0.0001f)
+            attackerForward = Vector3.forward;
+        else
+            attackerForward.Normalize();
+
+        Vector3 attackCenter = attackerPosition + attackerForward;
+        float maxDistance = Mathf.Max(0.1f, db.playerPushRadius) + 0.75f;
+        float maxDistanceSqr = maxDistance * maxDistance;
+        Collider[] targetColliders = identity.GetComponentsInChildren<Collider>();
+
+        for (int i = 0; i < targetColliders.Length; i++)
+        {
+            Collider targetCollider = targetColliders[i];
+            if (targetCollider == null || !targetCollider.enabled)
+                continue;
+
+            Vector3 closestPoint = targetCollider.ClosestPoint(attackCenter);
+            Vector3 offset = closestPoint - attackCenter;
+            offset.y = 0f;
+            if (float.IsFinite(offset.x) && float.IsFinite(offset.z) && offset.sqrMagnitude <= maxDistanceSqr)
+                return true;
+        }
+
+        return false;
     }
 }

@@ -548,7 +548,7 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         if (!UILocked && Keyboard.current.pKey.wasPressedThisFrame ) // input
         {
             // Bloqueia alternar "pronto" enquanto o briefing não liberar interação
-            if (BriefingManager.singleton != null && !BriefingManager.singleton.ReadyInteractableClient)
+            if (BriefingManager.singleton != null && BriefingManager.singleton.IsReadyInputBlocked)
             {
                 Debug.Log("[Ready] Ignorado: aguardando todos entrarem no briefing");
             }

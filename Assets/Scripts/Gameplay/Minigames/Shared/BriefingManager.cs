@@ -39,11 +39,14 @@ public class BriefingManager : NetworkBehaviour
     [SyncVar] private int tipIndex;
     [SyncVar] private bool briefingStarted = false;
     public bool HasFinishedBriefing => briefingStarted;
+    private bool _briefingRoundActive;
+    private bool _briefingVisibleClient;
 
     // Client-side gate: allow pressing Ready only when server permits interaction
     [SerializeField]
     private bool readyInteractableClient = false;
     public bool ReadyInteractableClient => readyInteractableClient;
+    public bool IsReadyInputBlocked => _briefingVisibleClient && !readyInteractableClient;
 
     [Header("Slots de Jogadores")]
     [SerializeField] private GameObject slotPrefab;
@@ -80,6 +83,7 @@ public class BriefingManager : NetworkBehaviour
     {
         if (!isServer) { Debug.Log("[Briefing] CheckAllReady called on client, ignoring"); return; }
         if (briefingStarted) { Debug.Log("[Briefing] Already started, ignoring"); return; }
+        if (!_briefingRoundActive) return;
         if (expectedBriefingAcks == 0 || _briefingAcks.Count < expectedBriefingAcks)
             return;
 
@@ -87,6 +91,7 @@ public class BriefingManager : NetworkBehaviour
         bool allReady = ready == total && total > 0;
         Debug.Log($"[Briefing] Ready {ready}/{total} | allReady={allReady}");
         if (!allReady) return;
+        _briefingRoundActive = false;
         // Reativa movimento antes de fechar briefing (descongela)
         PlayerList.singleton.SetAllPlayersFrozen(true);
         CmdFinishBriefing();
@@ -107,8 +112,9 @@ public class BriefingManager : NetworkBehaviour
         tipText.text = data.tips[tipIndex];
         canvasGroup.alpha = 1;
         // Interação ficará bloqueada até todos clientes entrarem
-    canvasGroup.interactable = false;
-    readyInteractableClient = false;
+        canvasGroup.interactable = false;
+        readyInteractableClient = false;
+        _briefingVisibleClient = true;
         onBriefingStarted?.Invoke();
         StopAllCoroutines();
     }
@@ -136,7 +142,8 @@ public class BriefingManager : NetworkBehaviour
         yield return new WaitForSeconds(briefingDuration);
         canvasGroup.alpha = 0;
         canvasGroup.interactable = false;
-    readyInteractableClient = false;
+        readyInteractableClient = false;
+        _briefingVisibleClient = false;
         cameraBriefing.SetActive(true);
         onBriefingEnded?.Invoke();
     }
@@ -163,13 +170,17 @@ public class BriefingManager : NetworkBehaviour
     [Server]
     public void OnPlayerDisconnected(NetworkConnectionToClient connection)
     {
-        _briefingAcks.Remove(connection.connectionId);
-        expectedBriefingAcks = MyNetworkManager.manager.allClients.Count;
-        receivedBriefingAcks = _briefingAcks.Count;
-        if (briefingStarted) return;
-        RpcSetReadyInteractable(expectedBriefingAcks > 0 && receivedBriefingAcks >= expectedBriefingAcks);
+        if (_briefingRoundActive)
+        {
+            _briefingAcks.Remove(connection.connectionId);
+            expectedBriefingAcks = MyNetworkManager.manager.allClients.Count;
+            receivedBriefingAcks = _briefingAcks.Count;
+            if (!briefingStarted)
+                RpcSetReadyInteractable(expectedBriefingAcks > 0 && receivedBriefingAcks >= expectedBriefingAcks);
+        }
         UpdateAllClientsSlots();
-        CheckAllReady();
+        if (_briefingRoundActive)
+            CheckAllReady();
     }
 
     [Server]
@@ -197,6 +208,7 @@ public class BriefingManager : NetworkBehaviour
     public void TriggerBriefing()
     {
         briefingStarted = false;
+        _briefingRoundActive = true;
         // Reset readiness e reconstrói UI antes de mostrar briefing
         MyNetworkManager.manager.ResetAllPlayersReady();
         UpdateAllClientsSlots();
@@ -236,6 +248,7 @@ public class BriefingManager : NetworkBehaviour
         // Começa sem interação; será liberado quando todos entrarem
         canvasGroup.interactable = false;
         readyInteractableClient = false;
+        _briefingVisibleClient = true;
         onBriefingStarted?.Invoke();
         StopAllCoroutines();
 
@@ -279,7 +292,8 @@ public class BriefingManager : NetworkBehaviour
         StopAllCoroutines();
         canvasGroup.alpha = 0;
         canvasGroup.interactable = false;
-    readyInteractableClient = false;
+        readyInteractableClient = false;
+        _briefingVisibleClient = false;
         cameraBriefing.SetActive(true);
         onBriefingEnded?.Invoke();
     }
@@ -305,7 +319,7 @@ public class BriefingManager : NetworkBehaviour
     public void ServerAcknowledgeBriefing(PlayerData player)
     {
         NetworkConnectionToClient sender = player != null ? player.connectionToClient : null;
-        if (sender == null || sender.identity != player.netIdentity || briefingStarted)
+        if (!_briefingRoundActive || sender == null || sender.identity != player.netIdentity || briefingStarted)
             return;
 
         if (_briefingAcks.Add(sender.connectionId))
@@ -328,7 +342,7 @@ public class BriefingManager : NetworkBehaviour
         if (sender == null) return;
 
         // Impede ficar pronto enquanto todos não tiverem entrado no briefing
-        if (_briefingAcks.Count < expectedBriefingAcks || expectedBriefingAcks == 0)
+        if (_briefingRoundActive && (_briefingAcks.Count < expectedBriefingAcks || expectedBriefingAcks == 0))
         {
             Debug.Log("[Briefing] Ready ignored: nem todos os clientes entraram no briefing ainda");
             return;
@@ -345,8 +359,10 @@ public class BriefingManager : NetworkBehaviour
     [Server]
     public bool ServerTryToggleReady(PlayerData player)
     {
-        if (player == null || briefingStarted || expectedBriefingAcks == 0 ||
-            _briefingAcks.Count < expectedBriefingAcks)
+        if (player == null || briefingStarted)
+            return false;
+        if (_briefingRoundActive && (expectedBriefingAcks == 0 ||
+            _briefingAcks.Count < expectedBriefingAcks))
             return false;
         player.IsReady = !player.IsReady;
         UpdateAllClientsSlots();
