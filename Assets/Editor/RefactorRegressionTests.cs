@@ -230,6 +230,48 @@ public class RefactorRegressionTests
         Assert.That((bool)Invoke(steamLobby, "IsExpectedJoinLobbyEnter", staleLobby), Is.False);
     }
 
+    [Test]
+    public void MovementTimestampAllowsAValidStateAfterLongIdle()
+    {
+        var player = root.AddComponent<PlayerScript>();
+        var latest = new Smooth.StateMirror
+        {
+            ownerTimestamp = 2f,
+            receivedOnServerTimestamp = 3f,
+            localTimeResetIndicator = 0
+        };
+        var received = new Smooth.StateMirror
+        {
+            ownerTimestamp = 12f,
+            localTimeResetIndicator = 0
+        };
+
+        float delta = (float)Invoke(player, "GetServerMovementDeltaTime", received, latest, 13f, 0.02f);
+
+        Assert.That(delta, Is.EqualTo(1f));
+    }
+
+    [Test]
+    public void MovementTimestampRejectsAnOutOfOrderStateWithoutATimeReset()
+    {
+        var player = root.AddComponent<PlayerScript>();
+        var latest = new Smooth.StateMirror
+        {
+            ownerTimestamp = 5f,
+            receivedOnServerTimestamp = 5f,
+            localTimeResetIndicator = 0
+        };
+        var received = new Smooth.StateMirror
+        {
+            ownerTimestamp = 4f,
+            localTimeResetIndicator = 0
+        };
+
+        float delta = (float)Invoke(player, "GetServerMovementDeltaTime", received, latest, 5.1f, 0.02f);
+
+        Assert.That(delta, Is.LessThan(0f));
+    }
+
     private GameObject Child(string name)
     {
         var child = new GameObject(name);

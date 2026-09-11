@@ -304,8 +304,9 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         }
 
         Vector3 previousPosition = latest != null ? latest.position : transform.position;
-        float deltaTime = latest != null ? received.ownerTimestamp - latest.ownerTimestamp : Time.fixedDeltaTime;
-        if (deltaTime <= 0f || deltaTime > 1f)
+        float serverNow = _smoothSyncMirror != null ? _smoothSyncMirror.localTime : Time.time;
+        float deltaTime = GetServerMovementDeltaTime(received, latest, serverNow, Time.fixedDeltaTime);
+        if (deltaTime < 0f)
             return RejectMovementState("invalid movement timestamp");
 
         float configuredSpeed = db != null ? Mathf.Max(db.playerSpeed, db.playerMaxAirSpeed) : 8f;
@@ -317,6 +318,32 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
 
         _serverMovementViolations = Mathf.Max(0, _serverMovementViolations - 1);
         return true;
+    }
+
+    private static float GetServerMovementDeltaTime(StateMirror received, StateMirror latest, float serverNow, float fallbackDelta)
+    {
+        if (received == null || !IsFinite(received.ownerTimestamp))
+            return -1f;
+
+        float minimumDelta = Mathf.Max(0.001f, fallbackDelta);
+        if (latest == null)
+            return minimumDelta;
+
+        if (!IsFinite(latest.ownerTimestamp) || !IsFinite(latest.receivedOnServerTimestamp))
+            return -1f;
+
+        bool ownerResetTime = received.localTimeResetIndicator != latest.localTimeResetIndicator;
+        float ownerDelta = received.ownerTimestamp - latest.ownerTimestamp;
+        if (!ownerResetTime && ownerDelta < -0.001f)
+            return -1f;
+
+        // Owner timestamps can legitimately have long gaps while the object is at rest.
+        // Use server receive time for speed bounds so clients cannot enlarge their own allowance.
+        float serverDelta = serverNow - latest.receivedOnServerTimestamp;
+        if (!IsFinite(serverDelta) || serverDelta <= 0f)
+            return minimumDelta;
+
+        return Mathf.Clamp(serverDelta, minimumDelta, 1f);
     }
 
     [Server]

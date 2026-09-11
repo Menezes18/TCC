@@ -183,7 +183,10 @@ namespace Mirror.FizzySteam
                         for (int i = 0; i < messageCount; i++)
                         {
                             (byte[] data, int ch) = ProcessMessage(ptrs[i]);
-                            OnReceivedData(connId, data, ch);
+                            // A message handler can disconnect this peer while more Steam
+                            // messages from the same receive batch are still queued.
+                            if (connToMirrorID.TryGetValue(conn, out int activeConnId) && activeConnId == connId)
+                                OnReceivedData(connId, data, ch);
                         }
                     }
                 }
