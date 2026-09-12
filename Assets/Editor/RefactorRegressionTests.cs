@@ -76,11 +76,46 @@ public class RefactorRegressionTests
     {
         root.transform.position = new Vector3(10000, 10000, 10000);
         var tile = root.AddComponent<ChaoQuebrandoSimples>();
-        for (int i = 0; i < 40; i++) Child("Collider " + i).AddComponent<BoxCollider>();
+        for (int i = 0; i < 40; i++)
+        {
+            var colliderObject = Child("Collider " + i);
+            colliderObject.layer = LayerMask.NameToLayer("Player");
+            colliderObject.AddComponent<BoxCollider>();
+        }
         Physics.SyncTransforms();
         int count = (int)Invoke(tile, "DetectColliders");
         Assert.That(count, Is.GreaterThanOrEqualTo(40));
         Assert.That(Get<Collider[]>(tile, "detectionBuffer").Length, Is.GreaterThan(count));
+    }
+
+    [Test]
+    public void FloorDetectionBroadPhaseRejectsDistantAndActivatedTiles()
+    {
+        var tile = root.AddComponent<ChaoQuebrandoSimples>();
+        Set(tile, "raioDeteccao", 1.5f);
+
+        Assert.That(tile.IsDetectionCandidate(new Vector3(2.9f, 0f, 0f)), Is.True);
+        Assert.That(tile.IsDetectionCandidate(new Vector3(3.1f, 0f, 0f)), Is.False);
+
+        tile.AtivarTile();
+        Assert.That(tile.IsDetectionCandidate(Vector3.zero), Is.False);
+    }
+
+    [Test]
+    public void FloorDetectionOnlyReturnsPlayerLayerColliders()
+    {
+        root.transform.position = new Vector3(10000, 10000, 10000);
+        var tile = root.AddComponent<ChaoQuebrandoSimples>();
+        Child("World collider").AddComponent<BoxCollider>();
+        var player = Child("Player collider");
+        player.layer = LayerMask.NameToLayer("Player");
+        player.AddComponent<BoxCollider>();
+        Physics.SyncTransforms();
+
+        int count = (int)Invoke(tile, "DetectColliders");
+
+        Assert.That(count, Is.EqualTo(1));
+        Assert.That(Get<Collider[]>(tile, "detectionBuffer")[0].gameObject, Is.SameAs(player));
     }
 
     [Test]

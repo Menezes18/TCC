@@ -36,6 +36,8 @@ public class FloorBreakingManager : NetworkBehaviour
     private Coroutine resetCoroutine;
     private readonly Dictionary<int, double> snapshotRequestTimes = new Dictionary<int, double>();
     private const double SnapshotRequestCooldown = 5d;
+    private const float DetectionInterval = 0.1f;
+    private float nextDetectionTime;
 
     private void Awake()
     {
@@ -55,6 +57,12 @@ public class FloorBreakingManager : NetworkBehaviour
 
     private void Update()
     {
+        if (isServer && Time.time >= nextDetectionTime)
+        {
+            nextDetectionTime = Time.time + DetectionInterval;
+            DetectPlayerTiles();
+        }
+
         // Processar batch de atualizações periodicamente
         if (isServer && updateBuffer.Count > 0)
         {
@@ -64,6 +72,26 @@ public class FloorBreakingManager : NetworkBehaviour
             {
                 EnviarBatchDeAtualizacoes();
                 tempoUltimoBatch = 0f;
+            }
+        }
+    }
+
+    [Server]
+    private void DetectPlayerTiles()
+    {
+        foreach (NetworkConnectionToClient connection in NetworkServer.connections.Values)
+        {
+            NetworkIdentity player = connection?.identity;
+            if (player == null || !player.gameObject.activeInHierarchy) continue;
+
+            Vector3 playerPosition = player.transform.position;
+            for (int i = 0; i < tiles.Length; i++)
+            {
+                ChaoQuebrandoSimples tile = tiles[i];
+                if (tile == null || !tile.IsDetectionCandidate(playerPosition)) continue;
+                if (!tile.IsPlayerInRange(player)) continue;
+
+                tile.AtivarTile();
             }
         }
     }

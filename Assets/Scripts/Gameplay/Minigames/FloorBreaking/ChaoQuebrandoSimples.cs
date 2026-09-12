@@ -6,6 +6,7 @@ public class ChaoQuebrandoSimples : MonoBehaviour
     [SerializeField] private ChaoMaeSo dataChao;
     [SerializeField] private bool mostrarLogs = false;
     [SerializeField] private float raioDeteccao = 1.5f;
+    [SerializeField] private LayerMask playerLayerMask = 1 << 7;
     
     private Vector3 posInicial;
     private int tileId = -1;
@@ -68,7 +69,9 @@ public class ChaoQuebrandoSimples : MonoBehaviour
         // SERVIDOR: processa lógica do tile
         if (NetworkServer.active)
         {
-            if (!chaoDestruido && !foiPisado)
+            // Managed scenes batch detection in FloorBreakingManager. Keep this
+            // fallback so an isolated tile without a manager still works.
+            if (manager == null && !chaoDestruido && !foiPisado)
             {
                 if (Time.time >= _nextDetectionTime)
                 {
@@ -294,7 +297,7 @@ public class ChaoQuebrandoSimples : MonoBehaviour
         while (true)
         {
             int count = Physics.OverlapSphereNonAlloc(transform.position + Vector3.up * 0.5f,
-                raioDeteccao, detectionBuffer);
+                raioDeteccao, detectionBuffer, playerLayerMask, QueryTriggerInteraction.Collide);
             if (count < detectionBuffer.Length) return count;
             System.Array.Resize(ref detectionBuffer, detectionBuffer.Length * 2);
         }
@@ -311,6 +314,13 @@ public class ChaoQuebrandoSimples : MonoBehaviour
                 (col.CompareTag("Player") || col.transform.root.CompareTag("Player"))) return true;
         }
         return false;
+    }
+
+    public bool IsDetectionCandidate(Vector3 playerPosition)
+    {
+        if (chaoDestruido || foiPisado || !isActiveAndEnabled) return false;
+        float broadPhaseRadius = raioDeteccao * 2f;
+        return (playerPosition - transform.position).sqrMagnitude <= broadPhaseRadius * broadPhaseRadius;
     }
     
     private void OnDrawGizmosSelected()
