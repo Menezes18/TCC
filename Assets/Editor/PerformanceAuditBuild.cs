@@ -10,14 +10,31 @@ using Debug = UnityEngine.Debug;
 
 public static class PerformanceAuditBuild
 {
+    [Serializable]
+    private sealed class BenchmarkBuildInfo
+    {
+        public string schema = "tcc-performance-package/v1";
+        public string packageVersion;
+        public string gitCommit;
+        public bool workingTreeDirty;
+        public string unityVersion;
+        public string builtUtc;
+        public string releaseBuildIdentifier;
+        public string diagnosticBuildIdentifier;
+    }
+
+    private const string PackageVersion = "1.0.0";
     private const string BuildRelativePath = "Builds/PerformanceAuditPlayer/TCC.exe";
     private const string RunnerRelativePath = "Tools/PerformanceAudit/Run-PerformanceAudit.ps1";
     private const string PortableOutputRelativePath = "Builds/PerformanceAuditPortable/TCC-Performance-Benchmark.zip";
+    private const string CompletePackageRelativePath = "Builds/PerformanceBenchmark/PerformanceBenchmark";
+    private const string CompletePackageZipRelativePath = "Builds/PerformanceBenchmark/TCC-PerformanceBenchmark.zip";
 
     [MenuItem("Tools/Performance Audit/Build Development Player")]
     public static void BuildFromMenu()
     {
-        string path = Build(Path.GetFullPath(BuildRelativePath));
+        string path = Path.GetFullPath(BuildRelativePath);
+        Build(path);
         EditorUtility.RevealInFinder(path);
     }
 
@@ -58,6 +75,52 @@ public static class PerformanceAuditBuild
         EditorUtility.RevealInFinder(outputPath);
     }
 
+    [MenuItem("Tools/Performance Benchmark/Build Complete Portable Package")]
+    public static void BuildCompletePortablePackage()
+    {
+        string packageRoot = Path.GetFullPath(CompletePackageRelativePath);
+        string controlledRoot = Path.GetFullPath("Builds/PerformanceBenchmark") + Path.DirectorySeparatorChar;
+        if (!packageRoot.StartsWith(controlledRoot, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Benchmark package path escaped Builds/PerformanceBenchmark.");
+
+        if (Directory.Exists(packageRoot)) Directory.Delete(packageRoot, true);
+        Directory.CreateDirectory(packageRoot);
+        Directory.CreateDirectory(Path.Combine(packageRoot, "Results"));
+
+        string releasePath = Path.Combine(packageRoot, "Builds", "Release", "TCC.exe");
+        string diagnosticPath = Path.Combine(packageRoot, "Builds", "Diagnostic", "TCC.exe");
+        Build(releasePath, false, out string releaseId);
+        Build(diagnosticPath, true, out string diagnosticId);
+
+        string scriptsSource = Path.GetFullPath("Tools/PerformanceBenchmark");
+        CopyDirectory(scriptsSource, packageRoot);
+
+        var info = new BenchmarkBuildInfo
+        {
+            packageVersion = PackageVersion,
+            gitCommit = GetGitCommit(),
+            workingTreeDirty = GetGitStatusDirty(),
+            unityVersion = Application.unityVersion,
+            builtUtc = DateTime.UtcNow.ToString("O"),
+            releaseBuildIdentifier = releaseId,
+            diagnosticBuildIdentifier = diagnosticId
+        };
+        File.WriteAllText(Path.Combine(packageRoot, "package-info.json"), JsonUtility.ToJson(info, true));
+
+        string zipPath = Path.GetFullPath(CompletePackageZipRelativePath);
+        Directory.CreateDirectory(Path.GetDirectoryName(zipPath));
+        if (File.Exists(zipPath)) File.Delete(zipPath);
+        ZipFile.CreateFromDirectory(packageRoot, zipPath, System.IO.Compression.CompressionLevel.Optimal, false);
+        Debug.Log($"[PerfBenchmark] Complete portable package: {packageRoot}");
+        Debug.Log($"[PerfBenchmark] ZIP: {zipPath}");
+        if (!Application.isBatchMode) EditorUtility.RevealInFinder(packageRoot);
+    }
+
+    public static void BuildCompletePortablePackageFromCommandLine()
+    {
+        BuildCompletePortablePackage();
+    }
+
     public static void BuildFromCommandLine()
     {
         string output = GetCommandLineValue("-performanceAuditBuildPath");
@@ -67,10 +130,15 @@ public static class PerformanceAuditBuild
 
     public static string BuildDevelopmentPlayer(string outputPath)
     {
-        return Build(outputPath);
+        return Build(outputPath, true);
     }
 
-    private static string Build(string outputPath)
+    private static string Build(string outputPath, bool development = true)
+    {
+        return Build(outputPath, development, out _);
+    }
+
+    private static string Build(string outputPath, bool development, out string buildIdentifier)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
         string[] scenes = EditorBuildSettings.scenes.Where(scene => scene.enabled).Select(scene => scene.path).ToArray();
@@ -87,12 +155,15 @@ public static class PerformanceAuditBuild
                 scenes = scenes,
                 locationPathName = outputPath,
                 target = BuildTarget.StandaloneWindows64,
-                options = BuildOptions.Development
+                options = development ? BuildOptions.Development : BuildOptions.None,
+                extraScriptingDefines = new[] { "TCC_PERFORMANCE_BENCHMARK" }
             };
             BuildReport report = BuildPipeline.BuildPlayer(options);
             if (report.summary.result != BuildResult.Succeeded)
                 throw new InvalidOperationException($"Performance Player build failed: {report.summary.result}");
-            Debug.Log($"[PerfAudit] Development Player built at {outputPath} in {report.summary.totalTime}.");
+            string lane = development ? "Diagnostic Development" : "Release-like";
+            buildIdentifier = report.summary.guid.ToString();
+            Debug.Log($"[PerfAudit] {lane} Player built at {outputPath} in {report.summary.totalTime}; id={buildIdentifier}.");
             return outputPath;
         }
         finally
@@ -103,6 +174,52 @@ public static class PerformanceAuditBuild
             // leave an unrelated ProjectSettings diff behind.
             if (!File.ReadAllBytes(projectSettingsPath).SequenceEqual(projectSettingsBefore))
                 File.WriteAllBytes(projectSettingsPath, projectSettingsBefore);
+        }
+    }
+
+    private static string GetGitCommit()
+    {
+        try
+        {
+            var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "git.exe",
+                Arguments = "rev-parse HEAD",
+                WorkingDirectory = Path.GetFullPath("."),
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true
+            });
+            string output = process.StandardOutput.ReadToEnd().Trim();
+            process.WaitForExit(5000);
+            return process.ExitCode == 0 ? output : "unavailable";
+        }
+        catch
+        {
+            return "unavailable";
+        }
+    }
+
+    private static bool GetGitStatusDirty()
+    {
+        try
+        {
+            var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "git.exe",
+                Arguments = "status --porcelain",
+                WorkingDirectory = Path.GetFullPath("."),
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true
+            });
+            string output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit(5000);
+            return process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output);
+        }
+        catch
+        {
+            return false;
         }
     }
 
