@@ -125,21 +125,31 @@ public class Instrutor : NetworkBehaviour, ISubject
     IEnumerator Countdown(float duration, int tipo)
     {
         float timer = duration;
+        int lastDisplayedSecond = int.MinValue;
         while (timer > 0f)
         {
-            // tipo: 0=memorize, 1=prepare, 2=sumindo
-            if (tipo == 0)
-                currentTimerText = $"Memorize: {Mathf.Ceil(timer)} s";
-            else if (tipo == 1)
-                currentTimerText = $"Pronto em {Mathf.Ceil(timer)} s";
-            else if (tipo == 2)
-                currentTimerText = $"Sumindo em {Mathf.Ceil(timer)} s";
-            else
-                currentTimerText = $"{Mathf.Ceil(timer)} s";
+            int displayedSecond = Mathf.CeilToInt(timer);
+            if (displayedSecond != lastDisplayedSecond)
+            {
+                currentTimerText = FormatTimerText(tipo, displayedSecond);
+                lastDisplayedSecond = displayedSecond;
+            }
             timer -= Time.deltaTime;
             yield return null;
         }
         currentTimerText = "";
+    }
+
+    private static string FormatTimerText(int tipo, int seconds)
+    {
+        // tipo: 0=memorize, 1=prepare, 2=sumindo
+        return tipo switch
+        {
+            0 => $"Memorize: {seconds} s",
+            1 => $"Pronto em {seconds} s",
+            2 => $"Sumindo em {seconds} s",
+            _ => $"{seconds} s"
+        };
     }
 
     void OnColorChanged(Color oldC, Color newC)

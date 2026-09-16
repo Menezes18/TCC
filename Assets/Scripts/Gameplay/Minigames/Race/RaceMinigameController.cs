@@ -33,6 +33,9 @@ public class RaceMinigameController : MinigameController
     private readonly List<ulong> _finishOrder = new();
     private readonly Dictionary<ulong, UnityAction> _deathHandlerByPlayer = new();
     private readonly Dictionary<ulong, Coroutine> _respawnByPlayer = new();
+    private readonly List<Transform> _activeWaypoints = new();
+    private readonly List<RaceCheckpoint> _orderedCheckpoints = new();
+    private bool _activeWaypointsInitialized;
     private int _roundGeneration;
 
     private void Awake()
@@ -49,6 +52,7 @@ public class RaceMinigameController : MinigameController
             finishTrigger = FindAnyObjectByType<RaceFinishTrigger>();
         if (startReference == null)
             startReference = transform; // fallback
+        RebuildActiveWaypoints();
     }
 
     [Server]
@@ -332,22 +336,37 @@ public class RaceMinigameController : MinigameController
 
     private List<Transform> GetActiveWaypoints()
     {
+        if (!_activeWaypointsInitialized)
+            RebuildActiveWaypoints();
+        return _activeWaypoints;
+    }
+
+    private void RebuildActiveWaypoints()
+    {
+        _activeWaypoints.Clear();
+        _orderedCheckpoints.Clear();
+
         if (progressWaypoints != null && progressWaypoints.Count > 0)
         {
-            return progressWaypoints.Where(w => w != null).ToList();
+            for (int i = 0; i < progressWaypoints.Count; i++)
+                if (progressWaypoints[i] != null)
+                    _activeWaypoints.Add(progressWaypoints[i]);
         }
-        
-        if (checkpoints != null && checkpoints.Count > 0)
+        else if (checkpoints != null && checkpoints.Count > 0)
         {
-            return checkpoints
-                .Where(c => c != null)
-                .OrderBy(c => c.index)
-                .Select(c => c.transform)
-                .ToList();
+            for (int i = 0; i < checkpoints.Count; i++)
+                if (checkpoints[i] != null)
+                    _orderedCheckpoints.Add(checkpoints[i]);
+
+            _orderedCheckpoints.Sort((a, b) => a.index.CompareTo(b.index));
+            for (int i = 0; i < _orderedCheckpoints.Count; i++)
+                _activeWaypoints.Add(_orderedCheckpoints[i].transform);
         }
-        
-        return new List<Transform>();
+
+        _activeWaypointsInitialized = true;
     }
+
+    private void OnValidate() => _activeWaypointsInitialized = false;
 
     private Transform GetCheckpointTransform(int idx)
     {

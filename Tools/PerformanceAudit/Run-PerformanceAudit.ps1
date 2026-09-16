@@ -143,7 +143,7 @@ function Write-Comparison {
         $baseline = Get-Content -Raw -LiteralPath $baselinePath | ConvertFrom-Json
         if ([string]$baseline.processor -ne [string]$candidate.processor -or
             [string]$baseline.graphicsDevice -ne [string]$candidate.graphicsDevice) {
-            $lines.Add("| ``$($candidate.scene)`` | hardware check | — | — | — | skipped: different CPU/GPU |")
+            $lines.Add("| ``$($candidate.scene)`` | hardware check | -- | -- | -- | skipped: different CPU/GPU |")
             continue
         }
         foreach ($metricName in $importantMetrics) {

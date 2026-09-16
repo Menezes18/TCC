@@ -1,9 +1,14 @@
 using System.Reflection;
+using System.Collections;
 using System.Collections.Generic;
 using Mirror;
 using NUnit.Framework;
 using Steamworks;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+using UnityEngine.UI;
 
 public class RefactorRegressionTests
 {
@@ -16,6 +21,7 @@ public class RefactorRegressionTests
     public void TearDown()
     {
         SteamLobby.LobbyID = CSteamID.Nil;
+        PlayerPrefs.DeleteKey("Bloom");
         Object.DestroyImmediate(root);
     }
 
@@ -116,6 +122,56 @@ public class RefactorRegressionTests
 
         Assert.That(count, Is.EqualTo(1));
         Assert.That(Get<Collider[]>(tile, "detectionBuffer")[0].gameObject, Is.SameAs(player));
+    }
+
+    [Test]
+    public void RaceWaypointsAreReusedBetweenScoreUpdates()
+    {
+        var controller = root.AddComponent<RaceMinigameController>();
+        var firstWaypoint = Child("Waypoint 1").transform;
+        var secondWaypoint = Child("Waypoint 2").transform;
+        Set(controller, "progressWaypoints", new List<Transform> { firstWaypoint, null, secondWaypoint });
+        Invoke(controller, "RebuildActiveWaypoints");
+
+        var firstResult = (List<Transform>)Invoke(controller, "GetActiveWaypoints");
+        var secondResult = (List<Transform>)Invoke(controller, "GetActiveWaypoints");
+
+        Assert.That(secondResult, Is.SameAs(firstResult));
+        Assert.That(secondResult, Is.EqualTo(new[] { firstWaypoint, secondWaypoint }));
+    }
+
+    [Test]
+    public void MemoryCountdownReusesTextWithinTheSameDisplayedSecond()
+    {
+        root.AddComponent<NetworkIdentity>();
+        var instructor = root.AddComponent<Instrutor>();
+        var countdown = (IEnumerator)Invoke(instructor, "Countdown", 5f, 0);
+
+        Assert.That(countdown.MoveNext(), Is.True);
+        string firstText = instructor.currentTimerText;
+        Assert.That(countdown.MoveNext(), Is.True);
+
+        Assert.That(instructor.currentTimerText, Is.SameAs(firstText));
+        Assert.That(firstText, Is.EqualTo("Memorize: 5 s"));
+    }
+
+    [Test]
+    public void BloomToggleAppliesTheStoredSetting()
+    {
+        var settings = root.AddComponent<SettingsGraphics>();
+        var toggle = Child("Bloom toggle").AddComponent<Toggle>();
+        var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+        var bloom = profile.Add<Bloom>();
+        PlayerPrefs.SetInt("Bloom", 0);
+
+        Invoke(settings, "BindVolumeToggle", "Bloom", toggle, bloom);
+
+        Assert.That(toggle.isOn, Is.False);
+        Assert.That(bloom.active, Is.False);
+        toggle.isOn = true;
+        Assert.That(bloom.active, Is.True);
+        Assert.That(PlayerPrefs.GetInt("Bloom"), Is.EqualTo(1));
+        Object.DestroyImmediate(profile);
     }
 
     [Test]
@@ -243,7 +299,7 @@ public class RefactorRegressionTests
     public void CreatedLobbyEnterCallbackIsRecognizedAsHostAdmission()
     {
         var steamLobby = root.AddComponent<SteamLobby>();
-        var lobbyId = new CSteamID(123456UL);
+        var lobbyId = LobbySteamId(123456U);
         SteamLobby.LobbyID = lobbyId;
         Set(steamLobby, "_pendingHostLobbyEnter", lobbyId);
 
@@ -255,8 +311,8 @@ public class RefactorRegressionTests
     public void JoinCallbackMustMatchTheRequestedLobby()
     {
         var steamLobby = root.AddComponent<SteamLobby>();
-        var expectedLobby = new CSteamID(111UL);
-        var staleLobby = new CSteamID(222UL);
+        var expectedLobby = LobbySteamId(111U);
+        var staleLobby = LobbySteamId(222U);
         SetEnum(steamLobby, "_operation", "Joining");
         Set(steamLobby, "_awaitingJoinCallback", true);
         Set(steamLobby, "_pendingJoinLobby", expectedLobby);
@@ -268,7 +324,7 @@ public class RefactorRegressionTests
     [Test]
     public void MovementTimestampAllowsAValidStateAfterLongIdle()
     {
-        var player = root.AddComponent<PlayerScript>();
+        var player = AddPlayer();
         var latest = new Smooth.StateMirror
         {
             ownerTimestamp = 2f,
@@ -289,7 +345,7 @@ public class RefactorRegressionTests
     [Test]
     public void MovementTimestampRejectsAnOutOfOrderStateWithoutATimeReset()
     {
-        var player = root.AddComponent<PlayerScript>();
+        var player = AddPlayer();
         var latest = new Smooth.StateMirror
         {
             ownerTimestamp = 5f,
@@ -305,6 +361,30 @@ public class RefactorRegressionTests
         float delta = (float)Invoke(player, "GetServerMovementDeltaTime", received, latest, 5.1f, 0.02f);
 
         Assert.That(delta, Is.LessThan(0f));
+    }
+
+    [Test]
+    public void PlayerInputPollingToleratesMissingKeyboard()
+    {
+        var player = AddPlayer();
+
+        Assert.That((bool)Invoke(player, "WasKeyPressedThisFrame", null, Key.P), Is.False);
+    }
+
+    [Test]
+    public void HeadlessVideoErrorsAreIgnoredOnlyForTheNullGraphicsDevice()
+    {
+        const string videoError = "Video shaders not found. Make sure the Video shaders are enabled.";
+
+        Assert.That((bool)InvokeStatic(typeof(ProjectValidationBootstrap), "IsExpectedHeadlessGraphicsError", videoError, "Null Device"), Is.True);
+        Assert.That((bool)InvokeStatic(typeof(ProjectValidationBootstrap), "IsExpectedHeadlessGraphicsError", videoError, "NVIDIA GeForce RTX 3060"), Is.False);
+        Assert.That((bool)InvokeStatic(typeof(ProjectValidationBootstrap), "IsExpectedHeadlessGraphicsError", "Unrelated runtime failure", "Null Device"), Is.False);
+    }
+
+    private PlayerScript AddPlayer()
+    {
+        root.AddComponent<NetworkIdentity>();
+        return root.AddComponent<PlayerScript>();
     }
 
     private GameObject Child(string name)
@@ -326,6 +406,21 @@ public class RefactorRegressionTests
         field.SetValue(target, System.Enum.Parse(field.FieldType, value));
     }
 
-    private static object Invoke(object target, string name, params object[] arguments) =>
-        target.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic).Invoke(target, arguments);
+    private static CSteamID LobbySteamId(uint accountId) =>
+        new CSteamID(new AccountID_t(accountId), (uint)EChatSteamIDInstanceFlags.k_EChatInstanceFlagLobby,
+            EUniverse.k_EUniversePublic, EAccountType.k_EAccountTypeChat);
+
+    private static object Invoke(object target, string name, params object[] arguments)
+    {
+        MethodInfo method = target.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null, $"Expected {target.GetType().Name}.{name} to exist.");
+        return method.Invoke(method.IsStatic ? null : target, arguments);
+    }
+
+    private static object InvokeStatic(System.Type type, string name, params object[] arguments)
+    {
+        MethodInfo method = type.GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null, $"Expected private static method {type.Name}.{name}.");
+        return method.Invoke(null, arguments);
+    }
 }

@@ -561,19 +561,20 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
         }
         
         // Spectator controls - cycle through alive players
+        Keyboard keyboard = Keyboard.current;
         if (_isSpectating)
         {
-            if (Keyboard.current.qKey.wasPressedThisFrame)
+            if (WasKeyPressedThisFrame(keyboard, Key.Q))
             {
                 CycleToPreviousSpectatorTarget();
             }
-            else if (Keyboard.current.eKey.wasPressedThisFrame)
+            else if (WasKeyPressedThisFrame(keyboard, Key.E))
             {
                 CycleToNextSpectatorTarget();
             }
         }
 
-        if (!UILocked && Keyboard.current.pKey.wasPressedThisFrame ) // input
+        if (!UILocked && WasKeyPressedThisFrame(keyboard, Key.P)) // input
         {
             // Bloqueia alternar "pronto" enquanto o briefing não liberar interação
             if (BriefingManager.singleton != null && BriefingManager.singleton.IsReadyInputBlocked)
@@ -1751,6 +1752,11 @@ public class PlayerScript : NetworkBehaviour, IDamageable, IHitKillable
     private void TargetRpcTeleport(NetworkConnection conn, Vector3 pos, Quaternion rot)
     {
         InternalTeleport(pos, rot);
+    }
+
+    private static bool WasKeyPressedThisFrame(Keyboard keyboard, Key key)
+    {
+        return keyboard != null && keyboard[key].wasPressedThisFrame;
     }
 
     [Server]

@@ -65,12 +65,19 @@ public static class PerformanceAuditBuild
         Build(Path.GetFullPath(output));
     }
 
+    public static string BuildDevelopmentPlayer(string outputPath)
+    {
+        return Build(outputPath);
+    }
+
     private static string Build(string outputPath)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
         string[] scenes = EditorBuildSettings.scenes.Where(scene => scene.enabled).Select(scene => scene.path).ToArray();
         if (scenes.Length == 0) throw new InvalidOperationException("No enabled scenes exist in Build Settings.");
 
+        string projectSettingsPath = Path.GetFullPath("ProjectSettings/ProjectSettings.asset");
+        byte[] projectSettingsBefore = File.ReadAllBytes(projectSettingsPath);
         bool previousFrameTiming = PlayerSettings.enableFrameTimingStats;
         try
         {
@@ -91,6 +98,11 @@ public static class PerformanceAuditBuild
         finally
         {
             PlayerSettings.enableFrameTimingStats = previousFrameTiming;
+            // PlayerSettings changes are serialized immediately by some Editor
+            // versions. Restore the exact pre-build file so validation does not
+            // leave an unrelated ProjectSettings diff behind.
+            if (!File.ReadAllBytes(projectSettingsPath).SequenceEqual(projectSettingsBefore))
+                File.WriteAllBytes(projectSettingsPath, projectSettingsBefore);
         }
     }
 

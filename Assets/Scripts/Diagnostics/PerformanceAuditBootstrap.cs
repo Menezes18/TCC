@@ -40,8 +40,58 @@ public sealed class PerformanceAuditBootstrap : MonoBehaviour
         public float warmupSeconds;
         public bool rawProfilerCapture;
         public string rawProfilerPath;
+        public string role;
+        public int clientIndex;
+        public int expectedPlayers;
+        public bool measuredProcess;
+        public long networkBytesIn;
+        public long networkBytesOut;
+        public long networkMessagesIn;
+        public long networkMessagesOut;
+        public NetworkMessageTraffic[] networkMessageTraffic;
         public string[] unavailableCounters;
         public MetricSummary[] metrics;
+    }
+
+    [Serializable]
+    private sealed class NetworkMessageTraffic
+    {
+        public string messageType;
+        public long messagesIn;
+        public long bytesIn;
+        public long messagesOut;
+        public long bytesOut;
+    }
+
+    [Serializable]
+    private sealed class SoakSummary
+    {
+        public string schema = "tcc-performance-soak/v1";
+        public string utc;
+        public int transitionsRequested;
+        public string[] rotationScenes;
+        public MemorySnapshot[] snapshots;
+    }
+
+    [Serializable]
+    private sealed class MemorySnapshot
+    {
+        public int transitionIndex;
+        public string phase;
+        public string scene;
+        public double sceneLoadSeconds;
+        public long managedMemoryBytes;
+        public long unityAllocatedMemoryBytes;
+        public long unityReservedMemoryBytes;
+        public long processWorkingSetBytes;
+        public long textureMemoryBytes;
+        public long meshMemoryBytes;
+        public long renderTextureMemoryBytes;
+        public long materialMemoryBytes;
+        public int textureCount;
+        public int meshCount;
+        public int renderTextureCount;
+        public int materialCount;
     }
 
     [Serializable]
@@ -165,14 +215,41 @@ public sealed class PerformanceAuditBootstrap : MonoBehaviour
     private string _failure;
     private bool _driveMovement;
     private PlayerControlsSO _controls;
+    private string _role;
+    private int _clientIndex;
+    private int _expectedPlayers;
+    private ushort _port;
+    private bool _measuredProcess;
+    private long _networkBytesIn;
+    private long _networkBytesOut;
+    private long _networkMessagesIn;
+    private long _networkMessagesOut;
+    private readonly Dictionary<string, NetworkMessageTraffic> _networkTraffic = new();
+    private int _transitionCount;
+    private string[] _rotationScenes;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void InstallWhenRequested()
     {
         if (!TryGetArgument("--performance-audit-scene", out _)) return;
+        if (TryGetArgument("--performance-audit-role", out _))
+            SceneManager.sceneLoaded += ConfigureInitialNetworkManager;
         var root = new GameObject("PerformanceAuditBootstrap");
         DontDestroyOnLoad(root);
         root.AddComponent<PerformanceAuditBootstrap>();
+    }
+
+    private static void ConfigureInitialNetworkManager(Scene scene, LoadSceneMode mode)
+    {
+        MyNetworkManager manager = FindAnyObjectByType<MyNetworkManager>(FindObjectsInactive.Include);
+        if (manager == null) return;
+        manager.headlessStartMode = HeadlessStartOptions.DoNothing;
+        if (TryGetArgument("--performance-audit-port", out string value) && ushort.TryParse(value, out ushort port))
+        {
+            KcpTransport transport = manager.GetComponent<KcpTransport>();
+            if (transport == null) transport = manager.gameObject.AddComponent<KcpTransport>();
+            transport.Port = port;
+        }
     }
 
     private IEnumerator Start()
@@ -182,7 +259,20 @@ public sealed class PerformanceAuditBootstrap : MonoBehaviour
         _frameCount = GetIntArgument("--performance-audit-frames", 2000, 30, 10000);
         _warmupSeconds = GetFloatArgument("--performance-audit-warmup", 2f, 0f, 120f);
         _rawCapture = GetBoolArgument("--performance-audit-raw", false);
+        _role = GetOptionalArgument("--performance-audit-role", "single").ToLowerInvariant();
+        _clientIndex = GetIntArgument("--performance-audit-client-index", 0, 0, 16);
+        _expectedPlayers = GetIntArgument("--performance-audit-player-count", 1, 1, 16);
+        _port = (ushort)GetIntArgument("--performance-audit-port", 7777, 1024, 65535);
+        _measuredProcess = GetBoolArgument("--performance-audit-measured", true);
+        _transitionCount = GetIntArgument("--performance-audit-transitions", 0, 0, 100);
+        _rotationScenes = GetOptionalArgument("--performance-audit-soak-scenes", _scene)
+            .Split(',').Select(value => value.Trim()).Where(value => !string.IsNullOrEmpty(value)).ToArray();
         Directory.CreateDirectory(_outputDirectory);
+
+        NetworkDiagnostics.InMessageEvent -= OnMessageIn;
+        NetworkDiagnostics.OutMessageEvent -= OnMessageOut;
+        NetworkDiagnostics.InMessageEvent += OnMessageIn;
+        NetworkDiagnostics.OutMessageEvent += OnMessageOut;
 
         Application.runInBackground = true;
         ApplyRequestedTestSettings();
@@ -197,59 +287,11 @@ public sealed class PerformanceAuditBootstrap : MonoBehaviour
         if (!string.IsNullOrEmpty(_failure)) yield break;
 
         MyNetworkManager manager = FindAnyObjectByType<MyNetworkManager>(FindObjectsInactive.Include);
-        if (manager.GetComponent<KcpTransport>() == null)
-            manager.gameObject.AddComponent<KcpTransport>();
-        manager.StartDevHost();
-
-        yield return WaitForCondition(
-            () => NetworkServer.active && NetworkClient.localPlayer != null,
-            45f,
-            "the local KCP host/player did not become ready");
+        yield return EstablishSession(manager);
         if (!string.IsNullOrEmpty(_failure)) yield break;
 
-        if (!string.Equals(_scene, "RASCUNHO", StringComparison.OrdinalIgnoreCase))
-        {
-            manager.ServerChangeSceneSynchronized(_scene);
-            yield return WaitForCondition(
-                () => string.Equals(SceneManager.GetActiveScene().name, _scene, StringComparison.OrdinalIgnoreCase) &&
-                      NetworkClient.localPlayer != null,
-                90f,
-                $"scene '{_scene}' did not finish loading");
-            if (!string.IsNullOrEmpty(_failure)) yield break;
-
-            float briefingDeadline = Time.realtimeSinceStartup + 15f;
-            while (BriefingManager.singleton == null && Time.realtimeSinceStartup < briefingDeadline)
-                yield return null;
-
-            if (BriefingManager.singleton != null)
-            {
-                yield return WaitForCondition(
-                    () => BriefingManager.singleton != null && BriefingManager.singleton.ReadyInteractableClient,
-                    45f,
-                    "briefing acknowledgement did not enable Ready");
-                if (!string.IsNullOrEmpty(_failure)) yield break;
-
-                PlayerData playerData = NetworkClient.localPlayer.GetComponent<PlayerData>();
-                if (playerData == null)
-                {
-                    Fail("the local player has no PlayerData component");
-                    yield break;
-                }
-                playerData.ToggleReady();
-
-                yield return WaitForCondition(
-                    () => BriefingManager.singleton != null && BriefingManager.singleton.HasFinishedBriefing,
-                    45f,
-                    "the briefing did not finish after Ready");
-                if (!string.IsNullOrEmpty(_failure)) yield break;
-            }
-
-            yield return WaitForCondition(
-                () => MatchManager.singleton != null && MatchManager.singleton.MatchTimer > 0f && !MatchManager.singleton.Freeze,
-                45f,
-                "the active match timer did not start");
-            if (!string.IsNullOrEmpty(_failure)) yield break;
-        }
+        yield return ReadyForCurrentScene();
+        if (!string.IsNullOrEmpty(_failure)) yield break;
 
         ResolveMovementControls();
         _driveMovement = _controls != null;
@@ -261,7 +303,95 @@ public sealed class PerformanceAuditBootstrap : MonoBehaviour
         while (Time.realtimeSinceStartup < warmupDeadline)
             yield return null;
 
+        if (!_measuredProcess)
+        {
+            File.WriteAllText(Path.Combine(_outputDirectory, "peer-ready.txt"), DateTime.UtcNow.ToString("O"));
+            while (true) yield return new WaitForSecondsRealtime(1f);
+        }
+
+        if (_transitionCount > 0)
+        {
+            yield return RunTransitionSoak(manager);
+            yield break;
+        }
+
         yield return Capture();
+    }
+
+    private IEnumerator ReadyForCurrentScene()
+    {
+        if (string.Equals(_scene, "RASCUNHO", StringComparison.OrdinalIgnoreCase)) yield break;
+
+        float briefingDeadline = Time.realtimeSinceStartup + 15f;
+        while (BriefingManager.singleton == null && Time.realtimeSinceStartup < briefingDeadline)
+            yield return null;
+
+        if (BriefingManager.singleton != null)
+        {
+            yield return WaitForCondition(
+                () => BriefingManager.singleton != null && BriefingManager.singleton.ReadyInteractableClient,
+                45f, "briefing acknowledgement did not enable Ready");
+            if (!string.IsNullOrEmpty(_failure)) yield break;
+
+            PlayerData playerData = NetworkClient.localPlayer != null ? NetworkClient.localPlayer.GetComponent<PlayerData>() : null;
+            if (playerData == null)
+            {
+                Fail("the local player has no PlayerData component");
+                yield break;
+            }
+            playerData.ToggleReady();
+            yield return WaitForCondition(
+                () => BriefingManager.singleton != null && BriefingManager.singleton.HasFinishedBriefing,
+                45f, "the briefing did not finish after Ready");
+            if (!string.IsNullOrEmpty(_failure)) yield break;
+        }
+
+        yield return WaitForCondition(
+            () => MatchManager.singleton != null && MatchManager.singleton.MatchTimer > 0f && !MatchManager.singleton.Freeze,
+            45f, "the active match timer did not start");
+    }
+
+    private IEnumerator EstablishSession(MyNetworkManager manager)
+    {
+        KcpTransport transport = manager.GetComponent<KcpTransport>();
+        if (transport == null) transport = manager.gameObject.AddComponent<KcpTransport>();
+        transport.Port = _port;
+
+        if (_role == "single")
+        {
+            manager.StartDevHost();
+            yield return WaitForCondition(() => NetworkServer.active && NetworkClient.localPlayer != null, 45f,
+                "the local KCP host/player did not become ready");
+        }
+        else if (_role == "host")
+        {
+            manager.StartDevHost();
+            yield return WaitForCondition(() => NetworkServer.active && NetworkClient.localPlayer != null, 45f,
+                "the local KCP host/player did not become ready");
+            if (!string.IsNullOrEmpty(_failure)) yield break;
+            File.WriteAllText(Path.Combine(_outputDirectory, "network-ready.txt"), DateTime.UtcNow.ToString("O"));
+            yield return WaitForCondition(
+                () => NetworkServer.connections.Count >= _expectedPlayers,
+                60f, $"the KCP host did not admit {_expectedPlayers} player processes");
+        }
+        else if (_role == "client")
+        {
+            manager.StartDevClient("127.0.0.1");
+            yield return WaitForCondition(() => NetworkClient.isConnected && NetworkClient.localPlayer != null, 60f,
+                "the KCP client did not connect and receive a local player");
+        }
+        else
+        {
+            Fail($"unknown performance audit role '{_role}'");
+        }
+        if (!string.IsNullOrEmpty(_failure)) yield break;
+
+        if (string.Equals(_scene, "RASCUNHO", StringComparison.OrdinalIgnoreCase)) yield break;
+        if (_role == "single" || _role == "host") manager.ServerChangeSceneSynchronized(_scene);
+        yield return WaitForCondition(
+            () => string.Equals(SceneManager.GetActiveScene().name, _scene, StringComparison.OrdinalIgnoreCase) &&
+                  NetworkClient.localPlayer != null,
+            90f, $"scene '{_scene}' did not finish loading for role '{_role}'");
     }
 
     private void Update()
@@ -278,8 +408,129 @@ public sealed class PerformanceAuditBootstrap : MonoBehaviour
         _controls.Move(direction, direction);
     }
 
+    private IEnumerator RunTransitionSoak(MyNetworkManager manager)
+    {
+        if (_role != "single" || _expectedPlayers != 1)
+        {
+            Fail("transition soak currently requires the single graphical host scenario");
+            yield break;
+        }
+        if (_rotationScenes.Length == 0)
+        {
+            Fail("transition soak requires at least one rotation scene");
+            yield break;
+        }
+
+        var snapshots = new List<MemorySnapshot>(_transitionCount + 3)
+        {
+            CaptureMemorySnapshot(0, "initial-settled", _scene, 0d)
+        };
+        WriteSoakSummary(snapshots);
+
+        for (int index = 1; index <= _transitionCount; index++)
+        {
+            string nextScene = _rotationScenes[index % _rotationScenes.Length];
+            float started = Time.realtimeSinceStartup;
+            manager.ServerChangeSceneSynchronized(nextScene);
+            yield return WaitForCondition(
+                () => string.Equals(SceneManager.GetActiveScene().name, nextScene, StringComparison.OrdinalIgnoreCase) &&
+                      NetworkClient.localPlayer != null,
+                90f, $"soak transition {index} did not load scene '{nextScene}'");
+            if (!string.IsNullOrEmpty(_failure)) yield break;
+
+            _scene = nextScene;
+            yield return ReadyForCurrentScene();
+            if (!string.IsNullOrEmpty(_failure)) yield break;
+            yield return new WaitForSecondsRealtime(_warmupSeconds);
+            snapshots.Add(CaptureMemorySnapshot(index, "scene-settled", _scene,
+                Time.realtimeSinceStartup - started));
+            WriteSoakSummary(snapshots);
+        }
+
+        float lobbyStarted = Time.realtimeSinceStartup;
+        manager.ServerChangeSceneSynchronized("RASCUNHO");
+        yield return WaitForCondition(
+            () => string.Equals(SceneManager.GetActiveScene().name, "RASCUNHO", StringComparison.OrdinalIgnoreCase) &&
+                  NetworkClient.localPlayer != null,
+            90f, "soak did not return to RASCUNHO");
+        if (!string.IsNullOrEmpty(_failure)) yield break;
+        yield return new WaitForSecondsRealtime(_warmupSeconds);
+        snapshots.Add(CaptureMemorySnapshot(_transitionCount + 1, "lobby-settled", "RASCUNHO",
+            Time.realtimeSinceStartup - lobbyStarted));
+        WriteSoakSummary(snapshots);
+
+        AsyncOperation unload = Resources.UnloadUnusedAssets();
+        while (!unload.isDone) yield return null;
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        snapshots.Add(CaptureMemorySnapshot(_transitionCount + 2, "lobby-after-explicit-unload", "RASCUNHO", 0d));
+        WriteSoakSummary(snapshots);
+        string summaryPath = Path.Combine(_outputDirectory, "soak-summary.json");
+        File.WriteAllText(Path.Combine(_outputDirectory, "completed.txt"), DateTime.UtcNow.ToString("O"));
+        Debug.Log($"[PerfAudit] SOAK COMPLETE transitions={_transitionCount} summary={summaryPath}");
+        _driveMovement = false;
+        Application.Quit(0);
+    }
+
+    private void WriteSoakSummary(List<MemorySnapshot> snapshots)
+    {
+        var result = new SoakSummary
+        {
+            utc = DateTime.UtcNow.ToString("O"),
+            transitionsRequested = _transitionCount,
+            rotationScenes = _rotationScenes,
+            snapshots = snapshots.ToArray()
+        };
+        File.WriteAllText(Path.Combine(_outputDirectory, "soak-summary.json"), JsonUtility.ToJson(result, true));
+    }
+
+    private static MemorySnapshot CaptureMemorySnapshot(int transitionIndex, string phase, string scene, double loadSeconds)
+    {
+        Texture[] textures = Resources.FindObjectsOfTypeAll<Texture>();
+        Mesh[] meshes = Resources.FindObjectsOfTypeAll<Mesh>();
+        RenderTexture[] renderTextures = Resources.FindObjectsOfTypeAll<RenderTexture>();
+        Material[] materials = Resources.FindObjectsOfTypeAll<Material>();
+        long processWorkingSet = 0;
+        try { processWorkingSet = System.Diagnostics.Process.GetCurrentProcess().WorkingSet64; }
+        catch { /* best-effort process telemetry */ }
+
+        return new MemorySnapshot
+        {
+            transitionIndex = transitionIndex,
+            phase = phase,
+            scene = scene,
+            sceneLoadSeconds = loadSeconds,
+            managedMemoryBytes = GC.GetTotalMemory(false),
+            unityAllocatedMemoryBytes = Profiler.GetTotalAllocatedMemoryLong(),
+            unityReservedMemoryBytes = Profiler.GetTotalReservedMemoryLong(),
+            processWorkingSetBytes = processWorkingSet,
+            textureMemoryBytes = SumRuntimeMemory(textures.Where(texture => texture is not RenderTexture)),
+            meshMemoryBytes = SumRuntimeMemory(meshes),
+            renderTextureMemoryBytes = SumRuntimeMemory(renderTextures),
+            materialMemoryBytes = SumRuntimeMemory(materials),
+            textureCount = textures.Count(texture => texture is not RenderTexture),
+            meshCount = meshes.Length,
+            renderTextureCount = renderTextures.Length,
+            materialCount = materials.Length
+        };
+    }
+
+    private static long SumRuntimeMemory<T>(IEnumerable<T> objects) where T : UnityEngine.Object
+    {
+        long total = 0;
+        foreach (T value in objects)
+            if (value != null) total += Profiler.GetRuntimeMemorySizeLong(value);
+        return total;
+    }
+
     private IEnumerator Capture()
     {
+        _networkBytesIn = 0;
+        _networkBytesOut = 0;
+        _networkMessagesIn = 0;
+        _networkMessagesOut = 0;
+        _networkTraffic.Clear();
+
         var metrics = new List<Samples>
         {
             new Samples("frame", "ms", _frameCount, "Time.unscaledDeltaTime"),
@@ -309,6 +560,7 @@ public sealed class PerformanceAuditBootstrap : MonoBehaviour
         string rawPath = Path.Combine(_outputDirectory, $"{_scene}.raw");
         if (_rawCapture)
         {
+            Profiler.enableAllocationCallstacks = true;
             Profiler.logFile = rawPath;
             Profiler.enableBinaryLog = true;
             Profiler.enabled = true;
@@ -337,6 +589,7 @@ public sealed class PerformanceAuditBootstrap : MonoBehaviour
         {
             Profiler.enabled = false;
             Profiler.enableBinaryLog = false;
+            Profiler.enableAllocationCallstacks = false;
         }
 
         var unavailable = counters.Where(counter => !counter.Available).Select(counter => counter.CounterName).ToArray();
@@ -367,6 +620,16 @@ public sealed class PerformanceAuditBootstrap : MonoBehaviour
             warmupSeconds = _warmupSeconds,
             rawProfilerCapture = _rawCapture,
             rawProfilerPath = _rawCapture ? rawPath : string.Empty,
+            role = _role,
+            clientIndex = _clientIndex,
+            expectedPlayers = _expectedPlayers,
+            measuredProcess = _measuredProcess,
+            networkBytesIn = _networkBytesIn,
+            networkBytesOut = _networkBytesOut,
+            networkMessagesIn = _networkMessagesIn,
+            networkMessagesOut = _networkMessagesOut,
+            networkMessageTraffic = _networkTraffic.Values
+                .OrderByDescending(traffic => traffic.bytesIn + traffic.bytesOut).ToArray(),
             unavailableCounters = unavailable,
             metrics = summaries
         };
@@ -377,6 +640,41 @@ public sealed class PerformanceAuditBootstrap : MonoBehaviour
         Debug.Log($"[PerfAudit] COMPLETE scene={_scene} frames={_frameCount} summary={summaryPath}");
         _driveMovement = false;
         Application.Quit(0);
+    }
+
+    private void OnMessageIn(NetworkDiagnostics.MessageInfo info)
+    {
+        _networkMessagesIn++;
+        _networkBytesIn += info.bytes;
+        NetworkMessageTraffic traffic = GetMessageTraffic(info);
+        traffic.messagesIn++;
+        traffic.bytesIn += info.bytes;
+    }
+
+    private void OnMessageOut(NetworkDiagnostics.MessageInfo info)
+    {
+        long bytes = (long)info.bytes * info.count;
+        _networkMessagesOut += info.count;
+        _networkBytesOut += bytes;
+        NetworkMessageTraffic traffic = GetMessageTraffic(info);
+        traffic.messagesOut += info.count;
+        traffic.bytesOut += bytes;
+    }
+
+    private NetworkMessageTraffic GetMessageTraffic(NetworkDiagnostics.MessageInfo info)
+    {
+        string messageType = info.message.GetType().FullName ?? info.message.GetType().Name;
+        if (_networkTraffic.TryGetValue(messageType, out NetworkMessageTraffic traffic)) return traffic;
+        traffic = new NetworkMessageTraffic { messageType = messageType };
+        _networkTraffic.Add(messageType, traffic);
+        return traffic;
+    }
+
+    private void OnDestroy()
+    {
+        NetworkDiagnostics.InMessageEvent -= OnMessageIn;
+        NetworkDiagnostics.OutMessageEvent -= OnMessageOut;
+        SceneManager.sceneLoaded -= ConfigureInitialNetworkManager;
     }
 
     private void ResolveMovementControls()

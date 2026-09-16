@@ -56,11 +56,8 @@ public class SettingsGraphics : MonoBehaviour
         
 
         ForceToggleOn(KEY_TESSELL, tessellationToggle, on => Shader.SetGlobalFloat("_TessellationEnabled", on ? 1f : 0f));
-        //ForceToggleOn(KEY_BLOOM, bloomToggle, on => bloomOverride.active = on);
-        if (motionBlurOverride != null)
-            ForceToggleOn(KEY_MBLUR, motionBlurToggle, on => motionBlurOverride.active = on);
-        else if (motionBlurToggle != null)
-            motionBlurToggle.interactable = false;
+        BindVolumeToggle(KEY_BLOOM, bloomToggle, bloomOverride);
+        BindVolumeToggle(KEY_MBLUR, motionBlurToggle, motionBlurOverride);
     }
 
     void InitSelector(HorizontalSelector sel, string key, Action<int> apply, int defaultIdx)
@@ -84,6 +81,18 @@ public class SettingsGraphics : MonoBehaviour
             toggle,
             apply
         );
+    }
+
+    void BindVolumeToggle(string key, Toggle toggle, VolumeComponent component)
+    {
+        if (toggle == null) return;
+        if (component == null)
+        {
+            toggle.interactable = false;
+            return;
+        }
+
+        ForceToggleOn(key, toggle, on => component.active = on);
     }
     void ApplyTextureQuality(int idx)
     {
